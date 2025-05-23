@@ -7,8 +7,6 @@ Tests your Flask endpoint directly to simulate real playback requests
 import requests
 import time
 import sys
-import json
-from urllib.parse import urljoin
 
 def test_flask_endpoint(host, port, video_id, endpoint_type="direct"):
     """Test your Flask endpoint directly"""
@@ -250,6 +248,7 @@ def simulate_player_requests(host, port, video_id):
         return False
 
 def main():
+    global status
     if len(sys.argv) < 4:
         print("Usage: python flask_endpoint_test.py <host> <port> <video_id> [test_type]")
         print("Examples:")

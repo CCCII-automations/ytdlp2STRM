@@ -7,12 +7,8 @@ Tests the entire playback chain step by step
 import subprocess
 import json
 import requests
-import time
 import sys
 import os
-import re
-from urllib.parse import urlparse
-from pathlib import Path
 
 def test_basic_connectivity():
     """Test basic internet and YouTube connectivity"""

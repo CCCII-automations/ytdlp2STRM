@@ -20,6 +20,9 @@ from clases.log import log as l
 
 from sanitize_filename import sanitize
 from flask import stream_with_context, Response, send_file, redirect, abort, request
+from pathlib import Path
+import pwd
+import grp
 
 # Caches
 recent_requests = TTLCache(maxsize=500, ttl=60)
@@ -50,6 +53,13 @@ host             = ytdlp2strm_cfg['ytdlp2strm_host']
 port             = ytdlp2strm_cfg['ytdlp2strm_port']
 if os.environ.get('AM_I_IN_A_DOCKER_CONTAINER'):
     port = os.environ.get('DOCKER_PORT', port)
+
+media_folder.mkdir(parents=True, exist_ok=True)
+# Get UID and GID of the current user
+uid = os.getuid()
+gid = os.getgid()
+os.chown(media_folder, uid, gid)
+os.chmod(media_folder, 0o2775)
 
 def enhanced_log(level: str, message: str, details: Optional[Dict]=None):
     """Structured logging with levels"""
