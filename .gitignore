@@ -14,7 +14,7 @@ config.json
 crons.json
 downloaded_files/*
 .venv/
-*.pyc
-__pycache__/
-*.log
-*.txt
+.env
+*.db
+.DS_Store
+*.zip
