@@ -13,3 +13,8 @@ channel_list.json
 config.json
 crons.json
 downloaded_files/*
+.venv/
+.env
+*.db
+.DS_Store
+*.zip
