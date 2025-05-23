@@ -54,7 +54,7 @@ port             = ytdlp2strm_cfg['ytdlp2strm_port']
 if os.environ.get('AM_I_IN_A_DOCKER_CONTAINER'):
     port = os.environ.get('DOCKER_PORT', port)
 
-media_folder.mkdir(parents=True, exist_ok=True)
+Path(media_folder).mkdir(parents=True, exist_ok=True)
 # Get UID and GID of the current user
 uid = os.getuid()
 gid = os.getgid()

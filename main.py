@@ -22,7 +22,7 @@ def run_flask_app(stop_event, port):
                 func()
     
     try:
-        app.run(host='0.0.0.0', port=port, debug=False, use_reloader=False)
+        app.run(host='0.0.0.0', port=port, debug=True, use_reloader=False)
     except Exception as e:
         log_text = (f"Exception in Flask app: {e}")
         l.log("main", log_text)
