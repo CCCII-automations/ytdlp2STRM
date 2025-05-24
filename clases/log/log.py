@@ -26,23 +26,33 @@ if ENUM_AVAILABLE:
         CRITICAL = ("CRITICAL", "\033[35m")  # Magenta
         UI = ("UI", "\033[0m")  # No color
 else:
-    # Fallback class that mimics Enum behavior
+    # Fallback class that mimics Enum behavior with proper attribute access
+    class LogLevelValue:
+        def __init__(self, name, color):
+            self.value = (name, color)
+            self.name = name
+
+        def __str__(self):
+            return self.name
+
+
     class LogLevel:
-        DEBUG = "DEBUG"
-        INFO = "INFO"
-        WARNING = "WARNING"
-        ERROR = "ERROR"
-        CRITICAL = "CRITICAL"
-        UI = "UI"
+        DEBUG = LogLevelValue("DEBUG", "\033[36m")
+        INFO = LogLevelValue("INFO", "\033[32m")
+        WARNING = LogLevelValue("WARNING", "\033[33m")
+        ERROR = LogLevelValue("ERROR", "\033[31m")
+        CRITICAL = LogLevelValue("CRITICAL", "\033[35m")
+        UI = LogLevelValue("UI", "\033[0m")
 
 
 class Logger:
     def __init__(self, log_file: str = 'ytdlp2strm.log', max_days: int = 7,
-                 enable_colors: bool = True, min_level: LogLevel = LogLevel.DEBUG):
+                 enable_colors: bool = True, min_level: LogLevel = None):
         self.log_file = log_file
         self.max_days = max_days
         self.enable_colors = enable_colors
-        self.min_level = min_level
+        # Set default min_level if not provided
+        self.min_level = min_level if min_level is not None else LogLevel.DEBUG
         self.cleanup_file = 'log_cleanup.txt'
         self._setup_cleanup()
 
@@ -54,8 +64,14 @@ class Logger:
         if level == LogLevel.UI:
             return text.strip()
 
-        # Handle both Enum and string level values
-        level_str = level.value[0] if ENUM_AVAILABLE and hasattr(level, 'value') else str(level)
+        # Handle both Enum and LogLevelValue
+        if ENUM_AVAILABLE and hasattr(level, 'value'):
+            level_str = level.value[0]
+        elif hasattr(level, 'value'):
+            level_str = level.value[0]
+        else:
+            level_str = str(level)
+
         base_msg = f'[{timestamp}] [{level_str}] {author}: {text.strip()}'
 
         if extra_data:
@@ -69,8 +85,10 @@ class Logger:
         if not self.enable_colors:
             return message
 
-        # Handle both Enum and string level values
+        # Handle both Enum and LogLevelValue
         if ENUM_AVAILABLE and hasattr(level, 'value'):
+            color = level.value[1]
+        elif hasattr(level, 'value'):
             color = level.value[1]
         else:
             # Fallback colors for string levels
@@ -99,7 +117,13 @@ class Logger:
     def _emit_socketio(self, message: str, level: LogLevel):
         """Emit message via SocketIO if available"""
         try:
-            level_str = level.value[0] if ENUM_AVAILABLE and hasattr(level, 'value') else str(level)
+            if ENUM_AVAILABLE and hasattr(level, 'value'):
+                level_str = level.value[0]
+            elif hasattr(level, 'value'):
+                level_str = level.value[0]
+            else:
+                level_str = str(level)
+
             emit('command_output', {
                 'message': message,
                 'level': level_str,
@@ -111,6 +135,7 @@ class Logger:
     def _write_to_file(self, message: str):
         """Write message to log file"""
         try:
+            os.makedirs(os.path.dirname(self.log_file), exist_ok=True)
             with open(self.log_file, 'a', encoding='utf-8') as f:
                 f.write(message + '\n')
         except Exception as e:
@@ -138,20 +163,20 @@ class Logger:
             self._emit_socketio(message, level)
 
     # Convenience methods
-    def debug(self, author: str, text: str, **kwargs):
-        self.log(LogLevel.DEBUG, author, text, **kwargs)
+    def debug(self, author: str, text: str, extra_data: Optional[Dict[str, Any]] = None, **kwargs):
+        self.log(LogLevel.DEBUG, author, text, extra_data, **kwargs)
 
-    def info(self, author: str, text: str, **kwargs):
-        self.log(LogLevel.INFO, author, text, **kwargs)
+    def info(self, author: str, text: str, extra_data: Optional[Dict[str, Any]] = None, **kwargs):
+        self.log(LogLevel.INFO, author, text, extra_data, **kwargs)
 
-    def warning(self, author: str, text: str, **kwargs):
-        self.log(LogLevel.WARNING, author, text, **kwargs)
+    def warning(self, author: str, text: str, extra_data: Optional[Dict[str, Any]] = None, **kwargs):
+        self.log(LogLevel.WARNING, author, text, extra_data, **kwargs)
 
-    def error(self, author: str, text: str, **kwargs):
-        self.log(LogLevel.ERROR, author, text, **kwargs)
+    def error(self, author: str, text: str, extra_data: Optional[Dict[str, Any]] = None, **kwargs):
+        self.log(LogLevel.ERROR, author, text, extra_data, **kwargs)
 
-    def critical(self, author: str, text: str, **kwargs):
-        self.log(LogLevel.CRITICAL, author, text, **kwargs)
+    def critical(self, author: str, text: str, extra_data: Optional[Dict[str, Any]] = None, **kwargs):
+        self.log(LogLevel.CRITICAL, author, text, extra_data, **kwargs)
 
     def ui(self, text: str, **kwargs):
         self.log(LogLevel.UI, "UI", text, emit_socket=kwargs.get('emit_socket', True))
@@ -245,6 +270,7 @@ class Logger:
     def _update_cleanup_date(self):
         """Update the last cleanup date"""
         try:
+            os.makedirs(os.path.dirname(self.cleanup_file), exist_ok=True)
             with open(self.cleanup_file, 'w', encoding='utf-8') as f:
                 f.write(datetime.now().date().isoformat())
         except Exception as e:
@@ -252,10 +278,13 @@ class Logger:
 
 
 # Backward compatibility - create a function that mimics the old class behavior
-def log(author: str, text: str, level: LogLevel = LogLevel.INFO):
+def log(author: str, text: str, level: LogLevel = None):
     """Backward compatible logging function"""
     if not hasattr(log, '_logger'):
         log._logger = Logger()
+
+    if level is None:
+        level = LogLevel.INFO
 
     if author == 'ui':
         log._logger.ui(text)
