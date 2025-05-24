@@ -1,6 +1,5 @@
 import os
 import json
-import sys
 import time
 import platform
 import subprocess
@@ -21,36 +20,34 @@ try:
     from clases.nfo import nfo as n
     from clases.log import Logger, LogLevel
 except ImportError as e:
+    print(f"Warning: Could not import clases modules: {e}")
     if __name__ == "__main__":
-        print(f"Warning: Could not import clases modules: {e}")
         print("Some functionality may be limited in standalone mode.")
 
 
-        # Create minimal fallbacks for standalone mode
-        class Logger:
-            def __init__(self, *args, **kwargs):
-                pass
+    # Create minimal fallbacks for both standalone and import mode
+    class Logger:
+        def __init__(self, *args, **kwargs):
+            self.min_level = kwargs.get('min_level', 'INFO')
 
-            def debug(self, author, msg, **kwargs):
-                print(f"[DEBUG] {author}: {msg}")
+        def debug(self, author, msg, **kwargs):
+            print(f"[DEBUG] {author}: {msg}")
 
-            def info(self, author, msg, **kwargs):
-                print(f"[INFO] {author}: {msg}")
+        def info(self, author, msg, **kwargs):
+            print(f"[INFO] {author}: {msg}")
 
-            def warning(self, author, msg, **kwargs):
-                print(f"[WARNING] {author}: {msg}")
+        def warning(self, author, msg, **kwargs):
+            print(f"[WARNING] {author}: {msg}")
 
-            def error(self, author, msg, **kwargs):
-                print(f"[ERROR] {author}: {msg}")
+        def error(self, author, msg, **kwargs):
+            print(f"[ERROR] {author}: {msg}")
 
 
-        class LogLevel:
-            DEBUG = "DEBUG"
-            INFO = "INFO"
-            WARNING = "WARNING"
-            ERROR = "ERROR"
-    else:
-        raise
+    class LogLevel:
+        DEBUG = "DEBUG"
+        INFO = "INFO"
+        WARNING = "WARNING"
+        ERROR = "ERROR"
 
 try:
     from sanitize_filename import sanitize
