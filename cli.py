@@ -21,22 +21,42 @@ except (ImportError, AttributeError) as e:
             def __init__(self, *args, **kwargs):
                 self.min_level = kwargs.get('min_level', 'DEBUG')
 
-            def debug(self, author, msg, **kwargs):
-                print(f"[DEBUG] {author}: {msg}")
+            def debug(self, author, msg, *args, **kwargs):
+                extra_data = kwargs.get('extra_data', {})
+                if extra_data:
+                    print(f"[DEBUG] {author}: {msg} | {extra_data}")
+                else:
+                    print(f"[DEBUG] {author}: {msg}")
 
-            def info(self, author, msg, **kwargs):
-                print(f"[INFO] {author}: {msg}")
+            def info(self, author, msg, *args, **kwargs):
+                extra_data = kwargs.get('extra_data', {})
+                if extra_data:
+                    print(f"[INFO] {author}: {msg} | {extra_data}")
+                else:
+                    print(f"[INFO] {author}: {msg}")
 
-            def warning(self, author, msg, **kwargs):
-                print(f"[WARNING] {author}: {msg}")
+            def warning(self, author, msg, *args, **kwargs):
+                extra_data = kwargs.get('extra_data', {})
+                if extra_data:
+                    print(f"[WARNING] {author}: {msg} | {extra_data}")
+                else:
+                    print(f"[WARNING] {author}: {msg}")
 
-            def error(self, author, msg, **kwargs):
-                print(f"[ERROR] {author}: {msg}")
+            def error(self, author, msg, *args, **kwargs):
+                extra_data = kwargs.get('extra_data', {})
+                if extra_data:
+                    print(f"[ERROR] {author}: {msg} | {extra_data}")
+                else:
+                    print(f"[ERROR] {author}: {msg}")
 
-            def critical(self, author, msg, **kwargs):
-                print(f"[CRITICAL] {author}: {msg}")
+            def critical(self, author, msg, *args, **kwargs):
+                extra_data = kwargs.get('extra_data', {})
+                if extra_data:
+                    print(f"[CRITICAL] {author}: {msg} | {extra_data}")
+                else:
+                    print(f"[CRITICAL] {author}: {msg}")
 
-            def ui(self, text, **kwargs):
+            def ui(self, text, *args, **kwargs):
                 print(text)
 
 
@@ -75,22 +95,42 @@ except Exception as e:
 
     # Create minimal logger
     class MinimalLogger:
-        def debug(self, author, msg, **kwargs):
-            print(f"[DEBUG] {author}: {msg}")
+        def debug(self, author, msg, *args, **kwargs):
+            extra_data = kwargs.get('extra_data', {})
+            if extra_data:
+                print(f"[DEBUG] {author}: {msg} | {extra_data}")
+            else:
+                print(f"[DEBUG] {author}: {msg}")
 
-        def info(self, author, msg, **kwargs):
-            print(f"[INFO] {author}: {msg}")
+        def info(self, author, msg, *args, **kwargs):
+            extra_data = kwargs.get('extra_data', {})
+            if extra_data:
+                print(f"[INFO] {author}: {msg} | {extra_data}")
+            else:
+                print(f"[INFO] {author}: {msg}")
 
-        def warning(self, author, msg, **kwargs):
-            print(f"[WARNING] {author}: {msg}")
+        def warning(self, author, msg, *args, **kwargs):
+            extra_data = kwargs.get('extra_data', {})
+            if extra_data:
+                print(f"[WARNING] {author}: {msg} | {extra_data}")
+            else:
+                print(f"[WARNING] {author}: {msg}")
 
-        def error(self, author, msg, **kwargs):
-            print(f"[ERROR] {author}: {msg}")
+        def error(self, author, msg, *args, **kwargs):
+            extra_data = kwargs.get('extra_data', {})
+            if extra_data:
+                print(f"[ERROR] {author}: {msg} | {extra_data}")
+            else:
+                print(f"[ERROR] {author}: {msg}")
 
-        def critical(self, author, msg, **kwargs):
-            print(f"[CRITICAL] {author}: {msg}")
+        def critical(self, author, msg, *args, **kwargs):
+            extra_data = kwargs.get('extra_data', {})
+            if extra_data:
+                print(f"[CRITICAL] {author}: {msg} | {extra_data}")
+            else:
+                print(f"[CRITICAL] {author}: {msg}")
 
-        def ui(self, text, **kwargs):
+        def ui(self, text, *args, **kwargs):
             print(text)
 
 
