@@ -3,12 +3,18 @@ import time
 import logging
 from threading import Thread, Event
 from flask import Flask, request
+from flask_socketio import SocketIO
+
 app = Flask(__name__, template_folder='ui/html', static_folder='ui/static', static_url_path='')
+# Initialize SocketIO
+socketio = SocketIO(app, cors_allowed_origins="*", async_mode='threading')
+
 from clases.config import config as c
 from clases.folders import folders as f
 from clases.log import log as l
 from clases.cron import cron as cron
 import config.routes
+
 
 def run_flask_app(stop_event, port):
     @app.before_request
@@ -20,9 +26,10 @@ def run_flask_app(stop_event, port):
             func = request.environ.get('werkzeug.server.shutdown')
             if func:
                 func()
-    
+
     try:
-        app.run(host='0.0.0.0', port=port, debug=True, use_reloader=False)
+        # Use socketio.run instead of app.run
+        socketio.run(app, host='0.0.0.0', port=port, debug=True, use_reloader=False)
     except Exception as e:
         log_text = (f"Exception in Flask app: {e}")
         l.log("main", log_text)
@@ -30,15 +37,17 @@ def run_flask_app(stop_event, port):
     log_text = ("Flask app stopped.")
     l.log("main", log_text)
 
+
 def signal_handler(sig, frame):
     log_text = ('Signal received, terminating threads...')
     l.log("main", log_text)
 
     stop_event.set()
-    
+
     log_text = ('Threads and process terminated.')
     l.log("main", log_text)
     exit(0)  # Using exit to ensure immediate termination
+
 
 if __name__ == "__main__":
     ytdlp2strm_config = c.config('./config/config.json').get_config()
