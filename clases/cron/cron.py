@@ -12,7 +12,7 @@ import os
 import hashlib
 
 # -- LOAD CONFIG AND CHANNELS FILES
-config_path = c.config('config/crons.json').get_config()
+config_path = 'config/crons.json'
 
 def calculate_hash(file_path):
     """Calcula el hash SHA-256 del archivo especificado."""
