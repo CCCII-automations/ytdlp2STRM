@@ -3,21 +3,37 @@ import sys
 import io
 import json
 from datetime import datetime, timedelta
-from enum import Enum
 from typing import Optional, Dict, Any
 from flask_socketio import emit
 
 # Set UTF-8 encoding for stdout
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', line_buffering=True)
 
+# Try to import Enum, with fallback
+try:
+    from enum import Enum
 
-class LogLevel(Enum):
-    DEBUG = ("DEBUG", "\033[36m")  # Cyan
-    INFO = ("INFO", "\033[32m")  # Green
-    WARNING = ("WARNING", "\033[33m")  # Yellow
-    ERROR = ("ERROR", "\033[31m")  # Red
-    CRITICAL = ("CRITICAL", "\033[35m")  # Magenta
-    UI = ("UI", "\033[0m")  # No color
+    ENUM_AVAILABLE = True
+except ImportError:
+    ENUM_AVAILABLE = False
+
+if ENUM_AVAILABLE:
+    class LogLevel(Enum):
+        DEBUG = ("DEBUG", "\033[36m")  # Cyan
+        INFO = ("INFO", "\033[32m")  # Green
+        WARNING = ("WARNING", "\033[33m")  # Yellow
+        ERROR = ("ERROR", "\033[31m")  # Red
+        CRITICAL = ("CRITICAL", "\033[35m")  # Magenta
+        UI = ("UI", "\033[0m")  # No color
+else:
+    # Fallback class that mimics Enum behavior
+    class LogLevel:
+        DEBUG = "DEBUG"
+        INFO = "INFO"
+        WARNING = "WARNING"
+        ERROR = "ERROR"
+        CRITICAL = "CRITICAL"
+        UI = "UI"
 
 
 class Logger:
@@ -38,7 +54,9 @@ class Logger:
         if level == LogLevel.UI:
             return text.strip()
 
-        base_msg = f'[{timestamp}] [{level.value[0]}] {author}: {text.strip()}'
+        # Handle both Enum and string level values
+        level_str = level.value[0] if ENUM_AVAILABLE and hasattr(level, 'value') else str(level)
+        base_msg = f'[{timestamp}] [{level_str}] {author}: {text.strip()}'
 
         if extra_data:
             extra_str = json.dumps(extra_data, separators=(',', ':'))
@@ -50,20 +68,41 @@ class Logger:
         """Add colors to console output"""
         if not self.enable_colors:
             return message
-        return f"{level.value[1]}{message}\033[0m"
+
+        # Handle both Enum and string level values
+        if ENUM_AVAILABLE and hasattr(level, 'value'):
+            color = level.value[1]
+        else:
+            # Fallback colors for string levels
+            color_map = {
+                'DEBUG': '\033[36m',
+                'INFO': '\033[32m',
+                'WARNING': '\033[33m',
+                'ERROR': '\033[31m',
+                'CRITICAL': '\033[35m',
+                'UI': '\033[0m'
+            }
+            color = color_map.get(str(level), '\033[0m')
+
+        return f"{color}{message}\033[0m"
 
     def _should_log(self, level: LogLevel) -> bool:
         """Check if message should be logged based on minimum level"""
         level_order = [LogLevel.DEBUG, LogLevel.INFO, LogLevel.WARNING,
                        LogLevel.ERROR, LogLevel.CRITICAL, LogLevel.UI]
-        return level_order.index(level) >= level_order.index(self.min_level)
+        try:
+            return level_order.index(level) >= level_order.index(self.min_level)
+        except ValueError:
+            # If comparison fails, always log
+            return True
 
     def _emit_socketio(self, message: str, level: LogLevel):
         """Emit message via SocketIO if available"""
         try:
+            level_str = level.value[0] if ENUM_AVAILABLE and hasattr(level, 'value') else str(level)
             emit('command_output', {
                 'message': message,
-                'level': level.value[0],
+                'level': level_str,
                 'timestamp': datetime.now().isoformat()
             })
         except Exception:
