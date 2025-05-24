@@ -13,7 +13,7 @@ preload_lock = threading.Lock()
 is_preloading = False
 
 
-class worker:
+class Worker:
     def __init__(self, command):
         self.command = command
         self.wd =  os.path.abspath('.')

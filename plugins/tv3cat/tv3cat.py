@@ -119,7 +119,7 @@ def to_strm(method):
         tv3 = tv3cat(tv3cat_channel)
         if tv3.episodes:
             # -- MAKES CHANNEL DIR (AND SUBDIRS) IF NOT EXIST, REMOVE ALL STRM IF KEEP_OLDER_STRM IS SETTED TO FALSE IN GENERAL CONFIG
-            f.folders().make_clean_folder(
+            f.Folders().make_clean_folder(
                 "{}/{}".format(
                     media_folder,  
                     sanitize(
@@ -159,7 +159,7 @@ def to_strm(method):
                     "strm"
                 )
 
-                f.folders().make_clean_folder(
+                f.Folders().make_clean_folder(
                     "{}/{}/{}".format(
                         media_folder,  
                         sanitize(
@@ -177,7 +177,7 @@ def to_strm(method):
                     config
                 )
 
-                f.folders().write_file(
+                f.Folders().write_file(
                     file_path, 
                     file_content
                 )

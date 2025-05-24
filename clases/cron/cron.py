@@ -1,5 +1,4 @@
 import schedule
-import time
 from cli import main as main_cli
 from clases.config import config as c
 from clases.log import log as l
@@ -13,7 +12,7 @@ import os
 import hashlib
 
 # -- LOAD CONFIG AND CHANNELS FILES
-config_path = os.path.abspath('./config/crons.json')
+config_path = c.config('config/crons.json').get_config()
 
 def calculate_hash(file_path):
     """Calcula el hash SHA-256 del archivo especificado."""

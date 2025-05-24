@@ -32,7 +32,7 @@ class nfo:
         nfo_content = template.format(**self.nfo_data)
 
         # Crear el archivo NFO
-        f.folders().write_file_spaces(
+        f.Folders().write_file_spaces(
             f"{self.nfo_path}/{nfo_filename}", 
             nfo_content  # No uses nfo_content.strip()
         )

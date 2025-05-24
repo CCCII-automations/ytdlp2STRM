@@ -236,7 +236,7 @@ async def get_data():
                 sanitize(video_name), 
                 "strm"
             )
-            f.folders().make_clean_folder(
+            f.Folders().make_clean_folder(
                 "{}/{}/{}".format(
                     media_folder,  
                     sanitize(
@@ -255,7 +255,7 @@ async def get_data():
             )
 
             if not os.path.isfile(file_path):
-                f.folders().write_file(
+                f.Folders().write_file(
                     file_path, 
                     file_content
                 )

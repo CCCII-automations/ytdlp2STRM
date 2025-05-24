@@ -74,7 +74,7 @@ def to_strm(method):
              .text
         )
 
-        f.folders().make_clean_folder(
+        f.Folders().make_clean_folder(
             "{}/{}/{}/{}".format(
                 media_folder, 
                 "Pokemon",
@@ -126,7 +126,7 @@ def to_strm(method):
                 )
             )
 
-            f.folders().make_clean_folder(
+            f.Folders().make_clean_folder(
                 "{}/{}/{}/{}".format(
                     media_folder, 
                     "Pokemon",
@@ -169,7 +169,7 @@ def to_strm(method):
 
 
             if not os.path.isfile(file_path):
-                f.folders().write_file(file_path, file_content)
+                f.Folders().write_file(file_path, file_content)
 
                 
 def direct(pokemon_tv_id): #Sponsorblock doesn't work in this mode

@@ -213,7 +213,7 @@ class Youtube:
     def _exec(self, cmd: List[str], shell: bool=False, timeout: int=REQUEST_TIMEOUT) -> str:
         enhanced_log("DEBUG", "Executing command", {"cmd": " ".join(cmd)})
         try:
-            result = w.worker(cmd).shell() if shell else w.worker(cmd).output()
+            result = w.Worker(cmd).shell() if shell else w.Worker(cmd).output()
             enhanced_log("DEBUG", "Command output size", {"chars": len(result)})
             return result
         except Exception as e:
@@ -483,7 +483,7 @@ def process_channel_videos(data):
                 continue
             with file_lock:
                 if not chan_folder:
-                    f.folders().make_clean_folder(folder, False, ytdlp2strm_cfg)
+                    f.Folders().make_clean_folder(folder, False, ytdlp2strm_cfg)
                     chan_folder = True
             if yt.channel_url:
                 ch_land, ch_post, ch_desc = yt.channel_landscape, yt.channel_poster, yt.channel_description
@@ -511,7 +511,7 @@ def process_channel_videos(data):
             }).make_nfo()
             if not os.path.isfile(path):
                 with file_lock:
-                    f.folders().write_file(path, content)
+                    f.Folders().write_file(path, content)
                 proc_count += 1
         except Exception as e:
             enhanced_log("ERROR","Video processing error",{"video":vid.get('id'),"error":str(e)})
@@ -561,7 +561,7 @@ def direct(youtube_id: str, remote_addr: str):
         )
         enhanced_log("DEBUG","Fetching manifest info",{"cmd":" ".join(cmd)})
         try:
-            info = json.loads(w.worker(cmd).output())
+            info = json.loads(w.Worker(cmd).output())
             m3u8 = next((f["manifest_url"] for f in info.get("formats",[]) if "manifest_url" in f), None)
             if not m3u8:
                 enhanced_log("WARNING","No manifest, fallback SD")
@@ -569,7 +569,7 @@ def direct(youtube_id: str, remote_addr: str):
                     f'https://www.youtube.com/watch?v={youtube_id}',
                     'best'
                 )
-                sd_url = w.worker(cmd).output().strip()
+                sd_url = w.Worker(cmd).output().strip()
                 return redirect(sd_url,301)
             resp = requests.get(m3u8, timeout=REQUEST_TIMEOUT)
             if resp.status_code==200:
@@ -591,7 +591,7 @@ def direct(youtube_id: str, remote_addr: str):
         )
         enhanced_log("DEBUG","Fetching audio URL",{"cmd":" ".join(cmd)})
         try:
-            url = w.worker(cmd).output().strip()
+            url = w.Worker(cmd).output().strip()
             enhanced_log("INFO","Redirect to audio URL",{"url":url})
             return redirect(url,301)
         except Exception as e:
@@ -664,14 +664,14 @@ def download(youtube_id: str):
     enhanced_log("DEBUG","Download cmd",{"cmd":" ".join(cmd)})
     
     try:
-        w.worker(cmd).call()
+        w.Worker(cmd).call()
         
         # Get filename
         fn_cmd = cmd_builder.build_metadata_extraction(
             f'https://www.youtube.com/watch?v={s_id}',
             'filename'
         )
-        fname = w.worker(fn_cmd).output().strip()
+        fname = w.Worker(fn_cmd).output().strip()
         path = os.path.join(temp, fname)
         enhanced_log("INFO","Download complete",{"file":path})
         return send_file(path)

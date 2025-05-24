@@ -1,26 +1,24 @@
 import os
-import glob
 import time
 import platform
 from clases.config import config as c
 from clases.log import log as l
-import threading
+from pathlib import Path
+YTDLP2STRM_CONFIG = c.config('config/config.json').get_config()
 
-class folders:
-    ytdlp2strm_config = c.config('./config/config.json').get_config()
-
-    keep_downloaded = 86400
-    temp_aria2_ffmpeg_files = 600
-    if 'ytdlp2strm_temp_file_duration' in ytdlp2strm_config:
-        keep_downloaded = int(ytdlp2strm_config['ytdlp2strm_temp_file_duration'])
-
-class folders:
-    ytdlp2strm_config = c.config('./config/config.json').get_config()
+class Folders:
 
     keep_downloaded = 86400
     temp_aria2_ffmpeg_files = 600
-    if 'ytdlp2strm_temp_file_duration' in ytdlp2strm_config:
-        keep_downloaded = int(ytdlp2strm_config['ytdlp2strm_temp_file_duration'])
+    if 'ytdlp2strm_temp_file_duration' in YTDLP2STRM_CONFIG:
+        keep_downloaded = int(YTDLP2STRM_CONFIG['ytdlp2strm_temp_file_duration'])
+
+class folders:
+
+    keep_downloaded = 86400
+    temp_aria2_ffmpeg_files = 600
+    if 'ytdlp2strm_temp_file_duration' in YTDLP2STRM_CONFIG:
+        keep_downloaded = int(YTDLP2STRM_CONFIG['ytdlp2strm_temp_file_duration'])
 
     def make_clean_folder(self, folder_path, forceclean, config):
         if os.path.exists(folder_path):

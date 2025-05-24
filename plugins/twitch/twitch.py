@@ -39,7 +39,7 @@ class Twitch:
             '--no-warnings'
         ]
 
-        channel_name = w.worker(
+        channel_name = w.Worker(
             command
         ).output()
         
@@ -63,7 +63,7 @@ class Twitch:
         ]
 
         return [
-            w.worker(
+            w.Worker(
                 command
             ).output()
         ]
@@ -126,7 +126,7 @@ class Twitch:
         ]
         #The madness begins... 
         #No comments between lines, smoke a joint if you want understand it
-        lines = w.worker(
+        lines = w.Worker(
             command
         ).output().split('\n')
         headers = []
@@ -187,7 +187,7 @@ class Twitch:
                 "videos"
             )
         ]
-        return w.worker(
+        return w.Worker(
             command
         ).output().split('\n')
 ## -- END
@@ -242,7 +242,7 @@ def to_strm(method):
         twitch = Twitch(twitch_channel)
 
         # -- MAKES CHANNEL DIR IF NOT EXIST,
-        f.folders().make_clean_folder(
+        f.Folders().make_clean_folder(
             "{}/{}".format(
                 media_folder,  
                 sanitize(
@@ -256,7 +256,7 @@ def to_strm(method):
         )
         ## -- END
         # -- MAKES CHANNEL DIR IF NOT EXIST,
-        f.folders().make_clean_folder(
+        f.Folders().make_clean_folder(
             "{}/{}".format(
                 media_folder,  
                 sanitize(
@@ -346,7 +346,7 @@ def to_strm(method):
                     }
 
                     if not os.path.isfile(file_path):
-                        f.folders().write_file(
+                        f.Folders().write_file(
                             file_path, 
                             file_content
                         )
@@ -482,7 +482,7 @@ def to_strm(method):
                     ## -- END 
 
                     if not os.path.isfile(file_path):
-                        f.folders().write_file(
+                        f.Folders().write_file(
                             file_path, 
                             file_content
                         )
@@ -512,10 +512,10 @@ def direct(twitch_id, remote_addr):
         '--get-url'
     ]
 
-    twitch_url = w.worker(command).output()
+    twitch_url = w.Worker(command).output()
 
     if 'ERROR' in twitch_url or not twitch_url:
-        twitch_url = w.worker(
+        twitch_url = w.Worker(
             [
                 'yt-dlp', 
                 '-f', 'best',
@@ -526,7 +526,7 @@ def direct(twitch_id, remote_addr):
         ).output()
 
         if 'ERROR' in twitch_url or not twitch_url:
-            twitch_url = w.worker(
+            twitch_url = w.Worker(
                 [
                     'yt-dlp', 
                     '-f', 'best',
@@ -546,7 +546,7 @@ def bridge(twitch_id):
     turl = 'https://www.twitch.tv/videos/{}'.format(
         video_id
     )
-    twitch_url = w.worker(
+    twitch_url = w.Worker(
         [
             'yt-dlp', 
             '-f', 'best',
@@ -565,7 +565,7 @@ def bridge(twitch_id):
             )
         )
 
-        twitch_url = w.worker(
+        twitch_url = w.Worker(
             [
                 'yt-dlp', 
                 '-f', 'best',
@@ -581,7 +581,7 @@ def bridge(twitch_id):
                 channel          
             )
 
-            twitch_url = w.worker(
+            twitch_url = w.Worker(
                 [
                     'yt-dlp', 
                     '-f', 'best',
@@ -608,7 +608,7 @@ def bridge(twitch_id):
             turl
         ]
 
-        process = w.worker(command).pipe()
+        process = w.Worker(command).pipe()
         try:
             while True:
                 # Get some data from ffmpeg

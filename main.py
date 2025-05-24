@@ -54,7 +54,7 @@ if __name__ == "__main__":
     l.log("main", log_text)
 
     # Crear una instancia de Folders y un hilo para clean_old_videos
-    folders_instance = f.folders()
+    folders_instance = f.Folders()
     thread_clean_old_videos = Thread(target=folders_instance.clean_old_videos, args=(stop_event,))
     thread_clean_old_videos.daemon = True  # Set the thread as daemon
     thread_clean_old_videos.start()

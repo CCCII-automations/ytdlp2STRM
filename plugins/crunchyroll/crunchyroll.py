@@ -48,13 +48,13 @@ class Crunchyroll:
         self.set_auth(command)
         self.set_proxy(command)
         self.set_start_episode(command)
-        return w.worker(command).pipe() 
+        return w.Worker(command).pipe()
 
     def get_start_episode(self):
         last_episode = 0
         if not os.path.isfile(self.last_episode_file):
             self.new_content = True
-            f.folders().write_file(self.last_episode_file, "0")
+            f.Folders().write_file(self.last_episode_file, "0")
         else:
             with open(self.last_episode_file) as fl:
                 last_episode = fl.readlines()
@@ -77,13 +77,13 @@ class Crunchyroll:
 
     def set_last_episode(self, playlist_count):
         if self.new_content:
-            f.folders().write_file(
+            f.Folders().write_file(
                 self.last_episode_file, 
                 playlist_count
             )
         else:
             #sum_episode = int(self.last_episode) + int(playlist_count)
-            f.folders().write_file(
+            f.Folders().write_file(
                 self.last_episode_file,
                 str(playlist_count)
             )
@@ -191,7 +191,7 @@ def to_strm(method):
         #crunchyroll.get_cookie_from_firefox()
 
         # -- MAKES CHANNEL DIR (AND SUBDIRS) IF NOT EXIST, REMOVE ALL STRM IF KEEP_OLDER_STRM IS SETTED TO FALSE IN GENERAL CONFIG
-        f.folders().make_clean_folder(
+        f.Folders().make_clean_folder(
             "{}/{}".format(
                 media_folder,  
                 sanitize(
@@ -281,7 +281,7 @@ def to_strm(method):
                             "strm"
                         )
 
-                        f.folders().make_clean_folder(
+                        f.Folders().make_clean_folder(
                             "{}/{}/{}".format(
                                 media_folder,  
                                 sanitize(
@@ -301,7 +301,7 @@ def to_strm(method):
                         )
 
                         if not os.path.isfile(file_path):
-                            f.folders().write_file(
+                            f.Folders().write_file(
                                 file_path, 
                                 file_content
                             )
@@ -324,7 +324,7 @@ def to_strm(method):
                 if not line:
                     if jellyfin_preload_last_episode and (method == 'download' or method =='direct'):
                         if 'http' in file_content:
-                            w.worker(file_content).preload()
+                            w.Worker(file_content).preload()
                     break
                 
         finally:
@@ -427,7 +427,7 @@ def download(crunchyroll_id):
         )
 
         
-        f.folders().clean_waste(
+        f.Folders().clean_waste(
             [
                 os.path.join(temp_dir, f'{crunchyroll_id}.mp4'), 
                 os.path.join(temp_dir, f'{crunchyroll_id}.m4a')

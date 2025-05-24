@@ -1,78 +1,247 @@
 import os
-import datetime
-from flask_socketio import emit
 import sys
 import io
+import json
+from datetime import datetime, timedelta
+from enum import Enum
+from typing import Optional, Dict, Any
+from flask_socketio import emit
 
-# Cambiar el codec por defecto a UTF-8
+# Set UTF-8 encoding for stdout
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', line_buffering=True)
 
-class log:
-    def __init__(self, author, text):
-        now = datetime.datetime.now()
-        text = text.strip()
-        self.message = f'[{now}] {author} : {text}'
 
-        if author == 'ui':
-            self.message = f'{text}'
-        if self.message != "" and self.message:
-            print(self.message)
-            sys.stdout.flush()  # Forzar el vaciado del buffer
-            try:
-                emit('command_output', f'{self.message}')
-            except Exception as e:
-                self.write()
+class LogLevel(Enum):
+    DEBUG = ("DEBUG", "\033[36m")  # Cyan
+    INFO = ("INFO", "\033[32m")  # Green
+    WARNING = ("WARNING", "\033[33m")  # Yellow
+    ERROR = ("ERROR", "\033[31m")  # Red
+    CRITICAL = ("CRITICAL", "\033[35m")  # Magenta
+    UI = ("UI", "\033[0m")  # No color
 
-        # Limpiar el archivo de registros antiguos
-        self.cleanup_log_once_a_day()
 
-    def write(self):
-        with open('ytdlp2strm.log', 'a', encoding="utf-8") as file:
-            if self.message != "" and self.message:
-                file.write(self.message + '\n')
+class Logger:
+    def __init__(self, log_file: str = 'ytdlp2strm.log', max_days: int = 7,
+                 enable_colors: bool = True, min_level: LogLevel = LogLevel.DEBUG):
+        self.log_file = log_file
+        self.max_days = max_days
+        self.enable_colors = enable_colors
+        self.min_level = min_level
+        self.cleanup_file = 'log_cleanup.txt'
+        self._setup_cleanup()
 
-    def cleanup_log(self):
-        log_file = 'ytdlp2strm.log'
-        if os.path.exists(log_file):
-            with open(log_file, 'r+', encoding='utf-8', errors='ignore') as file:
-                lines = file.readlines()
-                file.seek(0)
-                file.truncate()
+    def _format_message(self, level: LogLevel, author: str, text: str,
+                        extra_data: Optional[Dict[str, Any]] = None) -> str:
+        """Format log message with timestamp, level, and optional data"""
+        timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
-                # Calcular el límite de tiempo (7 días atrás)
-                now = datetime.datetime.now()
-                cutoff = now - datetime.timedelta(days=7)
+        if level == LogLevel.UI:
+            return text.strip()
 
-                for line in lines:
+        base_msg = f'[{timestamp}] [{level.value[0]}] {author}: {text.strip()}'
+
+        if extra_data:
+            extra_str = json.dumps(extra_data, separators=(',', ':'))
+            base_msg += f' | {extra_str}'
+
+        return base_msg
+
+    def _colorize(self, message: str, level: LogLevel) -> str:
+        """Add colors to console output"""
+        if not self.enable_colors:
+            return message
+        return f"{level.value[1]}{message}\033[0m"
+
+    def _should_log(self, level: LogLevel) -> bool:
+        """Check if message should be logged based on minimum level"""
+        level_order = [LogLevel.DEBUG, LogLevel.INFO, LogLevel.WARNING,
+                       LogLevel.ERROR, LogLevel.CRITICAL, LogLevel.UI]
+        return level_order.index(level) >= level_order.index(self.min_level)
+
+    def _emit_socketio(self, message: str, level: LogLevel):
+        """Emit message via SocketIO if available"""
+        try:
+            emit('command_output', {
+                'message': message,
+                'level': level.value[0],
+                'timestamp': datetime.now().isoformat()
+            })
+        except Exception:
+            self._write_to_file(f"[{datetime.now()}] [WARNING] Logger: SocketIO emit failed")
+
+    def _write_to_file(self, message: str):
+        """Write message to log file"""
+        try:
+            with open(self.log_file, 'a', encoding='utf-8') as f:
+                f.write(message + '\n')
+        except Exception as e:
+            print(f"Failed to write to log file: {e}")
+
+    def log(self, level: LogLevel, author: str, text: str,
+            extra_data: Optional[Dict[str, Any]] = None,
+            emit_socket: bool = True):
+        """Main logging method"""
+        if not text or not text.strip() or not self._should_log(level):
+            return
+
+        message = self._format_message(level, author, text, extra_data)
+
+        # Console output with colors
+        colored_msg = self._colorize(message, level)
+        print(colored_msg)
+        sys.stdout.flush()
+
+        # File output (without colors)
+        self._write_to_file(message)
+
+        # SocketIO emission
+        if emit_socket:
+            self._emit_socketio(message, level)
+
+    # Convenience methods
+    def debug(self, author: str, text: str, **kwargs):
+        self.log(LogLevel.DEBUG, author, text, **kwargs)
+
+    def info(self, author: str, text: str, **kwargs):
+        self.log(LogLevel.INFO, author, text, **kwargs)
+
+    def warning(self, author: str, text: str, **kwargs):
+        self.log(LogLevel.WARNING, author, text, **kwargs)
+
+    def error(self, author: str, text: str, **kwargs):
+        self.log(LogLevel.ERROR, author, text, **kwargs)
+
+    def critical(self, author: str, text: str, **kwargs):
+        self.log(LogLevel.CRITICAL, author, text, **kwargs)
+
+    def ui(self, text: str, **kwargs):
+        self.log(LogLevel.UI, "UI", text, emit_socket=kwargs.get('emit_socket', True))
+
+    def command_output(self, command: str, output: str, return_code: int = 0,
+                       author: str = "CMD"):
+        """Log command execution with formatted output"""
+        level = LogLevel.ERROR if return_code != 0 else LogLevel.INFO
+        extra_data = {
+            'command': command,
+            'return_code': return_code,
+            'output_lines': len(output.splitlines()) if output else 0
+        }
+
+        self.log(level, author, f"Command executed: {command}", extra_data)
+
+        if output:
+            for line in output.strip().split('\n'):
+                if line.strip():
+                    self.log(level, f"{author}_OUT", line.strip())
+
+    def pretty_dict(self, data: Dict[str, Any], title: str = "Data",
+                    author: str = "SYSTEM"):
+        """Log dictionary data in a pretty format"""
+        self.info(author, f"{title}:")
+        for key, value in data.items():
+            self.info(author, f"  {key}: {value}")
+
+    def progress(self, current: int, total: int, description: str = "",
+                 author: str = "PROGRESS"):
+        """Log progress information"""
+        percentage = (current / total * 100) if total > 0 else 0
+        bar_length = 20
+        filled_length = int(bar_length * current // total) if total > 0 else 0
+        bar = '█' * filled_length + '░' * (bar_length - filled_length)
+
+        msg = f"{description} [{bar}] {current}/{total} ({percentage:.1f}%)"
+        self.info(author, msg)
+
+    def _setup_cleanup(self):
+        """Setup automatic log cleanup"""
+        if self._should_cleanup():
+            self._cleanup_old_logs()
+            self._update_cleanup_date()
+
+    def _should_cleanup(self) -> bool:
+        """Check if cleanup is needed"""
+        if not os.path.exists(self.cleanup_file):
+            return True
+
+        try:
+            with open(self.cleanup_file, 'r', encoding='utf-8') as f:
+                last_date = datetime.fromisoformat(f.read().strip()).date()
+                return (datetime.now().date() - last_date).days >= 1
+        except (ValueError, FileNotFoundError):
+            return True
+
+    def _cleanup_old_logs(self):
+        """Remove old log entries"""
+        if not os.path.exists(self.log_file):
+            return
+
+        cutoff = datetime.now() - timedelta(days=self.max_days)
+        temp_file = f"{self.log_file}.tmp"
+
+        try:
+            with open(self.log_file, 'r', encoding='utf-8', errors='ignore') as infile, \
+                    open(temp_file, 'w', encoding='utf-8') as outfile:
+
+                for line in infile:
                     try:
-                        # Extraer la fecha del registro
-                        timestamp_str = line.split(']')[0][1:]
-                        log_time = datetime.datetime.fromisoformat(timestamp_str)
+                        # Extract timestamp from log line
+                        if line.startswith('[') and ']' in line:
+                            timestamp_str = line.split(']')[0][1:19]  # Get first 19 chars
+                            log_time = datetime.strptime(timestamp_str, '%Y-%m-%d %H:%M:%S')
 
-                        # Escribir las líneas que están dentro del límite de tiempo
-                        if log_time > cutoff:
-                            file.write(line)
-                    except ValueError:
-                        # Si la línea no tiene un formato de fecha válido, se salta
+                            if log_time > cutoff:
+                                outfile.write(line)
+                    except (ValueError, IndexError):
                         continue
 
-    def cleanup_log_once_a_day(self):
-        last_cleanup_file = 'log_cleanup.txt'
-        now = datetime.datetime.now().date()
+            # Replace original file with cleaned version
+            os.replace(temp_file, self.log_file)
+            self.info("CLEANUP", f"Log cleanup completed, entries older than {self.max_days} days removed")
 
-        # Verificar la fecha de la última limpieza
-        if os.path.exists(last_cleanup_file):
-            with open(last_cleanup_file, 'r', encoding='utf-8', errors='ignore') as file:
-                last_cleanup_date_str = file.read().strip()
-                try:
-                    last_cleanup_date = datetime.datetime.fromisoformat(last_cleanup_date_str).date()
-                except ValueError:
-                    last_cleanup_date = None
-        else:
-            last_cleanup_date = None
+        except Exception as e:
+            if os.path.exists(temp_file):
+                os.remove(temp_file)
+            self.error("CLEANUP", f"Log cleanup failed: {e}")
 
-        # Si no se ha limpiado hoy, realizar la limpieza y actualizar la fecha de la última limpieza
-        if last_cleanup_date is None or (now - last_cleanup_date).days >= 1:
-            self.cleanup_log()
-            with open(last_cleanup_file, 'w', encoding='utf-8') as file:
-                file.write(now.isoformat())
+    def _update_cleanup_date(self):
+        """Update the last cleanup date"""
+        try:
+            with open(self.cleanup_file, 'w', encoding='utf-8') as f:
+                f.write(datetime.now().date().isoformat())
+        except Exception as e:
+            self.error("CLEANUP", f"Failed to update cleanup date: {e}")
+
+
+# Backward compatibility - create a function that mimics the old class behavior
+def log(author: str, text: str, level: LogLevel = LogLevel.INFO):
+    """Backward compatible logging function"""
+    if not hasattr(log, '_logger'):
+        log._logger = Logger()
+
+    if author == 'ui':
+        log._logger.ui(text)
+    else:
+        log._logger.log(level, author, text)
+
+
+# Usage examples:
+if __name__ == "__main__":
+    logger = Logger(min_level=LogLevel.DEBUG, enable_colors=True)
+
+    # Basic logging
+    logger.info("APP", "Application started")
+    logger.warning("CONFIG", "Configuration file not found, using defaults")
+    logger.error("DB", "Database connection failed")
+
+    # Command output
+    logger.command_output("ls -la", "total 64\ndrwxr-xr-x  8 user  staff   256 Dec  1 10:30 .", 0)
+
+    # Progress logging
+    for i in range(0, 101, 25):
+        logger.progress(i, 100, "Processing files")
+
+    # Pretty dictionary
+    logger.pretty_dict({"status": "active", "users": 42, "version": "1.0.0"}, "System Status")
+
+    # UI messages
+    logger.ui("Welcome to the application!")

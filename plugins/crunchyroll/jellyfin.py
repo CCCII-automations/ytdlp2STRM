@@ -54,7 +54,7 @@ def preload_video(item_id, user_id, api_key):
         return
     file_content = item_details['MediaSources'][0].get("Path", "")
     if 'crunchyroll' in file_content:
-        w.worker(file_content).preload()
+        w.Worker(file_content).preload()
 
 
 def preload_next_episode():
