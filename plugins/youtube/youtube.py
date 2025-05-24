@@ -21,71 +21,89 @@ try:
     from clases.worker import worker as w
     from clases.folders import folders as f
     from clases.nfo import nfo as n
+except ImportError as e:
+    print(f"Warning: Could not import clases modules: {e}")
+    # Set fallback classes that will be defined below
+    pass
 
+# Try to import the logging system
+try:
+    from clases.log import Logger, LogLevel
+except ImportError:
     try:
-        from clases.log import Logger, LogLevel
-    except (ImportError, AttributeError):
-        # If log module exists but doesn't have the expected classes, try the old log function
+        # Try the legacy log function approach
+        from clases.log import log as legacy_log
+
+
+        class Logger:
+            def __init__(self, *args, **kwargs):
+                self.min_level = kwargs.get('min_level', 'INFO')
+
+            def debug(self, author, msg, **kwargs):
+                legacy_log(author, msg)
+
+            def info(self, author, msg, **kwargs):
+                legacy_log(author, msg)
+
+            def warning(self, author, msg, **kwargs):
+                legacy_log(author, msg)
+
+            def error(self, author, msg, **kwargs):
+                legacy_log(author, msg)
+
+
+        # Create an Enum-like LogLevel class
+        from enum import Enum
+
+
+        class LogLevel(Enum):
+            DEBUG = ("DEBUG", "\033[36m")
+            INFO = ("INFO", "\033[32m")
+            WARNING = ("WARNING", "\033[33m")
+            ERROR = ("ERROR", "\033[31m")
+            CRITICAL = ("CRITICAL", "\033[35m")
+            UI = ("UI", "\033[0m")
+
+    except ImportError:
+        # Complete fallback - no clases.log module available
+        class Logger:
+            def __init__(self, *args, **kwargs):
+                self.min_level = kwargs.get('min_level', 'INFO')
+
+            def debug(self, author, msg, **kwargs):
+                print(f"[DEBUG] {author}: {msg}")
+
+            def info(self, author, msg, **kwargs):
+                print(f"[INFO] {author}: {msg}")
+
+            def warning(self, author, msg, **kwargs):
+                print(f"[WARNING] {author}: {msg}")
+
+            def error(self, author, msg, **kwargs):
+                print(f"[ERROR] {author}: {msg}")
+
+
+        # Create an Enum-like LogLevel class
         try:
-            from clases.log import log as legacy_log
+            from enum import Enum
 
 
-            # Create compatibility wrappers
-            class Logger:
-                def __init__(self, *args, **kwargs):
-                    self.min_level = kwargs.get('min_level', 'INFO')
-
-                def debug(self, author, msg, **kwargs):
-                    legacy_log(author, msg)
-
-                def info(self, author, msg, **kwargs):
-                    legacy_log(author, msg)
-
-                def warning(self, author, msg, **kwargs):
-                    legacy_log(author, msg)
-
-                def error(self, author, msg, **kwargs):
-                    legacy_log(author, msg)
-
-
+            class LogLevel(Enum):
+                DEBUG = ("DEBUG", "\033[36m")
+                INFO = ("INFO", "\033[32m")
+                WARNING = ("WARNING", "\033[33m")
+                ERROR = ("ERROR", "\033[31m")
+                CRITICAL = ("CRITICAL", "\033[35m")
+                UI = ("UI", "\033[0m")
+        except ImportError:
+            # If even enum module is not available, create a simple class
             class LogLevel:
                 DEBUG = "DEBUG"
                 INFO = "INFO"
                 WARNING = "WARNING"
                 ERROR = "ERROR"
-        except ImportError:
-            # Fall back to basic logging
-            pass
-
-except ImportError as e:
-    print(f"Warning: Could not import clases modules: {e}")
-    if __name__ == "__main__":
-        print("Some functionality may be limited in standalone mode.")
-
-# Create basic fallback classes if still None
-if Logger is None or LogLevel is None:
-    class Logger:
-        def __init__(self, *args, **kwargs):
-            self.min_level = kwargs.get('min_level', 'INFO')
-
-        def debug(self, author, msg, **kwargs):
-            print(f"[DEBUG] {author}: {msg}")
-
-        def info(self, author, msg, **kwargs):
-            print(f"[INFO] {author}: {msg}")
-
-        def warning(self, author, msg, **kwargs):
-            print(f"[WARNING] {author}: {msg}")
-
-        def error(self, author, msg, **kwargs):
-            print(f"[ERROR] {author}: {msg}")
-
-
-    class LogLevel:
-        DEBUG = "DEBUG"
-        INFO = "INFO"
-        WARNING = "WARNING"
-        ERROR = "ERROR"
+                CRITICAL = "CRITICAL"
+                UI = "UI"
 
 try:
     from sanitize_filename import sanitize
