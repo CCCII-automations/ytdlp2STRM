@@ -1,237 +1,252 @@
+import signal
+import time
 import logging
 import sys
 import os
-from datetime import datetime
-from flask import Flask, jsonify, request
-from flask_cors import CORS
-import socket
-import threading
-import time
+from threading import Thread, Event
+from flask import Flask, request
 
-# Configure detailed logging
+# Enhanced logging setup
 logging.basicConfig(
     level=logging.DEBUG,
     format='%(asctime)s - %(name)s - %(levelname)s - [%(filename)s:%(lineno)d] - %(message)s',
     handlers=[
         logging.StreamHandler(sys.stdout),
-        logging.FileHandler('flask_debug.log')
+        logging.FileHandler('ytdlp2strm_debug.log')
     ]
 )
 
-# Create separate loggers for different components
-app_logger = logging.getLogger('flask_app')
-socket_logger = logging.getLogger('socket_handler')
-main_logger = logging.getLogger('main')
+# Create logger
+logger = logging.getLogger(__name__)
 
-# Set Flask's logger to DEBUG level
-logging.getLogger('werkzeug').setLevel(logging.DEBUG)
+# Log startup info
+logger.info("=" * 60)
+logger.info("ytdlp2STRM Starting...")
+logger.info(f"Python version: {sys.version}")
+logger.info(f"Current directory: {os.getcwd()}")
+logger.info(f"Script location: {os.path.abspath(__file__)}")
+logger.info("=" * 60)
 
-app = Flask(__name__)
-CORS(app)
+# Check if required directories exist
+ui_html_path = os.path.join(os.path.dirname(__file__), 'ui/html')
+ui_static_path = os.path.join(os.path.dirname(__file__), 'ui/static')
 
-# Log Flask configuration
-app_logger.info("=" * 50)
-app_logger.info("FLASK APP INITIALIZATION STARTED")
-app_logger.info(f"Python version: {sys.version}")
+logger.info(f"Checking UI directories:")
+logger.info(f"  HTML template dir: {ui_html_path} - Exists: {os.path.exists(ui_html_path)}")
+logger.info(f"  Static files dir: {ui_static_path} - Exists: {os.path.exists(ui_static_path)}")
+
+if os.path.exists(ui_html_path):
+    logger.info(f"  HTML files: {os.listdir(ui_html_path)}")
+if os.path.exists(ui_static_path):
+    logger.info(f"  Static files: {os.listdir(ui_static_path)}")
+
+# Initialize Flask with error handling
 try:
-    import flask
+    app = Flask(__name__,
+                template_folder='ui/html',
+                static_folder='ui/static',
+                static_url_path='')
+    logger.info("Flask app initialized successfully")
+    logger.info(f"  Template folder: {app.template_folder}")
+    logger.info(f"  Static folder: {app.static_folder}")
+    logger.info(f"  Static URL path: {app.static_url_path}")
+except Exception as e:
+    logger.error(f"Failed to initialize Flask app: {e}")
+    sys.exit(1)
 
-    app_logger.info(f"Flask version: {flask.__version__}")
-except:
-    app_logger.info("Flask version: Unable to determine")
-app_logger.info(f"Current working directory: {os.getcwd()}")
-app_logger.info(f"__name__: {__name__}")
-app_logger.info("=" * 50)
+# Import custom modules with error handling
+try:
+    from clases.config import config as c
+
+    logger.info("✓ Imported clases.config")
+except ImportError as e:
+    logger.error(f"Failed to import clases.config: {e}")
+    c = None
+
+try:
+    from clases.folders import folders as f
+
+    logger.info("✓ Imported clases.folders")
+except ImportError as e:
+    logger.error(f"Failed to import clases.folders: {e}")
+    f = None
+
+try:
+    from clases.log import log as l
+
+    logger.info("✓ Imported clases.log")
+except ImportError as e:
+    logger.error(f"Failed to import clases.log: {e}")
 
 
-@app.before_request
-def log_request_info():
-    app_logger.debug(f"Request: {request.method} {request.url}")
-    app_logger.debug(f"Headers: {dict(request.headers)}")
+    # Fallback logging
+    class FallbackLog:
+        def log(self, module, message):
+            logger.info(f"[{module}] {message}")
 
 
-@app.after_request
-def log_response_info(response):
-    app_logger.debug(f"Response: {response.status}")
-    return response
+    l = FallbackLog()
+
+try:
+    from clases.cron import cron as cron
+
+    logger.info("✓ Imported clases.cron")
+except ImportError as e:
+    logger.error(f"Failed to import clases.cron: {e}")
+    cron = None
+
+# Import routes with detailed error handling
+try:
+    logger.info("Attempting to import config.routes...")
+    import config.routes
+
+    logger.info("✓ Successfully imported config.routes")
+
+    # Log registered routes
+    logger.info("Registered Flask routes:")
+    for rule in app.url_map.iter_rules():
+        methods = ','.join(sorted(rule.methods - {'HEAD', 'OPTIONS'}))
+        logger.info(f"  {rule.endpoint:30s} {methods:10s} {rule.rule}")
+
+except ImportError as e:
+    logger.error(f"Failed to import config.routes: {e}")
+    logger.error("Routes will not be available!")
 
 
-@app.route('/')
-def home():
-    app_logger.info("Home route accessed")
-    return jsonify({
-        "status": "running",
-        "timestamp": datetime.now().isoformat(),
-        "message": "Flask app is working"
-    })
+    # Add a debug route to help diagnose
+    @app.route('/')
+    def debug_home():
+        return f"""
+        <h1>ytdlp2STRM Debug Mode</h1>
+        <p>Routes module failed to load: {str(e)}</p>
+        <p>Template folder: {app.template_folder}</p>
+        <p>Static folder: {app.static_folder}</p>
+        <p>Check the logs for more details.</p>
+        """
 
 
-@app.route('/health')
-def health():
-    app_logger.info("Health check route accessed")
-    return jsonify({"status": "healthy"})
+# Add debug route to check app status
+@app.route('/debug/status')
+def debug_status():
+    """Debug endpoint to check app configuration"""
+    import json
+    return json.dumps({
+        'working_directory': os.getcwd(),
+        'template_folder': app.template_folder,
+        'static_folder': app.static_folder,
+        'static_url_path': app.static_url_path,
+        'registered_routes': [str(rule) for rule in app.url_map.iter_rules()],
+        'config_loaded': c is not None,
+        'folders_loaded': f is not None,
+        'log_loaded': l is not None,
+        'cron_loaded': cron is not None
+    }, indent=2)
 
 
-def check_port_availability(port):
-    """Check if a port is available before binding"""
-    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+def run_flask_app(stop_event, port):
+    @app.before_request
+    def before_request():
+        # Log all incoming requests
+        logger.debug(f"Request: {request.method} {request.url}")
+        logger.debug(f"Headers: {dict(request.headers)}")
+
+        if stop_event.is_set():
+            log_text = ("Shutting down Flask server...")
+            l.log("main", log_text)
+
+            func = request.environ.get('werkzeug.server.shutdown')
+            if func:
+                func()
+
     try:
-        sock.bind(('', port))
-        sock.close()
-        app_logger.info(f"Port {port} is available")
-        return True
-    except OSError as e:
-        app_logger.error(f"Port {port} is not available: {e}")
-        return False
-
-
-def run_flask_app(host='0.0.0.0', port=5000, debug=True):
-    """Run Flask app with extensive logging"""
-    main_logger.info("=" * 50)
-    main_logger.info("ATTEMPTING TO START FLASK APP")
-    main_logger.info(f"Host: {host}, Port: {port}, Debug: {debug}")
-    main_logger.info("=" * 50)
-
-    # Check if port is available
-    if not check_port_availability(port):
-        main_logger.error(f"Cannot start Flask app - port {port} is already in use")
-        # Try to find what's using the port
-        try:
-            import subprocess
-            if sys.platform == "win32":
-                cmd = f"netstat -ano | findstr :{port}"
-            else:
-                cmd = f"lsof -i :{port}"
-            result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
-            main_logger.error(f"Port usage info: {result.stdout}")
-        except Exception as e:
-            main_logger.error(f"Could not check port usage: {e}")
-        return False
-
-    try:
-        main_logger.info("Starting Flask app.run()...")
-        app.run(host=host, port=port, debug=debug, use_reloader=False)
-        main_logger.info("Flask app.run() completed")
-        return True
+        logger.info(f"Starting Flask app on 0.0.0.0:{port}")
+        app.run(host='0.0.0.0', port=port, debug=True, use_reloader=False)
     except Exception as e:
-        main_logger.error(f"Failed to start Flask app: {type(e).__name__}: {e}")
-        main_logger.exception("Full exception traceback:")
-        return False
+        log_text = (f"Exception in Flask app: {e}")
+        l.log("main", log_text)
+        logger.exception("Flask app exception:")
+
+    log_text = ("Flask app stopped.")
+    l.log("main", log_text)
 
 
-# Socket handling code (if needed)
-class SocketHandler:
-    def __init__(self, socket_path='/tmp/app_socket'):
-        self.socket_path = socket_path
-        self.socket = None
-        self.running = False
-        socket_logger.info(f"SocketHandler initialized with path: {socket_path}")
+def signal_handler(sig, frame):
+    log_text = ('Signal received, terminating threads...')
+    l.log("main", log_text)
 
-    def start(self):
-        """Start socket listener in a separate thread"""
+    stop_event.set()
+
+    log_text = ('Threads and process terminated.')
+    l.log("main", log_text)
+    exit(0)
+
+
+if __name__ == "__main__":
+    # Load configuration with error handling
+    try:
+        if c:
+            ytdlp2strm_config = c.config('./config/config.json').get_config()
+            logger.info(f"Configuration loaded: {ytdlp2strm_config}")
+        else:
+            logger.warning("Using default configuration (config module not loaded)")
+            ytdlp2strm_config = {'ytdlp2strm_port': 5000}
+    except Exception as e:
+        logger.error(f"Failed to load configuration: {e}")
+        ytdlp2strm_config = {'ytdlp2strm_port': 5000}
+
+    stop_event = Event()
+
+    signal.signal(signal.SIGINT, signal_handler)
+    signal.signal(signal.SIGTERM, signal_handler)
+
+    # Start Cron if available
+    if cron:
         try:
-            # Remove existing socket file if it exists
-            if os.path.exists(self.socket_path):
-                os.remove(self.socket_path)
-                socket_logger.info(f"Removed existing socket file: {self.socket_path}")
-
-            self.socket = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-            self.socket.bind(self.socket_path)
-            self.socket.listen(1)
-            self.running = True
-
-            socket_logger.info(f"Socket listening on: {self.socket_path}")
-
-            # Start listener thread
-            listener_thread = threading.Thread(target=self._listen, daemon=True)
-            listener_thread.start()
-            socket_logger.info("Socket listener thread started")
-
+            crons = cron.Cron(stop_event)
+            crons.start()
+            log_text = (" * Crons thread started")
+            l.log("main", log_text)
         except Exception as e:
-            socket_logger.error(f"Failed to start socket: {e}")
-            raise
+            logger.error(f"Failed to start cron: {e}")
+    else:
+        logger.warning("Cron module not available, skipping cron tasks")
 
-    def _listen(self):
-        """Listen for socket connections"""
-        while self.running:
-            try:
-                socket_logger.debug("Waiting for socket connection...")
-                conn, addr = self.socket.accept()
-                socket_logger.info(f"Socket connection accepted")
-
-                # Handle connection in separate thread
-                handler_thread = threading.Thread(
-                    target=self._handle_connection,
-                    args=(conn,),
-                    daemon=True
-                )
-                handler_thread.start()
-
-            except Exception as e:
-                if self.running:
-                    socket_logger.error(f"Socket listen error: {e}")
-
-    def _handle_connection(self, conn):
-        """Handle individual socket connection"""
+    # Start Folders cleanup if available
+    if f:
         try:
-            while True:
-                data = conn.recv(1024)
-                if not data:
-                    break
-
-                message = data.decode('utf-8')
-                socket_logger.info(f"Socket received: {message}")
-
-                # Echo back
-                response = f"Echo: {message}"
-                conn.send(response.encode('utf-8'))
-
+            folders_instance = f.Folders()
+            thread_clean_old_videos = Thread(target=folders_instance.clean_old_videos, args=(stop_event,))
+            thread_clean_old_videos.daemon = True
+            thread_clean_old_videos.start()
+            log_text = (" * Clean old videos thread started")
+            l.log("main", log_text)
         except Exception as e:
-            socket_logger.error(f"Socket connection error: {e}")
-        finally:
-            conn.close()
-            socket_logger.debug("Socket connection closed")
-
-    def stop(self):
-        """Stop socket listener"""
-        self.running = False
-        if self.socket:
-            self.socket.close()
-            socket_logger.info("Socket closed")
-
-
-# Main entry point
-if __name__ == '__main__':
-    main_logger.info("=" * 70)
-    main_logger.info("MAIN.PY EXECUTION STARTED")
-    main_logger.info("=" * 70)
-
-    # Initialize socket handler if needed
-    socket_handler = None
-    if '--enable-socket' in sys.argv:
-        main_logger.info("Socket mode enabled")
-        socket_handler = SocketHandler()
-        try:
-            socket_handler.start()
-        except Exception as e:
-            main_logger.error(f"Failed to start socket handler: {e}")
-            sys.exit(1)
+            logger.error(f"Failed to start folders cleanup: {e}")
+    else:
+        logger.warning("Folders module not available, skipping cleanup tasks")
 
     # Start Flask app
-    success = run_flask_app()
+    port = ytdlp2strm_config.get('ytdlp2strm_port', 5000)
+    logger.info(f"Starting Flask on port {port}")
 
-    if not success:
-        main_logger.error("Flask app failed to start")
-        if socket_handler:
-            socket_handler.stop()
-        sys.exit(1)
+    flask_thread = Thread(target=run_flask_app, args=(stop_event, port))
+    flask_thread.daemon = True
+    flask_thread.start()
+    log_text = (" * Flask thread started")
+    l.log("main", log_text)
 
-    # Keep running
     try:
-        while True:
+        logger.info("Main thread running, press Ctrl+C to stop")
+        while not stop_event.is_set():
             time.sleep(1)
-    except KeyboardInterrupt:
-        main_logger.info("Shutdown signal received")
-        if socket_handler:
-            socket_handler.stop()
-        main_logger.info("Application shutdown complete")
+
+        log_text = ('Threads and process terminated.')
+        l.log("main", log_text)
+
+    except Exception as e:
+        log_text = (f"Exception in main loop: {e}")
+        l.log("main", log_text)
+        logger.exception("Main loop exception:")
+
+    log_text = ("Exiting main.")
+    l.log("main", log_text)
