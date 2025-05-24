@@ -175,12 +175,49 @@ proxy_url = cfg.get("proxy_url", "")
 MAX_WORKERS = cfg.get("max_workers", 4)
 REQUEST_TIMEOUT = cfg.get("request_timeout", 30)
 
-# Configure logging
-LOG_LEVEL_MAP = {'DEBUG': LogLevel.DEBUG, 'INFO': LogLevel.INFO, 'WARNING': LogLevel.WARNING, 'ERROR': LogLevel.ERROR}
-LOG_LEVEL = LOG_LEVEL_MAP.get(cfg.get("log_level", "INFO"), LogLevel.INFO)
+# Configure logging with safe fallbacks
+try:
+    LOG_LEVEL_MAP = {'DEBUG': LogLevel.DEBUG, 'INFO': LogLevel.INFO, 'WARNING': LogLevel.WARNING,
+                     'ERROR': LogLevel.ERROR}
+except AttributeError:
+    # If LogLevel doesn't have the expected attributes, create a simple mapping
+    LOG_LEVEL_MAP = {'DEBUG': 'DEBUG', 'INFO': 'INFO', 'WARNING': 'WARNING', 'ERROR': 'ERROR'}
 
-# Initialize logger
-logger = Logger(log_file='youtube.log', max_days=7, enable_colors=True, min_level=LOG_LEVEL)
+
+    # Also redefine LogLevel to be compatible
+    class LogLevel:
+        DEBUG = "DEBUG"
+        INFO = "INFO"
+        WARNING = "WARNING"
+        ERROR = "ERROR"
+        CRITICAL = "CRITICAL"
+        UI = "UI"
+
+LOG_LEVEL = LOG_LEVEL_MAP.get(cfg.get("log_level", "INFO"), 'INFO')
+
+# Initialize logger with safe fallbacks
+try:
+    logger = Logger(log_file='youtube.log', max_days=7, enable_colors=True, min_level=LOG_LEVEL)
+except Exception:
+    # If Logger initialization fails, create a simple fallback
+    class SimpleLogger:
+        def __init__(self, *args, **kwargs):
+            self.min_level = kwargs.get('min_level', 'INFO')
+
+        def debug(self, author, msg, **kwargs):
+            print(f"[DEBUG] {author}: {msg}")
+
+        def info(self, author, msg, **kwargs):
+            print(f"[INFO] {author}: {msg}")
+
+        def warning(self, author, msg, **kwargs):
+            print(f"[WARNING] {author}: {msg}")
+
+        def error(self, author, msg, **kwargs):
+            print(f"[ERROR] {author}: {msg}")
+
+
+    logger = SimpleLogger(min_level=LOG_LEVEL)
 
 source_platform = "youtube"
 host = ytdlp2strm_cfg['ytdlp2strm_host']
