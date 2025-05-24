@@ -1,6 +1,8 @@
 from datetime import datetime
 import argparse
 from clases.log import log as l
+import config.plugins as plugins
+from sanitize_filename import sanitize
 
 def main(raw_args=None):
     parser=argparse.ArgumentParser()
