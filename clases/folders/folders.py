@@ -13,13 +13,6 @@ class Folders:
     if 'ytdlp2strm_temp_file_duration' in YTDLP2STRM_CONFIG:
         keep_downloaded = int(YTDLP2STRM_CONFIG['ytdlp2strm_temp_file_duration'])
 
-class folders:
-
-    keep_downloaded = 86400
-    temp_aria2_ffmpeg_files = 600
-    if 'ytdlp2strm_temp_file_duration' in YTDLP2STRM_CONFIG:
-        keep_downloaded = int(YTDLP2STRM_CONFIG['ytdlp2strm_temp_file_duration'])
-
     def make_clean_folder(self, folder_path, forceclean, config):
         if os.path.exists(folder_path):
             if forceclean or config.get("ytdlp2strm_keep_old_strm") == "False":
