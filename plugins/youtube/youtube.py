@@ -13,19 +13,57 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Dict, List, Optional, Any
 
 # Try to import dependencies, with fallbacks for standalone mode
+Logger = None
+LogLevel = None
+
 try:
     from clases.config import config as c
     from clases.worker import worker as w
     from clases.folders import folders as f
     from clases.nfo import nfo as n
-    from clases.log import Logger, LogLevel
+
+    try:
+        from clases.log import Logger, LogLevel
+    except (ImportError, AttributeError):
+        # If log module exists but doesn't have the expected classes, try the old log function
+        try:
+            from clases.log import log as legacy_log
+
+
+            # Create compatibility wrappers
+            class Logger:
+                def __init__(self, *args, **kwargs):
+                    self.min_level = kwargs.get('min_level', 'INFO')
+
+                def debug(self, author, msg, **kwargs):
+                    legacy_log(author, msg)
+
+                def info(self, author, msg, **kwargs):
+                    legacy_log(author, msg)
+
+                def warning(self, author, msg, **kwargs):
+                    legacy_log(author, msg)
+
+                def error(self, author, msg, **kwargs):
+                    legacy_log(author, msg)
+
+
+            class LogLevel:
+                DEBUG = "DEBUG"
+                INFO = "INFO"
+                WARNING = "WARNING"
+                ERROR = "ERROR"
+        except ImportError:
+            # Fall back to basic logging
+            pass
+
 except ImportError as e:
     print(f"Warning: Could not import clases modules: {e}")
     if __name__ == "__main__":
         print("Some functionality may be limited in standalone mode.")
 
-
-    # Create minimal fallbacks for both standalone and import mode
+# Create basic fallback classes if still None
+if Logger is None or LogLevel is None:
     class Logger:
         def __init__(self, *args, **kwargs):
             self.min_level = kwargs.get('min_level', 'INFO')
