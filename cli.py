@@ -272,7 +272,7 @@ def main(raw_args=None):
             result = eval(f"{plugin_path}")(*params)
         else:
             logger.info("CLI", f"Calling {plugin_path} without params")
-            result = eval(f"{plugin_path}")()
+            result = eval(f"{plugin_path}")(method)
 
         # Log execution result
         elapsed = (datetime.now() - start_time).total_seconds()
