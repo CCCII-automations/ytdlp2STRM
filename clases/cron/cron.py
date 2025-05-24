@@ -1,7 +1,6 @@
 import schedule
 from cli import main as main_cli
 from clases.config import config as c
-from clases.log import Logger, LogLevel
 import threading
 import re
 from tzlocal import get_localzone
@@ -14,12 +13,67 @@ import traceback
 import time
 from datetime import datetime
 
-# Initialize logger
-logger = Logger(
-    log_file='logs/cron.log',
-    min_level=LogLevel.DEBUG,
-    enable_colors=True
-)
+# Robust import of Logger and LogLevel with fallback
+try:
+    from clases.log import Logger, LogLevel
+
+    # Test if LogLevel has the expected attributes
+    if not hasattr(LogLevel, 'DEBUG'):
+        raise AttributeError("LogLevel.DEBUG not available")
+    logger = Logger(
+        log_file='logs/cron.log',
+        min_level=LogLevel.DEBUG,
+        enable_colors=True
+    )
+except (ImportError, AttributeError) as e:
+    print(f"Warning: LogLevel import issue: {e}")
+    try:
+        # Try to import just Logger and create a simple LogLevel fallback
+        from clases.log import Logger
+
+
+        # Create a simple LogLevel class
+        class SimpleLogLevel:
+            DEBUG = "DEBUG"
+            INFO = "INFO"
+            WARNING = "WARNING"
+            ERROR = "ERROR"
+            CRITICAL = "CRITICAL"
+            UI = "UI"
+
+
+        LogLevel = SimpleLogLevel
+        logger = Logger(log_file='logs/cron.log', enable_colors=True)
+    except Exception as e2:
+        print(f"Warning: Could not initialize logger properly: {e2}")
+
+
+        # Create a minimal logger fallback
+        class MinimalLogger:
+            def debug(self, author, msg, extra=None): print(f"[DEBUG] {author}: {msg}")
+
+            def info(self, author, msg, extra=None): print(f"[INFO] {author}: {msg}")
+
+            def warning(self, author, msg, extra=None): print(f"[WARNING] {author}: {msg}")
+
+            def error(self, author, msg, extra=None): print(f"[ERROR] {author}: {msg}")
+
+            def critical(self, author, msg, extra=None): print(f"[CRITICAL] {author}: {msg}")
+
+
+        logger = MinimalLogger()
+
+
+        class SimpleLogLevel:
+            DEBUG = "DEBUG"
+            INFO = "INFO"
+            WARNING = "WARNING"
+            ERROR = "ERROR"
+            CRITICAL = "CRITICAL"
+            UI = "UI"
+
+
+        LogLevel = SimpleLogLevel
 
 # -- LOAD CONFIG AND CHANNELS FILES
 config_path = 'config/crons.json'
