@@ -1,18 +1,100 @@
 from datetime import datetime
 import argparse
-from clases.log import Logger, LogLevel
-import config.plugins as plugins
-from sanitize_filename import sanitize
 import sys
 import os
 import traceback
 
-# Initialize logger with appropriate settings
-logger = Logger(
-    log_file='logs/cli.log',
-    min_level=LogLevel.DEBUG,
-    enable_colors=True
-)
+# Import with error handling for LogLevel
+try:
+    from clases.log import Logger, LogLevel
+
+    # Test if LogLevel has the expected attributes
+    test_level = LogLevel.DEBUG
+except (ImportError, AttributeError) as e:
+    print(f"Warning: LogLevel import issue: {e}")
+
+    # Create fallback classes
+    try:
+        from clases.log import Logger
+    except ImportError:
+        class Logger:
+            def __init__(self, *args, **kwargs):
+                self.min_level = kwargs.get('min_level', 'DEBUG')
+
+            def debug(self, author, msg, **kwargs):
+                print(f"[DEBUG] {author}: {msg}")
+
+            def info(self, author, msg, **kwargs):
+                print(f"[INFO] {author}: {msg}")
+
+            def warning(self, author, msg, **kwargs):
+                print(f"[WARNING] {author}: {msg}")
+
+            def error(self, author, msg, **kwargs):
+                print(f"[ERROR] {author}: {msg}")
+
+            def critical(self, author, msg, **kwargs):
+                print(f"[CRITICAL] {author}: {msg}")
+
+            def ui(self, text, **kwargs):
+                print(text)
+
+
+    # Create fallback LogLevel
+    class LogLevel:
+        DEBUG = "DEBUG"
+        INFO = "INFO"
+        WARNING = "WARNING"
+        ERROR = "ERROR"
+        CRITICAL = "CRITICAL"
+        UI = "UI"
+
+try:
+    import config.plugins as plugins
+except ImportError as e:
+    print(f"Warning: Could not import plugins: {e}")
+    plugins = None
+
+try:
+    from sanitize_filename import sanitize
+except ImportError:
+    def sanitize(name):
+        import re
+        return re.sub(r'[<>:"/\\|?*]', '_', name)
+
+# Initialize logger with error handling
+try:
+    logger = Logger(
+        log_file='logs/cli.log',
+        min_level=LogLevel.DEBUG,
+        enable_colors=True
+    )
+except Exception as e:
+    print(f"Warning: Could not initialize logger properly: {e}")
+
+
+    # Create minimal logger
+    class MinimalLogger:
+        def debug(self, author, msg, **kwargs):
+            print(f"[DEBUG] {author}: {msg}")
+
+        def info(self, author, msg, **kwargs):
+            print(f"[INFO] {author}: {msg}")
+
+        def warning(self, author, msg, **kwargs):
+            print(f"[WARNING] {author}: {msg}")
+
+        def error(self, author, msg, **kwargs):
+            print(f"[ERROR] {author}: {msg}")
+
+        def critical(self, author, msg, **kwargs):
+            print(f"[CRITICAL] {author}: {msg}")
+
+        def ui(self, text, **kwargs):
+            print(text)
+
+
+    logger = MinimalLogger()
 
 
 def main(raw_args=None):
@@ -79,6 +161,11 @@ def main(raw_args=None):
         logger.error("CLI", "No media platform specified. Use -m/--media to specify platform.")
         parser.print_help()
         return
+
+    # Check if plugins module is available
+    if plugins is None:
+        logger.error("CLI", "Plugins module not available")
+        return False
 
     # Plugin name normalization
     original_method = method
