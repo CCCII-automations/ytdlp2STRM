@@ -172,7 +172,7 @@ def plugin_channels(plugin):
 
 @app.route('/log')
 def view_log():
-    log_file = 'ytdlp2strm.log'
+    log_file = 'logs/ytdlp2strm.log'
     try:
         log_content = []
         with open(log_file, 'r', encoding='utf-8') as file:

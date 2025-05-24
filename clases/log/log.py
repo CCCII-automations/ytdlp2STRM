@@ -46,7 +46,7 @@ else:
 
 
 class Logger:
-    def __init__(self, log_file: str = 'ytdlp2strm.log', max_days: int = 7,
+    def __init__(self, log_file: str = 'logs/ytdlp2strm.log', max_days: int = 7,
                  enable_colors: bool = True, min_level: LogLevel = None):
         self.log_file = log_file
         self.max_days = max_days

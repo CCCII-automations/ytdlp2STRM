@@ -12,7 +12,7 @@ logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - [%(filename)s:%(lineno)d] - %(message)s',
     handlers=[
         logging.StreamHandler(sys.stdout),
-        logging.FileHandler('ytdlp2strm_debug.log')
+        logging.FileHandler('logs/ytdlp2strm_debug.log')
     ]
 )
 
