@@ -33,7 +33,12 @@ CORS(app)
 app_logger.info("=" * 50)
 app_logger.info("FLASK APP INITIALIZATION STARTED")
 app_logger.info(f"Python version: {sys.version}")
-app_logger.info(f"Flask version: {Flask.__version__}")
+try:
+    import flask
+
+    app_logger.info(f"Flask version: {flask.__version__}")
+except:
+    app_logger.info("Flask version: Unable to determine")
 app_logger.info(f"Current working directory: {os.getcwd()}")
 app_logger.info(f"__name__: {__name__}")
 app_logger.info("=" * 50)
