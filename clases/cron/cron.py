@@ -342,22 +342,18 @@ class Cron(threading.Thread):
         else:
             l.log('cron', "No existing jobs to clear")
 
-    def schedule_single_job(self, cron_config):
+    def schedule_single_job(self, cron_config, is_first_run=False):
         """Schedule a single cron job based on configuration"""
         l.log('cron', f"Scheduling job: {cron_config.get('do', 'unknown')}")
 
-        # Validate configuration
         if not self.validate_cron_config(cron_config):
             return False
 
-        # Get timezone
         local_tz = self.get_timezone_for_cron(cron_config)
         local_tz_str = self.get_timezone_string(local_tz)
 
-        # Validate quantity
         qty = self.validate_quantity(cron_config.get('qty'))
 
-        # Get schedule method
         try:
             every_method = getattr(schedule.every(qty), cron_config['every'])
             l.log('cron', f"Schedule method configured: every {qty} {cron_config['every']}")
@@ -365,15 +361,42 @@ class Cron(threading.Thread):
             l.log('cron', f"Invalid schedule method: {cron_config['every']}")
             return False
 
-        # Prepare command
         do_command = self.prepare_command(cron_config['do'])
-
-        # Schedule with or without specific time
         at_time = cron_config.get('at', '')
-        if at_time and at_time.strip() and self.validate_time_format(at_time):
-            return self.schedule_at_time(every_method, do_command, at_time, local_tz_str)
-        else:
-            return self.schedule_interval(every_method, do_command, qty, cron_config['every'])
+
+        try:
+            if at_time and at_time.strip() and self.validate_time_format(at_time):
+                # Schedule job at specific time
+                if isinstance(do_command, list):
+                    job = every_method.at(at_time, local_tz_str).do(main_cli, *do_command)
+                else:
+                    job = every_method.at(at_time, local_tz_str).do(main_cli, do_command)
+                l.log('cron', f"Scheduled task {do_command} at {at_time} {local_tz_str}")
+            else:
+                # Schedule job at interval
+                if isinstance(do_command, list):
+                    job = every_method.do(main_cli, *do_command)
+                else:
+                    job = every_method.do(main_cli, do_command)
+                l.log('cron', f"Scheduled task {do_command} every {qty} {cron_config['every']}")
+
+            # Optional immediate execution
+            if is_first_run:
+                l.log('cron', f"Running first-time task immediately: {do_command}")
+                try:
+                    if isinstance(do_command, list):
+                        main_cli(*do_command)
+                    else:
+                        main_cli(do_command)
+                    l.log('cron', f"Immediate execution complete for: {do_command}")
+                except Exception as e:
+                    l.log('cron', f"Immediate execution error: {str(e)}")
+
+            return True
+
+        except Exception as e:
+            l.log('cron', f"Error scheduling job: {str(e)}")
+            return False
 
     def schedule_at_time(self, every_method, do_command, at_time, local_tz_str):
         """Schedule job at specific time"""
