@@ -65,23 +65,45 @@ class Ui:
         # Parse plugins.py to find available plugins
         plugins_content = self.plugins_py
 
-        # Look for plugin import lines
+        # Look for plugin import lines - handle your specific format
         for line in plugins_content.split('\n'):
+            original_line = line
             line = line.strip()
-            if 'plugins.' in line and ('import' in line or 'from' in line):
-                # Determine if plugin is enabled (not commented out)
-                is_enabled = not line.startswith('#')
 
-                # Extract plugin name
-                if 'import plugins.' in line:
-                    # Format: import plugins.pluginname
-                    plugin_name = line.split('plugins.')[1].split()[0]
-                elif 'from plugins.' in line:
-                    # Format: from plugins.pluginname import something
-                    plugin_name = line.split('plugins.')[1].split()[0]
-                else:
+            # Skip empty lines
+            if not line:
+                continue
+
+            # Check if it's a plugin import line
+            is_plugin_line = False
+            plugin_name = None
+            is_enabled = True
+
+            # Handle different import formats
+            if line.startswith('#'):
+                is_enabled = False
+                line = line[1:].strip()  # Remove the # and whitespace
+
+            # Format: from plugins.pluginname import pluginname
+            if line.startswith('from plugins.') and ' import ' in line:
+                try:
+                    parts = line.split(' import ')
+                    if len(parts) == 2:
+                        plugin_path = parts[0].replace('from plugins.', '')
+                        plugin_name = plugin_path
+                        is_plugin_line = True
+                except:
                     continue
 
+            # Format: import plugins.pluginname
+            elif line.startswith('import plugins.'):
+                try:
+                    plugin_name = line.replace('import plugins.', '')
+                    is_plugin_line = True
+                except:
+                    continue
+
+            if is_plugin_line and plugin_name:
                 # Build plugin path
                 plugin_path = f'./plugins/{plugin_name}'
 
@@ -93,7 +115,9 @@ class Ui:
                         with open(config_file, 'r') as f:
                             config_data = json.load(f)
                     except:
-                        config_data = {"name": plugin_name, "enabled": is_enabled}
+                        config_data = {"name": plugin_name}
+                else:
+                    config_data = {"name": plugin_name}
 
                 # Try to load channels - handle your specific structure
                 channels_file = config_data.get('channels_list_file', f'{plugin_path}/channel_list.json')
@@ -115,7 +139,8 @@ class Ui:
                     'path': plugin_path,
                     'enabled': is_enabled,
                     'config': config_data,
-                    'channels': channels
+                    'channels': channels,
+                    'original_line': original_line.strip()
                 }
 
                 plugins.append(plugin_info)

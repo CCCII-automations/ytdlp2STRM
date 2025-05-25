@@ -326,10 +326,12 @@
                                     <label class="mobile-label">Plugin:</label>
                                     <select class="form-control plugin-select" name="plugin[]" onchange="updatePreview(this)">
                                         <option value="">Select Plugin</option>
-                                        <option value="youtube" {% if field.do and field.do|length > 1 and field.do[1] == 'youtube' %}selected{% endif %}>YouTube</option>
-                                        <option value="twitch" {% if field.do and field.do|length > 1 and field.do[1] == 'twitch' %}selected{% endif %}>Twitch</option>
-                                        <option value="generic" {% if field.do and field.do|length > 1 and field.do[1] == 'generic' %}selected{% endif %}>Generic</option>
-                                        <option value="custom" {% if field.do and field.do|length > 1 and field.do[1] not in ['youtube', 'twitch', 'generic'] %}selected{% endif %}>Custom</option>
+                                        {% for plugin in plugins %}
+                                            {% if plugin.enabled %}
+                                                <option value="{{ plugin.name }}" {% if field.do and field.do|length > 1 and field.do[1] == plugin.name %}selected{% endif %}>{{ plugin.name|title }}</option>
+                                            {% endif %}
+                                        {% endfor %}
+                                        <option value="custom" {% if field.do and field.do|length > 1 and field.do[1] not in plugins|selectattr("enabled")|map(attribute="name")|list %}selected{% endif %}>Custom</option>
                                     </select>
                                     {% if field.do and field.do|length > 1 and field.do[1] not in ['youtube', 'twitch', 'generic'] %}
                                     <input class="form-control mt-1 custom-plugin" name="custom_plugin[]" value="{{ field.do[1] }}" placeholder="Custom plugin name" style="font-size: 0.75rem;">
@@ -429,21 +431,35 @@
                 Quick Templates
             </h4>
             <div class="quick-templates">
-                <div class="template-card" onclick="addTemplate('youtube', 'daily', '1', 'day', '02:00', 'UTC')">
-                    <h6><i class="fab fa-youtube me-1"></i> Daily YouTube Sync</h6>
-                    <small>Downloads new YouTube videos every day at 2 AM UTC</small>
-                </div>
-                <div class="template-card" onclick="addTemplate('twitch', 'check', '2', 'hour', '', '')">
-                    <h6><i class="fab fa-twitch me-1"></i> Hourly Twitch Check</h6>
-                    <small>Checks for live Twitch streams every 2 hours</small>
-                </div>
-                <div class="template-card" onclick="addTemplate('youtube', 'update', '1', 'week', '03:00', 'UTC')">
-                    <h6><i class="fas fa-refresh me-1"></i> Weekly Update</h6>
-                    <small>Updates all channels weekly on Sunday at 3 AM</small>
-                </div>
-                <div class="template-card" onclick="addTemplate('generic', 'cleanup', '1', 'day', '04:00', 'UTC')">
+                {% set enabled_plugins = plugins|selectattr("enabled")|list %}
+                {% for plugin in enabled_plugins %}
+                    {% if plugin.name == 'youtube' %}
+                        <div class="template-card" onclick="addTemplate('youtube', 'daily', '1', 'day', '02:00', 'UTC')">
+                            <h6><i class="fab fa-youtube me-1"></i> Daily YouTube Sync</h6>
+                            <small>Downloads new YouTube videos every day at 2 AM UTC</small>
+                        </div>
+                    {% elif plugin.name == 'twitch' %}
+                        <div class="template-card" onclick="addTemplate('twitch', 'check', '2', 'hour', '', '')">
+                            <h6><i class="fab fa-twitch me-1"></i> Hourly Twitch Check</h6>
+                            <small>Checks for live Twitch streams every 2 hours</small>
+                        </div>
+                    {% elif plugin.name == 'pokemon_tv' %}
+                        <div class="template-card" onclick="addTemplate('pokemon_tv', 'update', '1', 'day', '03:00', 'UTC')">
+                            <h6><i class="fas fa-tv me-1"></i> Daily Pokemon TV</h6>
+                            <small>Updates Pokemon TV content daily at 3 AM UTC</small>
+                        </div>
+                    {% else %}
+                        <div class="template-card" onclick="addTemplate('{{ plugin.name }}', 'update', '1', 'day', '04:00', 'UTC')">
+                            <h6><i class="fas fa-puzzle-piece me-1"></i> Daily {{ plugin.name|title }}</h6>
+                            <small>Updates {{ plugin.name|title }} content daily at 4 AM UTC</small>
+                        </div>
+                    {% endif %}
+                {% endfor %}
+
+                <!-- Generic cleanup template -->
+                <div class="template-card" onclick="addTemplate('custom', 'cleanup', '1', 'day', '05:00', 'UTC')">
                     <h6><i class="fas fa-broom me-1"></i> Daily Cleanup</h6>
-                    <small>Cleans up temporary files every day at 4 AM</small>
+                    <small>Custom cleanup task every day at 5 AM UTC</small>
                 </div>
             </div>
         </div>
@@ -530,9 +546,11 @@
                         <label class="mobile-label">Plugin:</label>
                         <select class="form-control plugin-select" name="plugin[]" onchange="updatePreview(this)">
                             <option value="">Select Plugin</option>
-                            <option value="youtube">YouTube</option>
-                            <option value="twitch">Twitch</option>
-                            <option value="generic">Generic</option>
+                            {% for plugin in plugins %}
+                                {% if plugin.enabled %}
+                                    <option value="{{ plugin.name }}">{{ plugin.name|title }}</option>
+                                {% endif %}
+                            {% endfor %}
                             <option value="custom">Custom</option>
                         </select>
                         <input class="form-control mt-1 custom-plugin" name="custom_plugin[]" value="" placeholder="Custom plugin name" style="font-size: 0.75rem; display: none;">
