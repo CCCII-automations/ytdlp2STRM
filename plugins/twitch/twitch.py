@@ -39,7 +39,7 @@ class Twitch:
             '--no-warnings'
         ]
 
-        channel_name = w.Worker(
+        channel_name =Worker(
             command
         ).output()
         
@@ -63,7 +63,7 @@ class Twitch:
         ]
 
         return [
-            w.Worker(
+           Worker(
                 command
             ).output()
         ]
@@ -126,7 +126,7 @@ class Twitch:
         ]
         #The madness begins... 
         #No comments between lines, smoke a joint if you want understand it
-        lines = w.Worker(
+        lines =Worker(
             command
         ).output().split('\n')
         headers = []
@@ -187,7 +187,7 @@ class Twitch:
                 "videos"
             )
         ]
-        return w.Worker(
+        returnWorker(
             command
         ).output().split('\n')
 ## -- END
@@ -271,7 +271,7 @@ def to_strm(method):
         ## -- END
 
         ## -- BUILD CHANNEL NFO FILE
-        n.nfo(
+        n.Nfo(
             "tvshow",
             "{}/{}".format(
                 media_folder, 
@@ -351,7 +351,7 @@ def to_strm(method):
                             file_content
                         )
                     ## -- BUILD VIDEO NFO FILE
-                    n.nfo(
+                    n.Nfo(
                         "episode",
                         "{}/{}".format(
                             media_folder, 
@@ -460,7 +460,7 @@ def to_strm(method):
                     }
 
                     ## -- BUILD VIDEO NFO FILE
-                    n.nfo(
+                    n.Nfo(
                         "episode",
                         "{}/{}".format(
                             media_folder, 
@@ -512,10 +512,10 @@ def direct(twitch_id, remote_addr):
         '--get-url'
     ]
 
-    twitch_url = w.Worker(command).output()
+    twitch_url =Worker(command).output()
 
     if 'ERROR' in twitch_url or not twitch_url:
-        twitch_url = w.Worker(
+        twitch_url =Worker(
             [
                 'yt-dlp', 
                 '-f', 'best',
@@ -526,7 +526,7 @@ def direct(twitch_id, remote_addr):
         ).output()
 
         if 'ERROR' in twitch_url or not twitch_url:
-            twitch_url = w.Worker(
+            twitch_url =Worker(
                 [
                     'yt-dlp', 
                     '-f', 'best',
@@ -546,7 +546,7 @@ def bridge(twitch_id):
     turl = 'https://www.twitch.tv/videos/{}'.format(
         video_id
     )
-    twitch_url = w.Worker(
+    twitch_url =Worker(
         [
             'yt-dlp', 
             '-f', 'best',
@@ -565,7 +565,7 @@ def bridge(twitch_id):
             )
         )
 
-        twitch_url = w.Worker(
+        twitch_url =Worker(
             [
                 'yt-dlp', 
                 '-f', 'best',
@@ -581,7 +581,7 @@ def bridge(twitch_id):
                 channel          
             )
 
-            twitch_url = w.Worker(
+            twitch_url =Worker(
                 [
                     'yt-dlp', 
                     '-f', 'best',
@@ -608,7 +608,7 @@ def bridge(twitch_id):
             turl
         ]
 
-        process = w.Worker(command).pipe()
+        process =Worker(command).pipe()
         try:
             while True:
                 # Get some data from ffmpeg

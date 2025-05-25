@@ -142,7 +142,7 @@ def to_strm(method):
                 config
             )
             ## -- BUILD VIDEO NFO FILE
-            n.nfo(
+            n.Nfo(
                 nfo_type,
                 "{}/{}/{}/{}".format(
                     media_folder, 

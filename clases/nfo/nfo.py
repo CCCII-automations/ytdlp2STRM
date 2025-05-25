@@ -6,7 +6,7 @@ from io import BytesIO
 from clases.folders import folders as f
 from clases.log import log as l
 
-class nfo:
+class Nfo:
     def __init__(self, nfo_type, nfo_path, nfo_data):
         self.nfo_type = nfo_type
         self.nfo_path = nfo_path

@@ -48,7 +48,7 @@ class Crunchyroll:
         self.set_auth(command)
         self.set_proxy(command)
         self.set_start_episode(command)
-        return w.Worker(command).pipe()
+        returnWorker(command).pipe()
 
     def get_start_episode(self):
         last_episode = 0
@@ -324,7 +324,7 @@ def to_strm(method):
                 if not line:
                     if jellyfin_preload_last_episode and (method == 'download' or method =='direct'):
                         if 'http' in file_content:
-                            w.Worker(file_content).preload()
+                           Worker(file_content).preload()
                     break
                 
         finally:
@@ -348,7 +348,7 @@ def direct(crunchyroll_id):
     ]
     Crunchyroll().set_auth(command,True)
     Crunchyroll().set_proxy(command)
-    crunchyroll_url = w.worker(command).output()
+    crunchyroll_url =Worker(command).output()
     return redirect(crunchyroll_url, code=301)
     '''
 
