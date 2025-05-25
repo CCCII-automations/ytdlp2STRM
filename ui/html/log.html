@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html data-bs-theme="auto">
 <head>
-    <title>ytdlp2STRM - CRONS</title>
+    <title>ytdlp2STRM - LOG</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/js/bootstrap.min.js"></script>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -12,124 +12,67 @@
 <body>
     <div class="col-lg-10 mx-auto p-3 py-md-5">
         <div class="d-flex justify-content-between align-items-center pb-3 mb-5 border-bottom">
-            <h1 class="mb-0">ytdlp2STRM - CRONS</h1>
+            <h1 class="mb-0">ytdlp2STRM - LOG</h1>
             <a href="/" class="btn btn-primary">
                 <i class="bi bi-house-fill me-1"></i> Home
             </a>
         </div>
-        <form method="post">
-            <div class="mb-3">
-                {% if request == "POST": %}
-                    {% if result: %}
-                        <div class="alert alert-success mt-5" role="alert">
-                            ./config/plugins.py saved.
-                        </div>
-                    {% else %}
-                        <div class="alert alert-danger mt-5" role="alert">
-                            Error
-                        </div>
-                    {% endif %}
-                {% endif %}
-                <label class="form-label">./config/crons.json</label>
-                <div id="plugin-fields">
-                    <div style="display:flex;">
-                        <span style="flex: 1 1 auto; width: 1%;padding-left:12px;">Plugin</span>
-                        <span style="flex: 1 1 auto; width: 1%;padding-left:12px;">Param</span>
-                        <span style="flex: 1 1 auto; width: 1%;padding-left:12px;">Quantity (default 1)</span>
-                        <span style="flex: 1 1 auto; width: 1%;padding-left:12px;">Every</span>
-                        <span style="flex: 1 1 auto; width: 1%;padding-left:12px;">At</span>
-                        <span style="flex: 1 1 auto; width: 1%;padding-left:12px;">Timezone</span>
-                        <span style="width: 41px;"></span>
-
-                    </div>
-                    {% for field in crons %}
-                        <div class="mb-3 input-group">
-                            <input class="form-control" type="text" name="plugin[]" value="{{ field.do[1] }}">
-                            <input class="form-control" type="text" name="param[]" value="{{ field.do[3] }}">
-                            <input class="form-control" type="text" name="qty[]" value="{{ field.qty }}">
-                            <input class="form-control" type="text" name="every[]" value="{{ field.every }}">
-                            <input class="form-control" type="text" name="at[]" value="{{ field.at }}">
-                            <input class="form-control" type="text" name="timezone[]" value="{{ field.timezone }}">
-
-                            <button class="btn btn-danger" type="button" onclick="this.parentNode.parentNode.removeChild(this.parentNode);">
-                                <i class="bi bi-trash"></i>
-                            </button>
-                        </div>
-                    {% endfor %}
-                </div>
-
+        <div class="mb-3">
+            <label class="form-label">./logs/ytdlp2strm.log</label>
+            <div id="plugin-fields" style="max-height: 40vh;overflow: hidden;overflow-y: auto;background:black;color:white;padding:1rem;border-radius:8px;scroll-behavior: smooth;font-family: 'Courier New', monospace;font-size: 0.875rem;line-height: 1.4;">
+                {% for line in log_content %}
+                    <div class="log-line">{{ line|safe }}</div>
+                {% endfor %}
             </div>
-            <button class="btn btn-primary" type="button" id="add-field">Add CRON</button>
-            <button class="btn btn-success" type="submit">Save</button>
-            <a href="/" class="btn btn-outline-primary">
+        </div>
+        <div class="d-flex gap-2 mb-3">
+            <a href="/" class="btn btn-primary">
                 <i class="bi bi-house-fill me-1"></i> Go back
             </a>
-            <div class="mb-3 mt-3">
-                <p>* To indicate every minute, every hour, or every day, keep the quantity blank and set the time units to singular (minute, hour, day) <a target="_blank" href="https://schedule.readthedocs.io/en/stable/reference.html#schedule.Job.second">schedule time units</a></p>
-                <p>* Keep blank the timezone to work with default machine timezone. List of all timezones. <a target="_blank" href="https://en.wikipedia.org/wiki/List_of_tz_database_time_zones">List of all timezones</a></p>
-
-            </div>
-        </form>
+            <button class="btn btn-outline-secondary" onclick="refreshLog()">
+                <i class="bi bi-arrow-clockwise me-1"></i> Refresh Log
+            </button>
+            <button class="btn btn-outline-info" onclick="scrollToBottom()">
+                <i class="bi bi-arrow-down me-1"></i> Scroll to Bottom
+            </button>
+            <button class="btn btn-outline-warning" onclick="scrollToTop()">
+                <i class="bi bi-arrow-up me-1"></i> Scroll to Top
+            </button>
+        </div>
+        <div class="mb-3 mt-3">
+            <p><i class="bi bi-info-circle me-1"></i> Last 7 days log entries are displayed here.</p>
+            <p><i class="bi bi-lightbulb me-1"></i> Use Ctrl+F to search within the log content.</p>
+        </div>
         <footer class="pt-5 my-5 text-muted border-top">
             <a href="https://github.com/fe80Grau/ytdlp2STRM" target="_blank"><i class="bi bi-github"></i> fe80grau / ytdlp2STRM</a>
             <a style="float:right" href="https://www.buymeacoffee.com/fe80grau" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" style="width: 90px !important;" ></a>
           </footer>
     </div>
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            var addFieldButton = document.getElementById('add-field');
-            var pluginFields = document.getElementById('plugin-fields');
-
-            addFieldButton.addEventListener('click', function() {
-                var newField = document.createElement('div');
-                newField.className = 'mb-3 input-group';
-
-                var newInput = document.createElement('input');
-                newInput.className = 'form-control';
-                newInput.type = 'text';
-                newInput.name = 'plugin[]';
-                var newInput2 = document.createElement('input');
-                newInput2.className = 'form-control';
-                newInput2.type = 'text';
-                newInput2.name = 'param[]';
-                var newInput3 = document.createElement('input');
-                newInput3.className = 'form-control';
-                newInput3.type = 'text';
-                newInput3.name = 'qty[]';
-                var newInput4 = document.createElement('input');
-                newInput4.className = 'form-control';
-                newInput4.type = 'text';
-                newInput4.name = 'every[]';
-                var newInput5 = document.createElement('input');
-                newInput5.className = 'form-control';
-                newInput5.type = 'text';
-                newInput5.name = 'at[]';
-                var newInput6 = document.createElement('input');
-                newInput6.className = 'form-control';
-                newInput6.type = 'text';
-                newInput6.name = 'timezone[]';
-
-                var deleteButton = document.createElement('button');
-                deleteButton.className = 'btn btn-danger';
-                var trashIcon = document.createElement('i');
-                trashIcon.className = 'bi bi-trash';
-                deleteButton.appendChild(trashIcon);
-
-                deleteButton.addEventListener('click', function() {
-                    newField.remove();
-                });
-
-                newField.appendChild(newInput);
-                newField.appendChild(newInput2);
-                newField.appendChild(newInput3);
-                newField.appendChild(newInput4);
-                newField.appendChild(newInput5);
-                newField.appendChild(newInput6);
-
-                newField.appendChild(deleteButton);
-                pluginFields.appendChild(newField);
-            });
+        document.addEventListener('DOMContentLoaded', (event) => {
+            const pluginFields = document.getElementById('plugin-fields');
+            pluginFields.scrollTop = pluginFields.scrollHeight;
         });
+
+        function refreshLog() {
+            window.location.reload();
+        }
+
+        function scrollToBottom() {
+            const pluginFields = document.getElementById('plugin-fields');
+            pluginFields.scrollTop = pluginFields.scrollHeight;
+        }
+
+        function scrollToTop() {
+            const pluginFields = document.getElementById('plugin-fields');
+            pluginFields.scrollTop = 0;
+        }
+
+        // Auto-refresh every 30 seconds
+        setInterval(function() {
+            // Check if user wants auto-refresh (could be a setting)
+            // refreshLog();
+        }, 30000);
     </script>
 </body>
 </html>
