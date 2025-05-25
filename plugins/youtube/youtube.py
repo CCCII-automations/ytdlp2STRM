@@ -20,33 +20,32 @@ Usage Examples:
     python youtube_downloader.py --keyword "python tutorial"
 """
 
-import os
-import json
-import time
-import platform
-import subprocess
-import requests
-import html
-import re
-import unicodedata
-import shutil
-from datetime import datetime
-from cachetools import TTLCache
-from pathlib import Path
 import argparse
+import html
+import json
+import os
+import re
+import shutil
+import subprocess
 import sys
+import time
+from datetime import datetime
+from pathlib import Path
+
+import requests
+import unicodedata
+from cachetools import TTLCache
 
 root_dir = Path(__file__).resolve().parents[2]
 sys.path.append(str(root_dir))
 
 from clases.config import config as c
 from clases.worker import worker as w
-from clases.folders import folders as f
 from clases.nfo.nfo import Nfo as n
 from clases.log import log as l
 
 from sanitize_filename import sanitize
-from flask import stream_with_context, Response, send_file, redirect, abort, request
+from flask import stream_with_context, Response, send_file, redirect
 
 # Initialize cache for recent requests
 recent_requests = TTLCache(maxsize=200, ttl=30)
@@ -167,6 +166,8 @@ class Youtube:
             '--convert-thumbnails', 'jpg',
             '--skip-download',
             '--output', thumbnail_path.replace('.jpg', ''),
+            '--sleep-interval', str(5),
+            '-t', 'sleep',
             f'https://www.youtube.com/watch?v={video_id}'
         ]
 
@@ -185,6 +186,8 @@ class Youtube:
                 url_command = [
                     'yt-dlp',
                     '-f', 'best',
+                    '--sleep-interval', str(5),
+                    '-t', 'sleep',
                     '--get-url',
                     f'https://www.youtube.com/watch?v={video_id}'
                 ]
@@ -351,6 +354,8 @@ class Youtube:
             '--compat-options', 'no-youtube-unavailable-videos',
             '--sleep-interval', str(self.sleep_interval),
             '--no-warning',
+            '--sleep-interval', str(5),
+            '-t', 'sleep',
             '--dump-json'
         ]
 
@@ -393,6 +398,7 @@ class Youtube:
             '--playlist-start', '1',
             '--playlist-end', str(videos_limit),
             '--sleep-interval', str(self.sleep_interval),
+            '-t', 'sleep',
             '--no-warning',
             '--dump-json',
             cu
@@ -432,6 +438,7 @@ class Youtube:
             '--playlist-start', '1',
             '--playlist-end', str(videos_limit),
             '--sleep-interval', str(self.sleep_interval),
+            '-t', 'sleep',
             '--no-warning',
             '--dump-json',
             self.channel_url
@@ -474,6 +481,7 @@ class Youtube:
             '--playlist-start', '1',
             '--playlist-end', str(videos_limit),
             '--sleep-interval', str(self.sleep_interval),
+            '-t', 'sleep',
             '--no-warning',
             '--dump-json',
             cu
@@ -516,6 +524,8 @@ class Youtube:
                 '--restrict-filenames',
                 '--ignore-errors',
                 '--no-warnings',
+                '--sleep-interval', str(5),
+                '-t', 'sleep',
                 '--compat-options', 'no-youtube-channel-redirect',
                 self.channel_url
             ]
@@ -528,6 +538,8 @@ class Youtube:
                 '--ignore-errors',
                 '--no-warnings',
                 '--playlist-items', '1',
+                '--sleep-interval', str(5),
+                '-t', 'sleep',
                 '--compat-options', 'no-youtube-channel-redirect',
                 self.channel_url
             ]
@@ -585,7 +597,10 @@ class Youtube:
             '--restrict-filenames',
             '--ignore-errors',
             '--no-warnings',
-            '--playlist-items', '0',
+            '-t', 'sleep',
+            '--sleep-interval', str(self.sleep_interval),
+            '-t', 'sleep'
+                  '--playlist-items', '0',
             self.channel_url
         ]
 
@@ -848,6 +863,8 @@ def direct(youtube_id, remote_addr):
             'yt-dlp',
             '-j',
             '--no-warnings',
+            '--sleep-interval', str(5),
+            '-t', 'sleep',
             '--extractor-args', 'youtube:player-client=default,web_safari',
             f'https://www.youtube.com/watch?v={youtube_id}'
         ]
@@ -874,6 +891,8 @@ def direct(youtube_id, remote_addr):
                 'yt-dlp',
                 '-f', 'best',
                 '--get-url',
+                '--sleep-interval', str(5),
+                '-t', 'sleep',
                 '--no-warnings',
                 f'https://www.youtube.com/watch?v={youtube_id}'
             ]
@@ -903,6 +922,8 @@ def direct(youtube_id, remote_addr):
             'yt-dlp',
             '-f', 'bestaudio',
             '--get-url',
+            '--sleep-interval', str(5),
+            '-t', 'sleep',
             '--no-warnings',
             f'https://www.youtube.com/watch?v={s_youtube_id}'
         ]
@@ -994,6 +1015,8 @@ def download(youtube_id):
             '-o', os.path.join(temp_dir, '%(title)s.%(ext)s'),
             '--sponsorblock-remove', config.get('sponsorblock_cats', 'all'),
             '--restrict-filenames',
+            '--sleep-interval', str(5),
+            '-t', 'sleep',
             s_youtube_id
         ]
     else:
@@ -1002,6 +1025,8 @@ def download(youtube_id):
             '-f', 'bv*+ba+ba.2',
             '-o', os.path.join(temp_dir, '%(title)s.%(ext)s'),
             '--restrict-filenames',
+            '--sleep-interval', str(5),
+            '-t', 'sleep',
             s_youtube_id
         ]
 
