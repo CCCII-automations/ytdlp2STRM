@@ -1,91 +1,718 @@
 <!DOCTYPE html>
-<html data-bs-theme=”auto”>
+<html data-bs-theme="auto">
 <head>
-    <title>ytdlp2STRM - Enable/Disable Plugins</title>
+    <title>ytdlp2STRM - Advanced Plugin Manager</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/js/bootstrap.min.js"></script>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.2/font/bootstrap-icons.css" integrity="sha384-b6lVK+yci+bfDmaY1u0zE8YYJt0TZxLEAFyYSLHId4xoVvsrQu3INevFKo+Xir8e" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.2/font/bootstrap-icons.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link rel="stylesheet" href="/styles.css" crossorigin="anonymous">
     <script src="/bs-theme-mode.js"></script>
     <style>
-        .input-group {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
+        .plugin-manager {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            margin-bottom: 2rem;
         }
 
-        .input-group input {
-            flex: 1;
+        .plugin-zone {
+            border: 2px dashed #dee2e6;
+            border-radius: 12px;
+            padding: 1.5rem;
+            min-height: 400px;
+            transition: all 0.3s ease;
+            background: #f8f9fa;
+        }
+
+        .plugin-zone.enabled {
+            border-color: #198754;
+            background: rgba(25, 135, 84, 0.05);
+        }
+
+        .plugin-zone.disabled {
+            border-color: #dc3545;
+            background: rgba(220, 53, 69, 0.05);
+        }
+
+        .plugin-zone.drag-over {
+            border-color: #0d6efd;
+            background: rgba(13, 110, 253, 0.1);
+            transform: scale(1.02);
+        }
+
+        .zone-header {
+            text-align: center;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid #dee2e6;
+        }
+
+        .zone-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .zone-count {
+            color: #6c757d;
+            font-size: 0.875rem;
+        }
+
+        .plugin-card {
+            background: white;
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            border: 1px solid #dee2e6;
+            cursor: grab;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .plugin-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+
+        .plugin-card.dragging {
+            opacity: 0.5;
+            cursor: grabbing;
+            transform: rotate(5deg);
+        }
+
+        .plugin-card.enabled {
+            border-left: 4px solid #198754;
+        }
+
+        .plugin-card.disabled {
+            border-left: 4px solid #dc3545;
+        }
+
+        .plugin-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 0.5rem;
+        }
+
+        .plugin-name {
+            font-weight: 600;
+            font-size: 1rem;
+        }
+
+        .plugin-status {
+            font-size: 0.75rem;
+            padding: 0.25rem 0.5rem;
+            border-radius: 12px;
+            text-transform: uppercase;
+            font-weight: 600;
+        }
+
+        .plugin-status.enabled {
+            background: rgba(25, 135, 84, 0.1);
+            color: #198754;
+        }
+
+        .plugin-status.disabled {
+            background: rgba(220, 53, 69, 0.1);
+            color: #dc3545;
+        }
+
+        .plugin-info {
+            font-size: 0.875rem;
+            color: #6c757d;
+            margin-bottom: 1rem;
+        }
+
+        .plugin-actions {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        .btn-sm {
+            padding: 0.25rem 0.5rem;
+            font-size: 0.75rem;
+        }
+
+        .save-section {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            border: 1px solid #dee2e6;
+        }
+
+        .changes-indicator {
+            display: none;
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .changes-indicator.show {
+            display: block;
+        }
+
+        .raw-editor {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-top: 2rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .code-editor {
+            font-family: 'Monaco', 'Menlo', 'Consolas', monospace;
+            font-size: 0.875rem;
+            line-height: 1.5;
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 6px;
+            padding: 1rem;
+            min-height: 200px;
+            resize: vertical;
+        }
+
+        .stats-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: 8px;
+            padding: 1.5rem;
+            text-align: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            border: 1px solid #dee2e6;
+        }
+
+        .stat-number {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-label {
+            color: #6c757d;
+            font-size: 0.875rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .drag-handle {
+            cursor: grab;
+            color: #6c757d;
+            padding: 0.25rem;
+        }
+
+        .drag-handle:hover {
+            color: #495057;
+        }
+
+        @media (max-width: 768px) {
+            .plugin-manager {
+                grid-template-columns: 1fr;
+            }
+
+            .plugin-actions {
+                justify-content: center;
+            }
+        }
+
+        /* Loading and transition effects */
+        .loading {
+            opacity: 0.6;
+            pointer-events: none;
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 1rem;
+            height: 1rem;
+            border: 2px solid rgba(0,0,0,0.25);
+            border-radius: 50%;
+            border-top-color: transparent;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .fade-in {
+            animation: fadeIn 0.3s ease-in;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
         }
     </style>
 </head>
 <body>
-    <div class="col-lg-10 mx-auto p-3 py-md-5">
-        <h1 class="d-flex align-items-center pb-3 mb-5 border-bottom">ytdlp2STRM - Enable/Disable Plugins</h1>
-        <form method="post">
-            <div class="mb-3">
-                {% if request == "POST": %}
-                    {% if result: %}
-                        <div class="alert alert-success mt-5" role="alert">
-                            ./config/plugins.py saved.
-                        </div>
-                    {% else %}
-                        <div class="alert alert-danger mt-5" role="alert">
-                            Error
-                        </div>
-                    {% endif %}
-                {% endif %}
-                
-                <label class="form-label">./config/plugins.py</label>
-                <div id="plugin-fields">
-                    {% for field in plugin_code %}
-                        <div class="mb-3 input-group">
-                            <input class="form-control" type="text" name="plugin_field" value="{{ field }}">
-                            <button class="btn btn-danger" type="button" onclick="this.parentNode.parentNode.removeChild(this.parentNode);">
-                                <i class="bi bi-trash"></i>
-                            </button>                        
-                        </div>
-                    {% endfor %}
+    <div class="col-lg-12 mx-auto p-3 py-md-5">
+        <div class="d-flex justify-content-between align-items-center pb-3 mb-5 border-bottom">
+            <h1 class="d-flex align-items-center mb-0">
+                <i class="fas fa-puzzle-piece me-3"></i>
+                ytdlp2STRM - Advanced Plugin Manager
+            </h1>
+            <a href="/" class="btn btn-primary">
+                <i class="fas fa-home me-1"></i> Home
+            </a>
+        </div>
+
+        <!-- Statistics Row -->
+        <div class="stats-row">
+            <div class="stat-card">
+                <div class="stat-number text-primary" id="total-plugins">{{ plugin_code|length }}</div>
+                <div class="stat-label">Total Plugins</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number text-success" id="enabled-count">0</div>
+                <div class="stat-label">Enabled</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number text-danger" id="disabled-count">0</div>
+                <div class="stat-label">Disabled</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number text-warning" id="changes-count">0</div>
+                <div class="stat-label">Pending Changes</div>
+            </div>
+        </div>
+
+        <!-- Changes Indicator -->
+        <div class="changes-indicator" id="changes-indicator">
+            <div class="d-flex align-items-center">
+                <i class="fas fa-exclamation-triangle text-warning me-2"></i>
+                <strong>You have unsaved changes!</strong>
+                Use the save button below to apply your plugin configuration.
+            </div>
+        </div>
+
+        <!-- Save Section -->
+        <div class="save-section">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h5 class="mb-1">Plugin Configuration</h5>
+                    <small class="text-muted">Drag plugins between enabled/disabled sections to change their status</small>
+                </div>
+                <div>
+                    <button id="save-changes" class="btn btn-success me-2" style="display: none;">
+                        <i class="fas fa-save"></i> Save Changes
+                    </button>
+                    <button id="reset-changes" class="btn btn-outline-secondary me-2" style="display: none;">
+                        <i class="fas fa-undo"></i> Reset
+                    </button>
+                    <a href="/" class="btn btn-primary">
+                        <i class="fas fa-home"></i> Dashboard
+                    </a>
                 </div>
             </div>
-            <button class="btn btn-primary" type="button" id="add-field">Add plugin</button>
-            <button class="btn btn-primary" type="submit">Save</button>
-            <a href="/" class="btn btn-primary">Go back</a>
-        </form>
+        </div>
+
+        <!-- Plugin Manager Grid -->
+        <div class="plugin-manager">
+            <!-- Enabled Plugins Zone -->
+            <div class="plugin-zone enabled" id="enabled-zone" ondrop="drop(event)" ondragover="allowDrop(event)">
+                <div class="zone-header">
+                    <div class="zone-title text-success">
+                        <i class="fas fa-check-circle"></i> Enabled Plugins
+                    </div>
+                    <div class="zone-count" id="enabled-zone-count">0 plugins</div>
+                </div>
+                <div id="enabled-plugins-container"></div>
+            </div>
+
+            <!-- Disabled Plugins Zone -->
+            <div class="plugin-zone disabled" id="disabled-zone" ondrop="drop(event)" ondragover="allowDrop(event)">
+                <div class="zone-header">
+                    <div class="zone-title text-danger">
+                        <i class="fas fa-times-circle"></i> Disabled Plugins
+                    </div>
+                    <div class="zone-count" id="disabled-zone-count">0 plugins</div>
+                </div>
+                <div id="disabled-plugins-container"></div>
+            </div>
+        </div>
+
+        <!-- Raw Editor Section -->
+        <div class="raw-editor">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5>Raw Plugin Configuration</h5>
+                <button id="toggle-editor" class="btn btn-outline-primary btn-sm">
+                    <i class="fas fa-code"></i> Show Raw Editor
+                </button>
+            </div>
+            <div id="raw-editor-container" style="display: none;">
+                <form method="post" id="raw-form">
+                    <div class="mb-3">
+                        <label class="form-label">./config/plugins.py</label>
+                        <textarea class="form-control code-editor" name="plugin_content" id="plugin-content">{% for field in plugin_code %}{{ field }}
+{% endfor %}</textarea>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save"></i> Save Raw Content
+                        </button>
+                        <button type="button" id="reset-raw" class="btn btn-outline-secondary">
+                            <i class="fas fa-undo"></i> Reset
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Success/Error Messages -->
+        {% if request == "POST" %}
+            {% if result %}
+                <div class="alert alert-success mt-3 fade-in" role="alert">
+                    <i class="fas fa-check-circle"></i>
+                    ./config/plugins.py saved successfully.
+                </div>
+            {% else %}
+                <div class="alert alert-danger mt-3 fade-in" role="alert">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    Error saving configuration.
+                </div>
+            {% endif %}
+        {% endif %}
+
         <footer class="pt-5 my-5 text-muted border-top">
-            <a href="https://github.com/fe80Grau/ytdlp2STRM" target="_blank"><i class="bi bi-github"></i> fe80grau / ytdlp2STRM</a>
-            <a style="float:right" href="https://www.buymeacoffee.com/fe80grau" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" style="width: 90px !important;" ></a>
-          </footer>
+            <a href="https://github.com/fe80Grau/ytdlp2STRM" target="_blank">
+                <i class="bi bi-github"></i> fe80grau / ytdlp2STRM
+            </a>
+            <a style="float:right" href="https://www.buymeacoffee.com/fe80grau" target="_blank">
+                <img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" style="width: 90px !important;">
+            </a>
+        </footer>
     </div>
+
     <script>
+        let pluginData = [];
+        let originalContent = '';
+        let hasChanges = false;
+
+        // Initialize on page load
         document.addEventListener('DOMContentLoaded', function() {
-            var addFieldButton = document.getElementById('add-field');
-            var pluginFields = document.getElementById('plugin-fields');
+            initializePlugins();
+            originalContent = document.getElementById('plugin-content').value;
+        });
 
-            addFieldButton.addEventListener('click', function() {
-                var newField = document.createElement('div');
-                newField.className = 'mb-3 input-group';
+        function initializePlugins() {
+            const pluginContent = document.getElementById('plugin-content').value;
+            const lines = pluginContent.split('\n').filter(line => line.trim());
 
-                var newInput = document.createElement('input');
-                newInput.className = 'form-control';
-                newInput.type = 'text';
-                newInput.name = 'plugin_field';
+            pluginData = [];
 
-                var deleteButton = document.createElement('button');
-                deleteButton.className = 'btn btn-danger';
-                var trashIcon = document.createElement('i');
-                trashIcon.className = 'bi bi-trash';
-                deleteButton.appendChild(trashIcon);
+            lines.forEach((line, index) => {
+                line = line.trim();
+                if (line.includes('plugins.') && (line.includes('import') || line.includes('from'))) {
+                    const isEnabled = !line.startsWith('#');
+                    let pluginName = '';
 
-                deleteButton.addEventListener('click', function() {
-                    newField.remove();
-                });
+                    if (line.includes('import plugins.')) {
+                        pluginName = line.split('plugins.')[1].split(/\s/)[0];
+                    } else if (line.includes('from plugins.')) {
+                        pluginName = line.split('plugins.')[1].split(/\s/)[0];
+                    }
 
-                newField.appendChild(newInput);
-                newField.appendChild(deleteButton);
-                pluginFields.appendChild(newField);
+                    if (pluginName) {
+                        pluginData.push({
+                            name: pluginName,
+                            enabled: isEnabled,
+                            originalLine: line,
+                            lineIndex: index
+                        });
+                    }
+                }
             });
+
+            renderPlugins();
+            updateStats();
+        }
+
+        function renderPlugins() {
+            const enabledContainer = document.getElementById('enabled-plugins-container');
+            const disabledContainer = document.getElementById('disabled-plugins-container');
+
+            enabledContainer.innerHTML = '';
+            disabledContainer.innerHTML = '';
+
+            pluginData.forEach(plugin => {
+                const pluginCard = createPluginCard(plugin);
+
+                if (plugin.enabled) {
+                    enabledContainer.appendChild(pluginCard);
+                } else {
+                    disabledContainer.appendChild(pluginCard);
+                }
+            });
+        }
+
+        function createPluginCard(plugin) {
+            const card = document.createElement('div');
+            card.className = `plugin-card ${plugin.enabled ? 'enabled' : 'disabled'}`;
+            card.draggable = true;
+            card.dataset.plugin = plugin.name;
+            card.dataset.enabled = plugin.enabled;
+
+            card.innerHTML = `
+                <div class="plugin-header">
+                    <div class="d-flex align-items-center">
+                        <i class="fas fa-grip-vertical drag-handle me-2"></i>
+                        <span class="plugin-name">${plugin.name.charAt(0).toUpperCase() + plugin.name.slice(1)}</span>
+                    </div>
+                    <span class="plugin-status ${plugin.enabled ? 'enabled' : 'disabled'}">
+                        ${plugin.enabled ? 'Enabled' : 'Disabled'}
+                    </span>
+                </div>
+                <div class="plugin-info">
+                    Plugin: ${plugin.name} | Status: ${plugin.enabled ? 'Active' : 'Inactive'}
+                </div>
+                <div class="plugin-actions">
+                    <a href="/plugin/${plugin.name}" class="btn btn-outline-primary btn-sm">
+                        <i class="fas fa-cog"></i> Settings
+                    </a>
+                    <a href="/plugin/${plugin.name}/channels" class="btn btn-outline-warning btn-sm">
+                        <i class="fas fa-list"></i> Channels
+                    </a>
+                    ${plugin.enabled ? `
+                    <button class="btn btn-outline-success btn-sm run-plugin" data-plugin="${plugin.name}">
+                        <i class="fas fa-play"></i> Run
+                    </button>
+                    ` : ''}
+                </div>
+            `;
+
+            // Add drag event listeners
+            card.addEventListener('dragstart', handleDragStart);
+            card.addEventListener('dragend', handleDragEnd);
+
+            // Add run button functionality
+            const runButton = card.querySelector('.run-plugin');
+            if (runButton) {
+                runButton.addEventListener('click', function() {
+                    runPlugin(plugin.name, this);
+                });
+            }
+
+            return card;
+        }
+
+        function handleDragStart(e) {
+            e.dataTransfer.setData('text/plain', e.target.dataset.plugin);
+            e.target.classList.add('dragging');
+        }
+
+        function handleDragEnd(e) {
+            e.target.classList.remove('dragging');
+        }
+
+        function allowDrop(e) {
+            e.preventDefault();
+            e.currentTarget.classList.add('drag-over');
+        }
+
+        function drop(e) {
+            e.preventDefault();
+            e.currentTarget.classList.remove('drag-over');
+
+            const pluginName = e.dataTransfer.getData('text/plain');
+            const targetZone = e.currentTarget.id;
+            const shouldEnable = targetZone === 'enabled-zone';
+
+            // Find the plugin in our data
+            const plugin = pluginData.find(p => p.name === pluginName);
+            if (plugin && plugin.enabled !== shouldEnable) {
+                plugin.enabled = shouldEnable;
+                hasChanges = true;
+
+                renderPlugins();
+                updateStats();
+                showSaveButton();
+                updateChangesIndicator();
+            }
+        }
+
+        // Remove drag-over class when leaving
+        document.addEventListener('dragleave', function(e) {
+            if (e.target.classList.contains('plugin-zone')) {
+                e.target.classList.remove('drag-over');
+            }
+        });
+
+        function updateStats() {
+            const total = pluginData.length;
+            const enabled = pluginData.filter(p => p.enabled).length;
+            const disabled = total - enabled;
+            const changes = hasChanges ? pluginData.filter(p => {
+                const originalEnabled = !p.originalLine.startsWith('#');
+                return p.enabled !== originalEnabled;
+            }).length : 0;
+
+            document.getElementById('total-plugins').textContent = total;
+            document.getElementById('enabled-count').textContent = enabled;
+            document.getElementById('disabled-count').textContent = disabled;
+            document.getElementById('changes-count').textContent = changes;
+
+            document.getElementById('enabled-zone-count').textContent = `${enabled} plugins`;
+            document.getElementById('disabled-zone-count').textContent = `${disabled} plugins`;
+        }
+
+        function showSaveButton() {
+            document.getElementById('save-changes').style.display = 'inline-block';
+            document.getElementById('reset-changes').style.display = 'inline-block';
+        }
+
+        function hideSaveButton() {
+            document.getElementById('save-changes').style.display = 'none';
+            document.getElementById('reset-changes').style.display = 'none';
+        }
+
+        function updateChangesIndicator() {
+            const indicator = document.getElementById('changes-indicator');
+            if (hasChanges) {
+                indicator.classList.add('show');
+            } else {
+                indicator.classList.remove('show');
+            }
+        }
+
+        function generatePluginContent() {
+            let content = [];
+
+            pluginData.forEach(plugin => {
+                const importLine = `import plugins.${plugin.name}`;
+                if (plugin.enabled) {
+                    content.push(importLine);
+                } else {
+                    content.push(`# ${importLine}`);
+                }
+            });
+
+            return content.join('\n');
+        }
+
+        function runPlugin(pluginName, button) {
+            const originalText = button.innerHTML;
+            button.innerHTML = '<span class="spinner"></span> Running...';
+            button.disabled = true;
+
+            // Simulate plugin execution
+            fetch(`/api/run-plugin/${pluginName}`, {
+                method: 'POST'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    button.innerHTML = '<i class="fas fa-check"></i> Started';
+                    button.classList.add('btn-success');
+                } else {
+                    button.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Error';
+                    button.classList.add('btn-danger');
+                }
+
+                setTimeout(() => {
+                    button.innerHTML = originalText;
+                    button.disabled = false;
+                    button.className = button.className.replace(' btn-success', '').replace(' btn-danger', '');
+                }, 3000);
+            })
+            .catch(error => {
+                button.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Error';
+                setTimeout(() => {
+                    button.innerHTML = originalText;
+                    button.disabled = false;
+                }, 3000);
+            });
+        }
+
+        // Save changes button
+        document.getElementById('save-changes').addEventListener('click', function() {
+            const button = this;
+            const originalText = button.innerHTML;
+
+            button.innerHTML = '<span class="spinner"></span> Saving...';
+            button.disabled = true;
+
+            const newContent = generatePluginContent();
+
+            // Create form data
+            const formData = new FormData();
+            newContent.split('\n').forEach(line => {
+                formData.append('plugin_field', line);
+            });
+
+            fetch('/plugins', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => {
+                if (response.ok) {
+                    button.innerHTML = '<i class="fas fa-check"></i> Saved!';
+                    hasChanges = false;
+                    updateStats();
+                    updateChangesIndicator();
+
+                    setTimeout(() => {
+                        button.innerHTML = originalText;
+                        button.disabled = false;
+                        hideSaveButton();
+                    }, 2000);
+                } else {
+                    throw new Error('Save failed');
+                }
+            })
+            .catch(error => {
+                button.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Error!';
+                setTimeout(() => {
+                    button.innerHTML = originalText;
+                    button.disabled = false;
+                }, 2000);
+            });
+        });
+
+        // Reset changes button
+        document.getElementById('reset-changes').addEventListener('click', function() {
+            if (confirm('Are you sure you want to reset all changes?')) {
+                hasChanges = false;
+                initializePlugins();
+                updateChangesIndicator();
+                hideSaveButton();
+            }
+        });
+
+        // Toggle raw editor
+        document.getElementById('toggle-editor').addEventListener('click', function() {
+            const container = document.getElementById('raw-editor-container');
+            const button = this;
+
+            if (container.style.display === 'none') {
+                container.style.display = 'block';
+                button.innerHTML = '<i class="fas fa-eye-slash"></i> Hide Raw Editor';
+                // Update textarea with current plugin data
+                document.getElementById('plugin-content').value = generatePluginContent();
+            } else {
+                container.style.display = 'none';
+                button.innerHTML = '<i class="fas fa-code"></i> Show Raw Editor';
+            }
+        });
+
+        // Raw editor reset
+        document.getElementById('reset-raw').addEventListener('click', function() {
+            if (confirm('Reset raw content to original?')) {
+                document.getElementById('plugin-content').value = originalContent;
+            }
         });
     </script>
 </body>

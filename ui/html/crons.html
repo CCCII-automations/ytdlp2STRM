@@ -1,128 +1,831 @@
 <!DOCTYPE html>
-<html data-bs-theme=”auto”>
+<html data-bs-theme="auto">
 <head>
-    <title>ytdlp2STRM - CRONS</title>
+    <title>ytdlp2STRM - Scheduler & CRONS</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/js/bootstrap.min.js"></script>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.2/font/bootstrap-icons.css" integrity="sha384-b6lVK+yci+bfDmaY1u0zE8YYJt0TZxLEAFyYSLHId4xoVvsrQu3INevFKo+Xir8e" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.2/font/bootstrap-icons.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link rel="stylesheet" href="/styles.css" crossorigin="anonymous">
     <script src="/bs-theme-mode.js"></script>
+    <style>
+        .crons-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 12px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            text-align: center;
+            position: relative;
+        }
+
+        .home-btn-header {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+        }
+
+        .cron-section {
+            background: white;
+            border-radius: 12px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            border: 1px solid #dee2e6;
+        }
+
+        .cron-item {
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            transition: all 0.3s ease;
+            background: #f8f9fa;
+        }
+
+        .cron-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            border-color: #0d6efd;
+        }
+
+        .cron-header {
+            display: grid;
+            grid-template-columns: 1fr 2fr 1fr 1fr 1fr 1fr 50px;
+            gap: 0.5rem;
+            align-items: center;
+            font-weight: 600;
+            color: #495057;
+            padding: 0.5rem;
+            background: #e9ecef;
+            border-radius: 6px;
+            margin-bottom: 1rem;
+            font-size: 0.875rem;
+        }
+
+        .cron-row {
+            display: grid;
+            grid-template-columns: 1fr 2fr 1fr 1fr 1fr 1fr 50px;
+            gap: 0.5rem;
+            align-items: center;
+        }
+
+        .form-control {
+            border-radius: 6px;
+            border: 1px solid #ced4da;
+            transition: all 0.3s ease;
+            font-size: 0.875rem;
+        }
+
+        .form-control:focus {
+            border-color: #0d6efd;
+            box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
+        }
+
+        .btn {
+            border-radius: 6px;
+            transition: all 0.3s ease;
+        }
+
+        .btn:hover {
+            transform: translateY(-1px);
+        }
+
+        .add-cron-btn {
+            background: linear-gradient(45deg, #28a745, #20c997);
+            border: none;
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .add-cron-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
+        }
+
+        .remove-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+        }
+
+        .remove-btn:hover {
+            transform: scale(1.1);
+        }
+
+        .info-section {
+            background: #f8f9fa;
+            border-left: 4px solid #0d6efd;
+            padding: 1rem;
+            border-radius: 0 8px 8px 0;
+            margin-top: 2rem;
+        }
+
+        .quick-templates {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .template-card {
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: white;
+        }
+
+        .template-card:hover {
+            border-color: #0d6efd;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+
+        .template-card h6 {
+            color: #0d6efd;
+            margin-bottom: 0.5rem;
+        }
+
+        .template-card small {
+            color: #6c757d;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: 8px;
+            padding: 1rem;
+            text-align: center;
+            border: 1px solid #dee2e6;
+            transition: all 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+
+        .stat-number {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #0d6efd;
+        }
+
+        .stat-label {
+            font-size: 0.75rem;
+            color: #6c757d;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .fade-in {
+            animation: fadeIn 0.5s ease-in;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .plugin-badge {
+            background: #e7f3ff;
+            color: #0066cc;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+
+        .schedule-preview {
+            font-size: 0.75rem;
+            color: #6c757d;
+            margin-top: 0.25rem;
+        }
+
+        @media (max-width: 768px) {
+            .cron-header, .cron-row {
+                grid-template-columns: 1fr;
+                gap: 0.75rem;
+            }
+
+            .cron-header {
+                display: none;
+            }
+
+            .mobile-label {
+                font-weight: 600;
+                font-size: 0.75rem;
+                color: #6c757d;
+                margin-bottom: 0.25rem;
+                display: block;
+            }
+
+            .desktop-only {
+                display: none;
+            }
+        }
+
+        @media (min-width: 769px) {
+            .mobile-label {
+                display: none;
+            }
+        }
+    </style>
 </head>
 <body>
-    <div class="col-lg-10 mx-auto p-3 py-md-5">
-        <h1 class="d-flex align-items-center pb-3 mb-5 border-bottom">ytdlp2STRM - CRONS</h1>
-        <form method="post">
-            <div class="mb-3">
-                {% if request == "POST": %}
-                    {% if result: %}
-                        <div class="alert alert-success mt-5" role="alert">
-                            ./config/plugins.py saved.
-                        </div>
-                    {% else %}
-                        <div class="alert alert-danger mt-5" role="alert">
-                            Error
-                        </div>
-                    {% endif %}
-                {% endif %}   
-                <label class="form-label">./config/crons.json</label>             
-                <div id="plugin-fields">
-                    <div style="display:flex;">
-                        <span style="flex: 1 1 auto; width: 1%;padding-left:12px;">Plugin</span>
-                        <span style="flex: 1 1 auto; width: 1%;padding-left:12px;">Param</span>
-                        <span style="flex: 1 1 auto; width: 1%;padding-left:12px;">Quantity (default 1)</span>
-                        <span style="flex: 1 1 auto; width: 1%;padding-left:12px;">Every</span>
-                        <span style="flex: 1 1 auto; width: 1%;padding-left:12px;">At</span>
-                        <span style="flex: 1 1 auto; width: 1%;padding-left:12px;">Timezone</span>
-                        <span style="width: 41px;"></span>
+    <div class="col-lg-12 mx-auto p-3 py-md-5">
+        <!-- Header -->
+        <div class="crons-header">
+            <a href="/" class="btn btn-outline-light home-btn-header">
+                <i class="fas fa-home me-1"></i> Home
+            </a>
+            <div style="font-size: 3rem; margin-bottom: 1rem;">
+                <i class="fas fa-clock"></i>
+            </div>
+            <h1>Task Scheduler & CRONS</h1>
+            <p>Automate your media downloads with scheduled tasks</p>
+        </div>
 
+        <!-- Stats -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-number" id="total-crons">{{ crons|length if crons else 0 }}</div>
+                <div class="stat-label">Total Jobs</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="daily-crons">0</div>
+                <div class="stat-label">Daily Jobs</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="hourly-crons">0</div>
+                <div class="stat-label">Hourly Jobs</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="active-plugins">0</div>
+                <div class="stat-label">Active Plugins</div>
+            </div>
+        </div>
+
+        <!-- Success/Error Messages -->
+        {% if request == "POST" %}
+            {% if result %}
+                <div class="alert alert-success fade-in" role="alert">
+                    <i class="fas fa-check-circle me-2"></i>
+                    <strong>Success!</strong> ./config/crons.json saved successfully.
+                </div>
+            {% else %}
+                <div class="alert alert-danger fade-in" role="alert">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    <strong>Error!</strong> Failed to save cron configuration.
+                </div>
+            {% endif %}
+        {% endif %}
+
+        <!-- Main Form -->
+        <div class="cron-section">
+            <h3 class="mb-4">
+                <i class="fas fa-calendar-alt me-2"></i>
+                Scheduled Tasks Configuration
+            </h3>
+
+            <form method="post" id="cron-form">
+                <div id="cron-container">
+                    <!-- Header Row -->
+                    <div class="cron-header desktop-only">
+                        <div><i class="fas fa-puzzle-piece me-1"></i> Plugin</div>
+                        <div><i class="fas fa-cog me-1"></i> Parameters</div>
+                        <div><i class="fas fa-hashtag me-1"></i> Quantity</div>
+                        <div><i class="fas fa-repeat me-1"></i> Every</div>
+                        <div><i class="fas fa-clock me-1"></i> At Time</div>
+                        <div><i class="fas fa-globe me-1"></i> Timezone</div>
+                        <div><i class="fas fa-trash me-1"></i></div>
                     </div>
-                    {% for field in crons %}
-                        <div class="mb-3 input-group">
-                            <input class="form-control" type="text" name="plugin[]" value="{{ field.do[1] }}">
-                            <input class="form-control" type="text" name="param[]" value="{{ field.do[3] }}">
-                            <input class="form-control" type="text" name="qty[]" value="{{ field.qty }}">
-                            <input class="form-control" type="text" name="every[]" value="{{ field.every }}">
-                            <input class="form-control" type="text" name="at[]" value="{{ field.at }}">
-                            <input class="form-control" type="text" name="timezone[]" value="{{ field.timezone }}">
 
-                            <button class="btn btn-danger" type="button" onclick="this.parentNode.parentNode.removeChild(this.parentNode);">
-                                <i class="bi bi-trash"></i>
-                            </button>                        
+                    <!-- Existing Crons -->
+                    {% if crons %}
+                    {% for field in crons %}
+                        <div class="cron-item fade-in">
+                            <div class="cron-row">
+                                <div>
+                                    <label class="mobile-label">Plugin:</label>
+                                    <select class="form-control plugin-select" name="plugin[]" onchange="updatePreview(this)">
+                                        <option value="">Select Plugin</option>
+                                        <option value="youtube" {% if field.do and field.do|length > 1 and field.do[1] == 'youtube' %}selected{% endif %}>YouTube</option>
+                                        <option value="twitch" {% if field.do and field.do|length > 1 and field.do[1] == 'twitch' %}selected{% endif %}>Twitch</option>
+                                        <option value="generic" {% if field.do and field.do|length > 1 and field.do[1] == 'generic' %}selected{% endif %}>Generic</option>
+                                        <option value="custom" {% if field.do and field.do|length > 1 and field.do[1] not in ['youtube', 'twitch', 'generic'] %}selected{% endif %}>Custom</option>
+                                    </select>
+                                    {% if field.do and field.do|length > 1 and field.do[1] not in ['youtube', 'twitch', 'generic'] %}
+                                    <input class="form-control mt-1 custom-plugin" name="custom_plugin[]" value="{{ field.do[1] }}" placeholder="Custom plugin name" style="font-size: 0.75rem;">
+                                    {% else %}
+                                    <input class="form-control mt-1 custom-plugin" name="custom_plugin[]" value="" placeholder="Custom plugin name" style="font-size: 0.75rem; display: none;">
+                                    {% endif %}
+                                </div>
+                                <div>
+                                    <label class="mobile-label">Parameters:</label>
+                                    <input class="form-control" type="text" name="param[]" value="{{ field.do[3] if field.do and field.do|length > 3 else '' }}" placeholder="e.g., daily, check, update">
+                                    <div class="schedule-preview">Additional arguments for the plugin</div>
+                                </div>
+                                <div>
+                                    <label class="mobile-label">Quantity:</label>
+                                    <input class="form-control" type="number" name="qty[]" value="{{ field.qty if field.qty else '1' }}" min="1" max="999" placeholder="1" onchange="updatePreview(this)">
+                                </div>
+                                <div>
+                                    <label class="mobile-label">Every:</label>
+                                    <select class="form-control" name="every[]" onchange="updatePreview(this)">
+                                        <option value="minute" {% if field.every == 'minute' %}selected{% endif %}>Minute(s)</option>
+                                        <option value="hour" {% if field.every == 'hour' %}selected{% endif %}>Hour(s)</option>
+                                        <option value="day" {% if field.every == 'day' %}selected{% endif %}>Day(s)</option>
+                                        <option value="week" {% if field.every == 'week' %}selected{% endif %}>Week(s)</option>
+                                        <option value="monday" {% if field.every == 'monday' %}selected{% endif %}>Monday</option>
+                                        <option value="tuesday" {% if field.every == 'tuesday' %}selected{% endif %}>Tuesday</option>
+                                        <option value="wednesday" {% if field.every == 'wednesday' %}selected{% endif %}>Wednesday</option>
+                                        <option value="thursday" {% if field.every == 'thursday' %}selected{% endif %}>Thursday</option>
+                                        <option value="friday" {% if field.every == 'friday' %}selected{% endif %}>Friday</option>
+                                        <option value="saturday" {% if field.every == 'saturday' %}selected{% endif %}>Saturday</option>
+                                        <option value="sunday" {% if field.every == 'sunday' %}selected{% endif %}>Sunday</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="mobile-label">At Time:</label>
+                                    <input class="form-control" type="time" name="at[]" value="{{ field.at if field.at else '' }}" onchange="updatePreview(this)">
+                                    <div class="schedule-preview">Leave empty for immediate execution</div>
+                                </div>
+                                <div>
+                                    <label class="mobile-label">Timezone:</label>
+                                    <select class="form-control" name="timezone[]">
+                                        <option value="">System Default</option>
+                                        <option value="UTC" {% if field.timezone == 'UTC' %}selected{% endif %}>UTC</option>
+                                        <option value="America/New_York" {% if field.timezone == 'America/New_York' %}selected{% endif %}>Eastern Time</option>
+                                        <option value="America/Chicago" {% if field.timezone == 'America/Chicago' %}selected{% endif %}>Central Time</option>
+                                        <option value="America/Denver" {% if field.timezone == 'America/Denver' %}selected{% endif %}>Mountain Time</option>
+                                        <option value="America/Los_Angeles" {% if field.timezone == 'America/Los_Angeles' %}selected{% endif %}>Pacific Time</option>
+                                        <option value="Europe/London" {% if field.timezone == 'Europe/London' %}selected{% endif %}>London</option>
+                                        <option value="Europe/Paris" {% if field.timezone == 'Europe/Paris' %}selected{% endif %}>Paris</option>
+                                        <option value="Europe/Berlin" {% if field.timezone == 'Europe/Berlin' %}selected{% endif %}>Berlin</option>
+                                        <option value="Asia/Tokyo" {% if field.timezone == 'Asia/Tokyo' %}selected{% endif %}>Tokyo</option>
+                                        <option value="Asia/Shanghai" {% if field.timezone == 'Asia/Shanghai' %}selected{% endif %}>Shanghai</option>
+                                        <option value="Australia/Sydney" {% if field.timezone == 'Australia/Sydney' %}selected{% endif %}>Sydney</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <button class="btn btn-danger remove-btn" type="button" onclick="removeCron(this)" title="Remove this cron job">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="schedule-preview mt-2" id="preview-{{ loop.index0 }}">
+                                <!-- Preview will be generated by JavaScript -->
+                            </div>
                         </div>
                     {% endfor %}
+                    {% else %}
+                    <!-- Empty state message -->
+                    <div class="text-center py-5" id="empty-state">
+                        <i class="fas fa-clock" style="font-size: 3rem; color: #dee2e6; margin-bottom: 1rem;"></i>
+                        <h5 class="text-muted">No scheduled tasks yet</h5>
+                        <p class="text-muted">Click "Add New Cron Job" or use a quick template to get started</p>
+                    </div>
+                    {% endif %}
                 </div>
 
-            </div>
-            <button class="btn btn-primary" type="button" id="add-field">Add CRON</button>
-            <button class="btn btn-primary" type="submit">Save</button>
-            <a href="/" class="btn btn-primary">Go back</a>
-            <div class="mb-3 mt-3">
-                <p>* To indicate every minute, every hour, or every day, keep the quantity blank and set the time units to singular (minute, hour, day) <a target="_blank" href="https://schedule.readthedocs.io/en/stable/reference.html#schedule.Job.second">schedule time units</a></p>
-                <p>* Keep blank the timezone to work with default machine timezone. List of all timezones. <a target="_blank" href="https://en.wikipedia.org/wiki/List_of_tz_database_time_zones">List of all timezones</a></p>
+                <div class="d-flex gap-2 flex-wrap mt-4">
+                    <button class="add-cron-btn" type="button" id="add-cron">
+                        <i class="fas fa-plus me-1"></i> Add New Cron Job
+                    </button>
+                    <button class="btn btn-success" type="submit">
+                        <i class="fas fa-save me-1"></i> Save All Jobs
+                    </button>
+                    <button class="btn btn-outline-warning" type="button" onclick="validateAllCrons()">
+                        <i class="fas fa-check-circle me-1"></i> Validate Jobs
+                    </button>
+                    <a href="/" class="btn btn-outline-primary">
+                        <i class="fas fa-home me-1"></i> Back to Dashboard
+                    </a>
+                </div>
+            </form>
+        </div>
 
+        <!-- Quick Templates -->
+        <div class="cron-section">
+            <h4 class="mb-3">
+                <i class="fas fa-magic me-2"></i>
+                Quick Templates
+            </h4>
+            <div class="quick-templates">
+                <div class="template-card" onclick="addTemplate('youtube', 'daily', '1', 'day', '02:00', 'UTC')">
+                    <h6><i class="fab fa-youtube me-1"></i> Daily YouTube Sync</h6>
+                    <small>Downloads new YouTube videos every day at 2 AM UTC</small>
+                </div>
+                <div class="template-card" onclick="addTemplate('twitch', 'check', '2', 'hour', '', '')">
+                    <h6><i class="fab fa-twitch me-1"></i> Hourly Twitch Check</h6>
+                    <small>Checks for live Twitch streams every 2 hours</small>
+                </div>
+                <div class="template-card" onclick="addTemplate('youtube', 'update', '1', 'week', '03:00', 'UTC')">
+                    <h6><i class="fas fa-refresh me-1"></i> Weekly Update</h6>
+                    <small>Updates all channels weekly on Sunday at 3 AM</small>
+                </div>
+                <div class="template-card" onclick="addTemplate('generic', 'cleanup', '1', 'day', '04:00', 'UTC')">
+                    <h6><i class="fas fa-broom me-1"></i> Daily Cleanup</h6>
+                    <small>Cleans up temporary files every day at 4 AM</small>
+                </div>
             </div>
-        </form>
+        </div>
+
+        <!-- Information Section -->
+        <div class="info-section">
+            <h5><i class="fas fa-info-circle me-2"></i> Scheduling Information</h5>
+            <div class="row mt-3">
+                <div class="col-md-6">
+                    <h6>Time Units:</h6>
+                    <ul class="list-unstyled">
+                        <li><i class="fas fa-clock text-primary me-1"></i> <strong>Minute:</strong> For frequent tasks (every few minutes)</li>
+                        <li><i class="fas fa-clock text-primary me-1"></i> <strong>Hour:</strong> For regular checks (every few hours)</li>
+                        <li><i class="fas fa-calendar text-primary me-1"></i> <strong>Day:</strong> For daily operations</li>
+                        <li><i class="fas fa-calendar-week text-primary me-1"></i> <strong>Week:</strong> For weekly maintenance</li>
+                        <li><i class="fas fa-calendar-day text-primary me-1"></i> <strong>Weekdays:</strong> For specific day scheduling</li>
+                    </ul>
+                </div>
+                <div class="col-md-6">
+                    <h6>Best Practices:</h6>
+                    <ul class="list-unstyled">
+                        <li><i class="fas fa-lightbulb text-warning me-1"></i> Use specific times for heavy operations</li>
+                        <li><i class="fas fa-lightbulb text-warning me-1"></i> Avoid overlapping resource-intensive jobs</li>
+                        <li><i class="fas fa-lightbulb text-warning me-1"></i> Consider timezone differences</li>
+                        <li><i class="fas fa-lightbulb text-warning me-1"></i> Test jobs before scheduling</li>
+                        <li><i class="fas fa-lightbulb text-warning me-1"></i> Monitor logs for job execution</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="mt-3">
+                <small class="text-muted">
+                    <i class="fas fa-external-link-alt me-1"></i>
+                    For more advanced scheduling options, see the
+                    <a href="https://schedule.readthedocs.io/en/stable/reference.html" target="_blank">schedule documentation</a> and
+                    <a href="https://en.wikipedia.org/wiki/List_of_tz_database_time_zones" target="_blank">timezone list</a>.
+                </small>
+            </div>
+        </div>
+
         <footer class="pt-5 my-5 text-muted border-top">
-            <a href="https://github.com/fe80Grau/ytdlp2STRM" target="_blank"><i class="bi bi-github"></i> fe80grau / ytdlp2STRM</a>
-            <a style="float:right" href="https://www.buymeacoffee.com/fe80grau" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" style="width: 90px !important;" ></a>
-          </footer>
+            <a href="https://github.com/fe80Grau/ytdlp2STRM" target="_blank">
+                <i class="bi bi-github"></i> fe80grau / ytdlp2STRM
+            </a>
+            <a style="float:right" href="https://www.buymeacoffee.com/fe80grau" target="_blank">
+                <img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" style="width: 90px !important;">
+            </a>
+        </footer>
     </div>
+
     <script>
+        let cronCount = {{ crons|length if crons else 0 }};
+
         document.addEventListener('DOMContentLoaded', function() {
-            var addFieldButton = document.getElementById('add-field');
-            var pluginFields = document.getElementById('plugin-fields');
+            updateStats();
+            updateAllPreviews();
 
-            addFieldButton.addEventListener('click', function() {
-                var newField = document.createElement('div');
-                newField.className = 'mb-3 input-group';
-
-                var newInput = document.createElement('input');
-                newInput.className = 'form-control';
-                newInput.type = 'text';
-                newInput.name = 'plugin[]';
-                var newInput2 = document.createElement('input');
-                newInput2.className = 'form-control';
-                newInput2.type = 'text';
-                newInput2.name = 'param[]';
-                var newInput3 = document.createElement('input');
-                newInput3.className = 'form-control';
-                newInput3.type = 'text';
-                newInput3.name = 'qty[]';
-                var newInput4 = document.createElement('input');
-                newInput4.className = 'form-control';
-                newInput4.type = 'text';
-                newInput4.name = 'every[]';
-                var newInput5 = document.createElement('input');
-                newInput5.className = 'form-control';
-                newInput5.type = 'text';
-                newInput5.name = 'at[]';
-                var newInput6 = document.createElement('input');
-                newInput6.className = 'form-control';
-                newInput6.type = 'text';
-                newInput6.name = 'timezone[]';
-
-                var deleteButton = document.createElement('button');
-                deleteButton.className = 'btn btn-danger';
-                var trashIcon = document.createElement('i');
-                trashIcon.className = 'bi bi-trash';
-                deleteButton.appendChild(trashIcon);
-
-                deleteButton.addEventListener('click', function() {
-                    newField.remove();
-                });
-
-                newField.appendChild(newInput);
-                newField.appendChild(newInput2);
-                newField.appendChild(newInput3);
-                newField.appendChild(newInput4);
-                newField.appendChild(newInput5);
-                newField.appendChild(newInput6);
-
-                newField.appendChild(deleteButton);
-                pluginFields.appendChild(newField);
-            });
+            document.getElementById('add-cron').addEventListener('click', addNewCron);
         });
+
+        function addNewCron() {
+            const container = document.getElementById('cron-container');
+            const newCron = createCronItem();
+            container.appendChild(newCron);
+
+            // Add entrance animation
+            newCron.style.opacity = '0';
+            newCron.style.transform = 'translateY(-20px)';
+            setTimeout(() => {
+                newCron.style.transition = 'all 0.3s ease';
+                newCron.style.opacity = '1';
+                newCron.style.transform = 'translateY(0)';
+            }, 10);
+
+            cronCount++;
+            updateStats();
+        }
+
+        function createCronItem() {
+            const div = document.createElement('div');
+            div.className = 'cron-item';
+            div.innerHTML = `
+                <div class="cron-row">
+                    <div>
+                        <label class="mobile-label">Plugin:</label>
+                        <select class="form-control plugin-select" name="plugin[]" onchange="updatePreview(this)">
+                            <option value="">Select Plugin</option>
+                            <option value="youtube">YouTube</option>
+                            <option value="twitch">Twitch</option>
+                            <option value="generic">Generic</option>
+                            <option value="custom">Custom</option>
+                        </select>
+                        <input class="form-control mt-1 custom-plugin" name="custom_plugin[]" value="" placeholder="Custom plugin name" style="font-size: 0.75rem; display: none;">
+                    </div>
+                    <div>
+                        <label class="mobile-label">Parameters:</label>
+                        <input class="form-control" type="text" name="param[]" value="" placeholder="e.g., daily, check, update">
+                        <div class="schedule-preview">Additional arguments for the plugin</div>
+                    </div>
+                    <div>
+                        <label class="mobile-label">Quantity:</label>
+                        <input class="form-control" type="number" name="qty[]" value="1" min="1" max="999" placeholder="1" onchange="updatePreview(this)">
+                    </div>
+                    <div>
+                        <label class="mobile-label">Every:</label>
+                        <select class="form-control" name="every[]" onchange="updatePreview(this)">
+                            <option value="minute">Minute(s)</option>
+                            <option value="hour">Hour(s)</option>
+                            <option value="day" selected>Day(s)</option>
+                            <option value="week">Week(s)</option>
+                            <option value="monday">Monday</option>
+                            <option value="tuesday">Tuesday</option>
+                            <option value="wednesday">Wednesday</option>
+                            <option value="thursday">Thursday</option>
+                            <option value="friday">Friday</option>
+                            <option value="saturday">Saturday</option>
+                            <option value="sunday">Sunday</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="mobile-label">At Time:</label>
+                        <input class="form-control" type="time" name="at[]" value="" onchange="updatePreview(this)">
+                        <div class="schedule-preview">Leave empty for immediate execution</div>
+                    </div>
+                    <div>
+                        <label class="mobile-label">Timezone:</label>
+                        <select class="form-control" name="timezone[]">
+                            <option value="">System Default</option>
+                            <option value="UTC">UTC</option>
+                            <option value="America/New_York">Eastern Time</option>
+                            <option value="America/Chicago">Central Time</option>
+                            <option value="America/Denver">Mountain Time</option>
+                            <option value="America/Los_Angeles">Pacific Time</option>
+                            <option value="Europe/London">London</option>
+                            <option value="Europe/Paris">Paris</option>
+                            <option value="Europe/Berlin">Berlin</option>
+                            <option value="Asia/Tokyo">Tokyo</option>
+                            <option value="Asia/Shanghai">Shanghai</option>
+                            <option value="Australia/Sydney">Sydney</option>
+                        </select>
+                    </div>
+                    <div>
+                        <button class="btn btn-danger remove-btn" type="button" onclick="removeCron(this)" title="Remove this cron job">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="schedule-preview mt-2">
+                    <!-- Preview will be generated -->
+                </div>
+            `;
+
+            // Add event listeners for plugin select
+            const pluginSelect = div.querySelector('.plugin-select');
+            const customInput = div.querySelector('.custom-plugin');
+
+            pluginSelect.addEventListener('change', function() {
+                if (this.value === 'custom') {
+                    customInput.style.display = 'block';
+                    customInput.required = true;
+                } else {
+                    customInput.style.display = 'none';
+                    customInput.required = false;
+                    customInput.value = '';
+                }
+                updatePreview(this);
+            });
+
+            return div;
+        }
+
+        function removeCron(button) {
+            const cronItem = button.closest('.cron-item');
+            cronItem.style.transition = 'all 0.3s ease';
+            cronItem.style.opacity = '0';
+            cronItem.style.transform = 'translateX(-20px)';
+            setTimeout(() => {
+                cronItem.remove();
+                cronCount--;
+                updateStats();
+            }, 300);
+        }
+
+        function addTemplate(plugin, param, qty, every, at, timezone) {
+            addNewCron();
+            const lastCron = document.querySelector('#cron-container .cron-item:last-child');
+
+            // Fill in the template values
+            lastCron.querySelector('[name="plugin[]"]').value = plugin;
+            lastCron.querySelector('[name="param[]"]').value = param;
+            lastCron.querySelector('[name="qty[]"]').value = qty;
+            lastCron.querySelector('[name="every[]"]').value = every;
+            lastCron.querySelector('[name="at[]"]').value = at;
+            if (timezone) {
+                lastCron.querySelector('[name="timezone[]"]').value = timezone;
+            }
+
+            updatePreview(lastCron.querySelector('[name="plugin[]"]'));
+        }
+
+        function updatePreview(element) {
+            const cronItem = element.closest('.cron-item');
+            const preview = cronItem.querySelector('.schedule-preview:last-child');
+
+            const plugin = cronItem.querySelector('[name="plugin[]"]').value;
+            const customPlugin = cronItem.querySelector('[name="custom_plugin[]"]').value;
+            const param = cronItem.querySelector('[name="param[]"]').value;
+            const qty = cronItem.querySelector('[name="qty[]"]').value;
+            const every = cronItem.querySelector('[name="every[]"]').value;
+            const at = cronItem.querySelector('[name="at[]"]').value;
+            const timezone = cronItem.querySelector('[name="timezone[]"]').value;
+
+            let previewText = '';
+            const pluginName = plugin === 'custom' ? customPlugin : plugin;
+
+            if (pluginName) {
+                previewText = `<i class="fas fa-info-circle text-primary me-1"></i><strong>Schedule:</strong> `;
+
+                if (qty && qty > 1) {
+                    previewText += `Every ${qty} ${every}s`;
+                } else {
+                    previewText += `Every ${every}`;
+                }
+
+                if (at) {
+                    previewText += ` at ${at}`;
+                }
+
+                if (timezone) {
+                    previewText += ` (${timezone})`;
+                }
+
+                previewText += ` → Run: <span class="plugin-badge">${pluginName}</span>`;
+
+                if (param) {
+                    previewText += ` with parameter: <code>${param}</code>`;
+                }
+            } else {
+                previewText = '<i class="fas fa-exclamation-triangle text-warning me-1"></i>Please select a plugin to see the schedule preview';
+            }
+
+            preview.innerHTML = previewText;
+        }
+
+        function updateAllPreviews() {
+            document.querySelectorAll('.cron-item').forEach(item => {
+                const pluginSelect = item.querySelector('[name="plugin[]"]');
+                if (pluginSelect) {
+                    updatePreview(pluginSelect);
+                }
+            });
+        }
+
+        function updateStats() {
+            const totalCrons = document.querySelectorAll('.cron-item').length;
+            const dailyCrons = document.querySelectorAll('[name="every[]"] option[value="day"]:checked').length;
+            const hourlyCrons = document.querySelectorAll('[name="every[]"] option[value="hour"]:checked').length;
+            const activePlugins = new Set();
+
+            document.querySelectorAll('[name="plugin[]"]').forEach(select => {
+                if (select.value) {
+                    activePlugins.add(select.value);
+                }
+            });
+
+            document.getElementById('total-crons').textContent = totalCrons;
+            document.getElementById('daily-crons').textContent = dailyCrons;
+            document.getElementById('hourly-crons').textContent = hourlyCrons;
+            document.getElementById('active-plugins').textContent = activePlugins.size;
+        }
+
+        function validateAllCrons() {
+            let isValid = true;
+            let issues = [];
+
+            document.querySelectorAll('.cron-item').forEach((item, index) => {
+                const plugin = item.querySelector('[name="plugin[]"]').value;
+                const customPlugin = item.querySelector('[name="custom_plugin[]"]').value;
+                const qty = item.querySelector('[name="qty[]"]').value;
+                const every = item.querySelector('[name="every[]"]').value;
+
+                // Reset previous validation styles
+                item.classList.remove('border-danger');
+
+                // Validate plugin selection
+                if (!plugin) {
+                    issues.push(`Job ${index + 1}: No plugin selected`);
+                    item.classList.add('border-danger');
+                    isValid = false;
+                }
+
+                // Validate custom plugin name
+                if (plugin === 'custom' && !customPlugin.trim()) {
+                    issues.push(`Job ${index + 1}: Custom plugin name is required`);
+                    item.classList.add('border-danger');
+                    isValid = false;
+                }
+
+                // Validate quantity
+                if (qty && (parseInt(qty) < 1 || parseInt(qty) > 999)) {
+                    issues.push(`Job ${index + 1}: Quantity must be between 1 and 999`);
+                    item.classList.add('border-danger');
+                    isValid = false;
+                }
+
+                // Validate time format for specific days
+                const at = item.querySelector('[name="at[]"]').value;
+                if (at && !at.match(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/)) {
+                    issues.push(`Job ${index + 1}: Invalid time format (use HH:MM)`);
+                    item.classList.add('border-danger');
+                    isValid = false;
+                }
+            });
+
+            if (isValid) {
+                alert('✅ All cron jobs are valid and ready to save!');
+            } else {
+                alert('❌ Validation Issues Found:\n\n' + issues.join('\n'));
+            }
+
+            return isValid;
+        }
+
+        // Form submission validation
+        document.getElementById('cron-form').addEventListener('submit', function(e) {
+            if (!validateAllCrons()) {
+                e.preventDefault();
+            }
+        });
+
+        // Handle plugin select changes for all existing items
+        document.addEventListener('change', function(e) {
+            if (e.target.classList.contains('plugin-select')) {
+                const customInput = e.target.parentNode.querySelector('.custom-plugin');
+                if (e.target.value === 'custom') {
+                    customInput.style.display = 'block';
+                    customInput.required = true;
+                } else {
+                    customInput.style.display = 'none';
+                    customInput.required = false;
+                    customInput.value = '';
+                }
+                updatePreview(e.target);
+                updateStats();
+            }
+        });
+
+        // Real-time preview updates
+        document.addEventListener('input', function(e) {
+            if (e.target.matches('[name="plugin[]"], [name="param[]"], [name="qty[]"], [name="every[]"], [name="at[]"], [name="timezone[]"], [name="custom_plugin[]"]')) {
+                updatePreview(e.target);
+                updateStats();
+            }
+        });
+
+        // Initialize existing custom plugins
+        document.querySelectorAll('.plugin-select').forEach(select => {
+            if (select.value === 'custom') {
+                const customInput = select.parentNode.querySelector('.custom-plugin');
+                customInput.style.display = 'block';
+                customInput.required = true;
+            }
+        });
+
+        // Add some helpful tooltips
+        function addTooltips() {
+            const tooltips = {
+                '[name="qty[]"]': 'Number of time units between executions',
+                '[name="every[]"]': 'Time unit for scheduling frequency',
+                '[name="at[]"]': 'Specific time to run (24-hour format)',
+                '[name="timezone[]"]': 'Timezone for scheduling (leave empty for system default)',
+                '[name="param[]"]': 'Additional parameters passed to the plugin'
+            };
+
+            Object.entries(tooltips).forEach(([selector, tooltip]) => {
+                document.querySelectorAll(selector).forEach(element => {
+                    element.title = tooltip;
+                });
+            });
+        }
+
+        // Initialize tooltips after DOM is loaded
+        setTimeout(addTooltips, 100);
     </script>
 </body>
 </html>

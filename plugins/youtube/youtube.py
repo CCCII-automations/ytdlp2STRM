@@ -599,8 +599,8 @@ class Youtube:
             '--no-warnings',
             '-t', 'sleep',
             '--sleep-interval', str(self.sleep_interval),
-            '-t', 'sleep'
-                  '--playlist-items', '0',
+            '-t', 'sleep',
+            '--playlist-items', '0',
             self.channel_url
         ]
 
@@ -662,7 +662,7 @@ class Youtube:
     def write_video_files(self, video_info, folder_path, folder_name, channel_id):
         """Write individual video files (STRM, NFO, thumbnail)"""
         video_id = video_info['id']
-        video_name = sanitize(video_info['title'])
+        video_name = sanitize(video_info['title']).replace(" ", "_")
 
         # Write STRM file
         strm_path = os.path.join(folder_path, f"{video_name}.strm")
