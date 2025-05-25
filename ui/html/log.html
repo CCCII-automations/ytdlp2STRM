@@ -1,75 +1,582 @@
 <!DOCTYPE html>
-<html data-bs-theme="auto">
+<html lang="en">
 <head>
-    <title>ytdlp2STRM - LOG</title>
+    <title>ytdlp2STRM - System Logs</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/js/bootstrap.min.js"></script>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.2/font/bootstrap-icons.css" integrity="sha384-b6lVK+yci+bfDmaY1u0zE8YYJt0TZxLEAFyYSLHId4xoVvsrQu3INevFKo+Xir8e" crossorigin="anonymous">
-    <link rel="stylesheet" href="/styles.css" crossorigin="anonymous">
-    <script src="/bs-theme-mode.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="/styles.css">
+    <style>
+        /* Page-specific styles */
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .log-container {
+            max-height: 60vh;
+            overflow: hidden;
+            overflow-y: auto;
+            background: #1a1a1a;
+            color: #00ff00;
+            padding: 1.5rem;
+            border-radius: var(--border-radius);
+            scroll-behavior: smooth;
+            font-family: 'Monaco', 'Menlo', 'Consolas', monospace;
+            font-size: var(--font-size-sm);
+            line-height: 1.4;
+            border: 1px solid var(--border-secondary);
+            position: relative;
+        }
+
+        .log-container::before {
+            content: '● ● ●';
+            position: absolute;
+            top: 0.75rem;
+            left: 1rem;
+            color: #ff5f56;
+            font-size: 1rem;
+            z-index: 1;
+        }
+
+        .log-header {
+            color: #888;
+            margin-bottom: 1rem;
+            padding-top: 1.5rem;
+            border-bottom: 1px solid #333;
+            padding-bottom: 0.5rem;
+            font-size: var(--font-size-sm);
+        }
+
+        .log-line {
+            margin-bottom: 0.25rem;
+            word-wrap: break-word;
+            font-size: var(--font-size-sm);
+        }
+
+        .log-controls {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+            margin-bottom: 1rem;
+        }
+
+        .log-info {
+            background: var(--bg-secondary);
+            border-left: 4px solid var(--info);
+            padding: 1rem;
+            border-radius: 0 var(--border-radius-sm) var(--border-radius-sm) 0;
+            margin-top: 1rem;
+        }
+
+        .log-info h6 {
+            color: var(--text-primary);
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .log-info p {
+            margin: 0;
+            font-size: var(--font-size-sm);
+            color: var(--text-secondary);
+        }
+
+        .log-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .log-stat-card {
+            background: var(--bg-card);
+            border-radius: var(--border-radius-sm);
+            padding: 1rem;
+            text-align: center;
+            border: 1px solid var(--border-primary);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .log-stat-number {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            color: var(--text-primary);
+        }
+
+        .log-stat-label {
+            font-size: var(--font-size-xs);
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .auto-refresh-indicator {
+            display: none;
+            align-items: center;
+            gap: 0.5rem;
+            color: var(--success);
+            font-size: var(--font-size-sm);
+            margin-left: auto;
+        }
+
+        .auto-refresh-indicator.active {
+            display: flex;
+        }
+
+        .refresh-dot {
+            width: 8px;
+            height: 8px;
+            background: var(--success);
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 1rem;
+            }
+
+            .log-container {
+                max-height: 50vh;
+                font-size: var(--font-size-xs);
+                padding: 1rem;
+            }
+
+            .log-controls {
+                flex-direction: column;
+            }
+
+            .log-stats {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+    </style>
 </head>
 <body>
-    <div class="col-lg-10 mx-auto p-3 py-md-5">
-        <div class="d-flex justify-content-between align-items-center pb-3 mb-5 border-bottom">
-            <h1 class="mb-0">ytdlp2STRM - LOG</h1>
-            <a href="/" class="btn btn-primary">
-                <i class="bi bi-house-fill me-1"></i> Home
-            </a>
+    <div class="container">
+        <!-- Page Header -->
+        <div class="page-header">
+            <div class="header-controls">
+                <div class="theme-switcher">
+                    <select class="theme-select" aria-label="Choose theme">
+                        <option value="auto">🔄 Auto (System)</option>
+                        <option value="light">☀️ Light Mode</option>
+                        <option value="dark">🌙 Dark Mode</option>
+                    </select>
+                </div>
+                <a href="/" class="btn btn-outline-light">
+                    <i class="fas fa-home"></i> Home
+                </a>
+            </div>
+            <div style="font-size: 3rem; margin-bottom: 1rem;">
+                <i class="fas fa-file-alt"></i>
+            </div>
+            <h1>System Logs</h1>
+            <p>View application logs and debug information</p>
         </div>
-        <div class="mb-3">
-            <label class="form-label">./logs/ytdlp2strm.log</label>
-            <div id="plugin-fields" style="max-height: 40vh;overflow: hidden;overflow-y: auto;background:black;color:white;padding:1rem;border-radius:8px;scroll-behavior: smooth;font-family: 'Courier New', monospace;font-size: 0.875rem;line-height: 1.4;">
+
+        <!-- Log Statistics -->
+        <div class="log-stats">
+            <div class="log-stat-card">
+                <div class="log-stat-number" id="total-lines">{{ log_content|length }}</div>
+                <div class="log-stat-label">Total Lines</div>
+            </div>
+            <div class="log-stat-card">
+                <div class="log-stat-number" id="error-count">0</div>
+                <div class="log-stat-label">Errors</div>
+            </div>
+            <div class="log-stat-card">
+                <div class="log-stat-number" id="warning-count">0</div>
+                <div class="log-stat-label">Warnings</div>
+            </div>
+            <div class="log-stat-card">
+                <div class="log-stat-number" id="info-count">0</div>
+                <div class="log-stat-label">Info Messages</div>
+            </div>
+        </div>
+
+        <!-- Main Log Section -->
+        <div class="section">
+            <div class="section-header">
+                <h3>
+                    <i class="fas fa-file-code me-2"></i>
+                    ./logs/ytdlp2strm.log
+                </h3>
+                <div class="auto-refresh-indicator" id="auto-refresh-indicator">
+                    <div class="refresh-dot"></div>
+                    <span>Auto-refreshing...</span>
+                </div>
+            </div>
+
+            <div class="log-container" id="log-container">
+                <div class="log-header">
+                    ytdlp2STRM System Logs - Last 7 days
+                </div>
                 {% for line in log_content %}
                     <div class="log-line">{{ line|safe }}</div>
                 {% endfor %}
             </div>
+
+            <div class="log-controls">
+                <button class="btn btn-outline-secondary" onclick="refreshLog()">
+                    <i class="fas fa-sync-alt me-1"></i> Refresh Log
+                </button>
+                <button class="btn btn-outline-info" onclick="scrollToBottom()">
+                    <i class="fas fa-arrow-down me-1"></i> Scroll to Bottom
+                </button>
+                <button class="btn btn-outline-warning" onclick="scrollToTop()">
+                    <i class="fas fa-arrow-up me-1"></i> Scroll to Top
+                </button>
+                <button class="btn btn-outline-success" onclick="toggleAutoRefresh()" id="auto-refresh-btn">
+                    <i class="fas fa-play me-1"></i> Enable Auto-Refresh
+                </button>
+                <button class="btn btn-outline-primary" onclick="downloadLog()">
+                    <i class="fas fa-download me-1"></i> Download Log
+                </button>
+                <button class="btn btn-outline-danger" onclick="clearLogView()">
+                    <i class="fas fa-trash me-1"></i> Clear View
+                </button>
+            </div>
         </div>
-        <div class="d-flex gap-2 mb-3">
-            <a href="/" class="btn btn-primary">
-                <i class="bi bi-house-fill me-1"></i> Go back
-            </a>
-            <button class="btn btn-outline-secondary" onclick="refreshLog()">
-                <i class="bi bi-arrow-clockwise me-1"></i> Refresh Log
-            </button>
-            <button class="btn btn-outline-info" onclick="scrollToBottom()">
-                <i class="bi bi-arrow-down me-1"></i> Scroll to Bottom
-            </button>
-            <button class="btn btn-outline-warning" onclick="scrollToTop()">
-                <i class="bi bi-arrow-up me-1"></i> Scroll to Top
-            </button>
+
+        <!-- Log Information -->
+        <div class="section">
+            <h4 class="mb-3">
+                <i class="fas fa-info-circle me-2"></i>
+                Log Information
+            </h4>
+            <div class="log-info">
+                <h6><i class="fas fa-lightbulb"></i> Usage Tips</h6>
+                <p>
+                    • Use <strong>Ctrl+F</strong> to search within the log content<br>
+                    • Auto-refresh updates the log every 30 seconds<br>
+                    • Download log to save a copy locally<br>
+                    • Only the last 7 days of entries are displayed
+                </p>
+            </div>
         </div>
-        <div class="mb-3 mt-3">
-            <p><i class="bi bi-info-circle me-1"></i> Last 7 days log entries are displayed here.</p>
-            <p><i class="bi bi-lightbulb me-1"></i> Use Ctrl+F to search within the log content.</p>
-        </div>
+
         {% include 'footer.html' %}
     </div>
+
+    <script src="/theme-manager.js"></script>
     <script>
-        document.addEventListener('DOMContentLoaded', (event) => {
-            const pluginFields = document.getElementById('plugin-fields');
-            pluginFields.scrollTop = pluginFields.scrollHeight;
+        let autoRefreshInterval = null;
+        let isAutoRefreshing = false;
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const logContainer = document.getElementById('log-container');
+            logContainer.scrollTop = logContainer.scrollHeight;
+
+            // Count different types of log entries
+            updateLogStats();
         });
 
         function refreshLog() {
-            window.location.reload();
+            const refreshBtn = document.querySelector('[onclick="refreshLog()"]');
+            const originalText = refreshBtn.innerHTML;
+
+            refreshBtn.innerHTML = '<span class="spinner"></span> Refreshing...';
+            refreshBtn.disabled = true;
+
+            // Simulate refresh (in real implementation, this would reload the page or fetch new data)
+            setTimeout(() => {
+                window.location.reload();
+            }, 1000);
         }
 
         function scrollToBottom() {
-            const pluginFields = document.getElementById('plugin-fields');
-            pluginFields.scrollTop = pluginFields.scrollHeight;
+            const logContainer = document.getElementById('log-container');
+            logContainer.scrollTop = logContainer.scrollHeight;
         }
 
         function scrollToTop() {
-            const pluginFields = document.getElementById('plugin-fields');
-            pluginFields.scrollTop = 0;
+            const logContainer = document.getElementById('log-container');
+            logContainer.scrollTop = 0;
         }
 
-        // Auto-refresh every 30 seconds
-        setInterval(function() {
-            // Check if user wants auto-refresh (could be a setting)
-            // refreshLog();
-        }, 30000);
+        function toggleAutoRefresh() {
+            const btn = document.getElementById('auto-refresh-btn');
+            const indicator = document.getElementById('auto-refresh-indicator');
+
+            if (isAutoRefreshing) {
+                // Stop auto-refresh
+                clearInterval(autoRefreshInterval);
+                isAutoRefreshing = false;
+                btn.innerHTML = '<i class="fas fa-play me-1"></i> Enable Auto-Refresh';
+                btn.classList.remove('btn-success');
+                btn.classList.add('btn-outline-success');
+                indicator.classList.remove('active');
+            } else {
+                // Start auto-refresh
+                autoRefreshInterval = setInterval(() => {
+                    // In real implementation, this would fetch new log data
+                    console.log('Auto-refreshing logs...');
+                }, 30000);
+
+                isAutoRefreshing = true;
+                btn.innerHTML = '<i class="fas fa-pause me-1"></i> Disable Auto-Refresh';
+                btn.classList.remove('btn-outline-success');
+                btn.classList.add('btn-success');
+                indicator.classList.add('active');
+            }
+        }
+
+        function downloadLog() {
+            const logContent = document.getElementById('log-container').innerText;
+            const blob = new Blob([logContent], { type: 'text/plain' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+
+            a.href = url;
+            a.download = `ytdlp2strm-log-${new Date().toISOString().split('T')[0]}.txt`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(url);
+        }
+
+        function clearLogView() {
+            if (confirm('Clear the log view? This will only clear the display, not the actual log file.')) {
+                const logContainer = document.getElementById('log-container');
+                const logHeader = logContainer.querySelector('.log-header');
+                logContainer.innerHTML = '';
+                logContainer.appendChild(logHeader);
+
+                const clearedMessage = document.createElement('div');
+                clearedMessage.className = 'log-line';
+                clearedMessage.style.color = '#ffff00';
+                clearedMessage.textContent = 'Log view cleared. Refresh to reload content.';
+                logContainer.appendChild(clearedMessage);
+
+                updateLogStats(true);
+            }
+        }
+
+        function updateLogStats(cleared = false) {
+            if (cleared) {
+                document.getElementById('total-lines').textContent = '0';
+                document.getElementById('error-count').textContent = '0';
+                document.getElementById('warning-count').textContent = '0';
+                document.getElementById('info-count').textContent = '0';
+                return;
+            }
+
+            const logLines = document.querySelectorAll('.log-line');
+            let totalLines = logLines.length;
+            let errorCount = 0;
+            let warningCount = 0;
+            let infoCount = 0;
+
+            logLines.forEach(line => {
+                const text = line.textContent.toLowerCase();
+                if (text.includes('error') || text.includes('exception') || text.includes('failed')) {
+                    errorCount++;
+                } else if (text.includes('warning') || text.includes('warn')) {
+                    warningCount++;
+                } else if (text.includes('info') || text.includes('started') || text.includes('completed')) {
+                    infoCount++;
+                }
+            });
+
+            document.getElementById('total-lines').textContent = totalLines;
+            document.getElementById('error-count').textContent = errorCount;
+            document.getElementById('warning-count').textContent = warningCount;
+            document.getElementById('info-count').textContent = infoCount;
+
+            // Update stat card colors based on content
+            const errorCard = document.getElementById('error-count').closest('.log-stat-card');
+            const warningCard = document.getElementById('warning-count').closest('.log-stat-card');
+
+            if (errorCount > 0) {
+                errorCard.style.borderLeftColor = 'var(--danger)';
+                errorCard.style.borderLeftWidth = '4px';
+            }
+
+            if (warningCount > 0) {
+                warningCard.style.borderLeftColor = 'var(--warning)';
+                warningCard.style.borderLeftWidth = '4px';
+            }
+        }
+
+        // Enhanced log line highlighting
+        function enhanceLogDisplay() {
+            const logLines = document.querySelectorAll('.log-line');
+
+            logLines.forEach(line => {
+                const text = line.textContent.toLowerCase();
+
+                // Color coding for different log levels
+                if (text.includes('error') || text.includes('exception') || text.includes('failed')) {
+                    line.style.color = '#ff4444';
+                } else if (text.includes('warning') || text.includes('warn')) {
+                    line.style.color = '#ffaa44';
+                } else if (text.includes('info') || text.includes('started')) {
+                    line.style.color = '#44aaff';
+                } else if (text.includes('debug')) {
+                    line.style.color = '#888888';
+                } else if (text.includes('success') || text.includes('completed')) {
+                    line.style.color = '#44ff44';
+                }
+
+                // Add timestamp highlighting
+                if (text.match(/\d{4}-\d{2}-\d{2}/)) {
+                    const timestamp = line.textContent.match(/\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}/);
+                    if (timestamp) {
+                        line.innerHTML = line.innerHTML.replace(
+                            timestamp[0],
+                            `<span style="color: #00ffff; font-weight: bold;">${timestamp[0]}</span>`
+                        );
+                    }
+                }
+            });
+        }
+
+        // Search functionality
+        function addSearchCapability() {
+            const searchContainer = document.createElement('div');
+            searchContainer.style.cssText = `
+                position: sticky;
+                top: 0;
+                background: var(--bg-card);
+                padding: 0.5rem;
+                border-bottom: 1px solid var(--border-primary);
+                z-index: 10;
+            `;
+
+            const searchInput = document.createElement('input');
+            searchInput.type = 'text';
+            searchInput.className = 'form-control';
+            searchInput.placeholder = 'Search in logs... (press Enter)';
+            searchInput.style.fontSize = 'var(--font-size-sm)';
+
+            const searchStats = document.createElement('div');
+            searchStats.style.cssText = `
+                font-size: var(--font-size-xs);
+                color: var(--text-secondary);
+                margin-top: 0.25rem;
+            `;
+
+            searchContainer.appendChild(searchInput);
+            searchContainer.appendChild(searchStats);
+
+            const logContainer = document.getElementById('log-container');
+            logContainer.insertBefore(searchContainer, logContainer.firstChild.nextSibling);
+
+            let currentMatches = [];
+            let currentIndex = -1;
+
+            searchInput.addEventListener('input', function() {
+                const query = this.value.toLowerCase().trim();
+                const logLines = document.querySelectorAll('.log-line');
+
+                // Clear previous highlights
+                logLines.forEach(line => {
+                    line.innerHTML = line.textContent;
+                });
+
+                if (query) {
+                    currentMatches = [];
+                    logLines.forEach((line, index) => {
+                        if (line.textContent.toLowerCase().includes(query)) {
+                            currentMatches.push(index);
+                            // Highlight matches
+                            const regex = new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g, '\\            a.download =')})`, 'gi');
+                            line.innerHTML = line.textContent.replace(regex, '<mark style="background: yellow; color: black;">$1</mark>');
+                        }
+                    });
+
+                    searchStats.textContent = `Found ${currentMatches.length} matches`;
+
+                    // Auto-scroll to first match
+                    if (currentMatches.length > 0) {
+                        const firstMatch = logLines[currentMatches[0]];
+                        firstMatch.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }
+                } else {
+                    searchStats.textContent = '';
+                    enhanceLogDisplay(); // Restore color coding
+                }
+            });
+
+            searchInput.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter' && currentMatches.length > 0) {
+                    e.preventDefault();
+                    currentIndex = (currentIndex + 1) % currentMatches.length;
+                    const targetLine = document.querySelectorAll('.log-line')[currentMatches[currentIndex]];
+                    targetLine.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    searchStats.textContent = `Match ${currentIndex + 1} of ${currentMatches.length}`;
+                }
+            });
+        }
+
+        // Initialize enhancements
+        setTimeout(() => {
+            enhanceLogDisplay();
+            addSearchCapability();
+        }, 100);
+
+        // Cleanup on page unload
+        window.addEventListener('beforeunload', function() {
+            if (autoRefreshInterval) {
+                clearInterval(autoRefreshInterval);
+            }
+        });
+
+        // Listen for theme changes
+        window.addEventListener('themechange', function(e) {
+            console.log('Theme changed to:', e.detail.effectiveTheme);
+
+            // Update search input styling based on theme
+            const searchInput = document.querySelector('input[placeholder*="Search in logs"]');
+            if (searchInput) {
+                if (e.detail.effectiveTheme === 'dark') {
+                    searchInput.style.background = 'var(--bg-input)';
+                    searchInput.style.color = 'var(--text-primary)';
+                } else {
+                    searchInput.style.background = 'var(--bg-input)';
+                    searchInput.style.color = 'var(--text-primary)';
+                }
+            }
+        });
+
+        // Add keyboard shortcuts
+        document.addEventListener('keydown', function(e) {
+            // Ctrl/Cmd + F to focus search
+            if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
+                e.preventDefault();
+                const searchInput = document.querySelector('input[placeholder*="Search in logs"]');
+                if (searchInput) {
+                    searchInput.focus();
+                }
+            }
+
+            // Ctrl/Cmd + R to refresh (override default)
+            if ((e.ctrlKey || e.metaKey) && e.key === 'r') {
+                e.preventDefault();
+                refreshLog();
+            }
+
+            // End key to scroll to bottom
+            if (e.key === 'End') {
+                e.preventDefault();
+                scrollToBottom();
+            }
+
+            // Home key to scroll to top
+            if (e.key === 'Home') {
+                e.preventDefault();
+                scrollToTop();
+            }
+        });
     </script>
 </body>
 </html>

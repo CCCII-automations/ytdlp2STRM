@@ -1,15 +1,18 @@
 <!DOCTYPE html>
-<html data-bs-theme="auto">
+<html lang="en">
 <head>
     <title>ytdlp2STRM - Advanced Plugin Manager</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/js/bootstrap.min.js"></script>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.2/font/bootstrap-icons.css">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="/styles.css" crossorigin="anonymous">
-    <script src="/bs-theme-mode.js"></script>
+    <link rel="stylesheet" href="/styles.css">
     <style>
+        /* Page-specific styles */
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
         .plugin-manager {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -18,27 +21,27 @@
         }
 
         .plugin-zone {
-            border: 2px dashed #dee2e6;
-            border-radius: 12px;
+            border: 2px dashed var(--border-primary);
+            border-radius: var(--border-radius);
             padding: 1.5rem;
             min-height: 400px;
-            transition: all 0.3s ease;
-            background: #f8f9fa;
+            transition: var(--transition);
+            background: var(--bg-secondary);
         }
 
         .plugin-zone.enabled {
-            border-color: #198754;
-            background: rgba(25, 135, 84, 0.05);
+            border-color: var(--success);
+            background: rgba(16, 185, 129, 0.05);
         }
 
         .plugin-zone.disabled {
-            border-color: #dc3545;
-            background: rgba(220, 53, 69, 0.05);
+            border-color: var(--danger);
+            background: rgba(239, 68, 68, 0.05);
         }
 
         .plugin-zone.drag-over {
-            border-color: #0d6efd;
-            background: rgba(13, 110, 253, 0.1);
+            border-color: var(--primary);
+            background: rgba(99, 102, 241, 0.1);
             transform: scale(1.02);
         }
 
@@ -46,34 +49,35 @@
             text-align: center;
             margin-bottom: 1.5rem;
             padding-bottom: 1rem;
-            border-bottom: 1px solid #dee2e6;
+            border-bottom: 1px solid var(--border-primary);
         }
 
         .zone-title {
-            font-size: 1.25rem;
+            font-size: var(--font-size-xl);
             font-weight: 600;
             margin-bottom: 0.5rem;
+            color: var(--text-primary);
         }
 
         .zone-count {
-            color: #6c757d;
-            font-size: 0.875rem;
+            color: var(--text-secondary);
+            font-size: var(--font-size-sm);
         }
 
         .plugin-card {
-            background: white;
-            border-radius: 8px;
+            background: var(--bg-card);
+            border-radius: var(--border-radius-sm);
             padding: 1rem;
             margin-bottom: 1rem;
-            border: 1px solid #dee2e6;
+            border: 1px solid var(--border-primary);
             cursor: grab;
-            transition: all 0.3s ease;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            transition: var(--transition);
+            box-shadow: var(--shadow-sm);
         }
 
         .plugin-card:hover {
             transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            box-shadow: var(--shadow-md);
         }
 
         .plugin-card.dragging {
@@ -83,11 +87,11 @@
         }
 
         .plugin-card.enabled {
-            border-left: 4px solid #198754;
+            border-left: 4px solid var(--success);
         }
 
         .plugin-card.disabled {
-            border-left: 4px solid #dc3545;
+            border-left: 4px solid var(--danger);
         }
 
         .plugin-header {
@@ -99,11 +103,12 @@
 
         .plugin-name {
             font-weight: 600;
-            font-size: 1rem;
+            font-size: var(--font-size-base);
+            color: var(--text-primary);
         }
 
         .plugin-status {
-            font-size: 0.75rem;
+            font-size: var(--font-size-xs);
             padding: 0.25rem 0.5rem;
             border-radius: 12px;
             text-transform: uppercase;
@@ -111,18 +116,18 @@
         }
 
         .plugin-status.enabled {
-            background: rgba(25, 135, 84, 0.1);
-            color: #198754;
+            background: rgba(16, 185, 129, 0.1);
+            color: var(--success);
         }
 
         .plugin-status.disabled {
-            background: rgba(220, 53, 69, 0.1);
-            color: #dc3545;
+            background: rgba(239, 68, 68, 0.1);
+            color: var(--danger);
         }
 
         .plugin-info {
-            font-size: 0.875rem;
-            color: #6c757d;
+            font-size: var(--font-size-sm);
+            color: var(--text-secondary);
             margin-bottom: 1rem;
         }
 
@@ -130,53 +135,6 @@
             display: flex;
             gap: 0.5rem;
             flex-wrap: wrap;
-        }
-
-        .btn-sm {
-            padding: 0.25rem 0.5rem;
-            font-size: 0.75rem;
-        }
-
-        .save-section {
-            background: white;
-            border-radius: 12px;
-            padding: 1.5rem;
-            margin-bottom: 2rem;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-            border: 1px solid #dee2e6;
-        }
-
-        .changes-indicator {
-            display: none;
-            background: #fff3cd;
-            border: 1px solid #ffeaa7;
-            border-radius: 8px;
-            padding: 1rem;
-            margin-bottom: 1rem;
-        }
-
-        .changes-indicator.show {
-            display: block;
-        }
-
-        .raw-editor {
-            background: white;
-            border-radius: 12px;
-            padding: 1.5rem;
-            margin-top: 2rem;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-        }
-
-        .code-editor {
-            font-family: 'Monaco', 'Menlo', 'Consolas', monospace;
-            font-size: 0.875rem;
-            line-height: 1.5;
-            background: #f8f9fa;
-            border: 1px solid #dee2e6;
-            border-radius: 6px;
-            padding: 1rem;
-            min-height: 200px;
-            resize: vertical;
         }
 
         .stats-row {
@@ -187,38 +145,85 @@
         }
 
         .stat-card {
-            background: white;
-            border-radius: 8px;
+            background: var(--bg-card);
+            border-radius: var(--border-radius-sm);
             padding: 1.5rem;
             text-align: center;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            border: 1px solid #dee2e6;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border-primary);
+            transition: var(--transition);
+        }
+
+        .stat-card:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
         }
 
         .stat-number {
             font-size: 2rem;
             font-weight: 700;
             margin-bottom: 0.5rem;
+            color: var(--text-primary);
         }
 
         .stat-label {
-            color: #6c757d;
-            font-size: 0.875rem;
+            color: var(--text-secondary);
+            font-size: var(--font-size-sm);
             text-transform: uppercase;
             letter-spacing: 0.5px;
         }
 
+        .changes-indicator {
+            display: none;
+            background: rgba(245, 158, 11, 0.1);
+            border: 1px solid rgba(245, 158, 11, 0.2);
+            border-radius: var(--border-radius-sm);
+            padding: 1rem;
+            margin-bottom: 1rem;
+            color: var(--warning);
+        }
+
+        .changes-indicator.show {
+            display: block;
+        }
+
+        .raw-editor {
+            background: var(--bg-card);
+            border-radius: var(--border-radius);
+            padding: 1.5rem;
+            margin-top: 2rem;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border-primary);
+        }
+
+        .code-editor {
+            font-family: 'Monaco', 'Menlo', 'Consolas', monospace;
+            font-size: var(--font-size-sm);
+            line-height: 1.5;
+            background: var(--bg-input);
+            border: 1px solid var(--border-primary);
+            border-radius: var(--border-radius-sm);
+            padding: 1rem;
+            min-height: 200px;
+            resize: vertical;
+            color: var(--text-primary);
+        }
+
         .drag-handle {
             cursor: grab;
-            color: #6c757d;
+            color: var(--text-secondary);
             padding: 0.25rem;
         }
 
         .drag-handle:hover {
-            color: #495057;
+            color: var(--text-primary);
         }
 
         @media (max-width: 768px) {
+            .container {
+                padding: 1rem;
+            }
+
             .plugin-manager {
                 grid-template-columns: 1fr;
             }
@@ -226,48 +231,34 @@
             .plugin-actions {
                 justify-content: center;
             }
-        }
 
-        /* Loading and transition effects */
-        .loading {
-            opacity: 0.6;
-            pointer-events: none;
-        }
-
-        .spinner {
-            display: inline-block;
-            width: 1rem;
-            height: 1rem;
-            border: 2px solid rgba(0,0,0,0.25);
-            border-radius: 50%;
-            border-top-color: transparent;
-            animation: spin 1s linear infinite;
-        }
-
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-
-        .fade-in {
-            animation: fadeIn 0.3s ease-in;
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(-10px); }
-            to { opacity: 1; transform: translateY(0); }
+            .stats-row {
+                grid-template-columns: repeat(2, 1fr);
+            }
         }
     </style>
 </head>
 <body>
-    <div class="col-lg-12 mx-auto p-3 py-md-5">
-        <div class="d-flex justify-content-between align-items-center pb-3 mb-5 border-bottom">
-            <h1 class="d-flex align-items-center mb-0">
-                <i class="fas fa-puzzle-piece me-3"></i>
-                ytdlp2STRM - Advanced Plugin Manager
-            </h1>
-            <a href="/" class="btn btn-primary">
-                <i class="fas fa-home me-1"></i> Home
-            </a>
+    <div class="container">
+        <!-- Page Header -->
+        <div class="page-header">
+            <div class="header-controls">
+                <div class="theme-switcher">
+                    <select class="theme-select" aria-label="Choose theme">
+                        <option value="auto">🔄 Auto (System)</option>
+                        <option value="light">☀️ Light Mode</option>
+                        <option value="dark">🌙 Dark Mode</option>
+                    </select>
+                </div>
+                <a href="/" class="btn btn-outline-light">
+                    <i class="fas fa-home"></i> Home
+                </a>
+            </div>
+            <div style="font-size: 3rem; margin-bottom: 1rem;">
+                <i class="fas fa-puzzle-piece"></i>
+            </div>
+            <h1>Advanced Plugin Manager</h1>
+            <p>Configure plugins with drag-and-drop interface and raw code editing</p>
         </div>
 
         <!-- Statistics Row -->
@@ -293,17 +284,20 @@
         <!-- Changes Indicator -->
         <div class="changes-indicator" id="changes-indicator">
             <div class="d-flex align-items-center">
-                <i class="fas fa-exclamation-triangle text-warning me-2"></i>
+                <i class="fas fa-exclamation-triangle me-2"></i>
                 <strong>You have unsaved changes!</strong>
                 Use the save button below to apply your plugin configuration.
             </div>
         </div>
 
         <!-- Save Section -->
-        <div class="save-section">
-            <div class="d-flex justify-content-between align-items-center">
+        <div class="section">
+            <div class="section-header">
                 <div>
-                    <h5 class="mb-1">Plugin Configuration</h5>
+                    <h3 class="section-title">
+                        <i class="fas fa-cogs"></i>
+                        Plugin Configuration
+                    </h3>
                     <small class="text-muted">Drag plugins between enabled/disabled sections to change their status</small>
                 </div>
                 <div>
@@ -355,7 +349,7 @@
             </div>
             <div id="raw-editor-container" style="display: none;">
                 <form method="post" id="raw-form">
-                    <div class="mb-3">
+                    <div class="form-group mb-3">
                         <label class="form-label">./config/plugins.py</label>
                         <textarea class="form-control code-editor" name="plugin_content" id="plugin-content">{% for field in plugin_code %}{{ field }}
 {% endfor %}</textarea>
@@ -377,12 +371,12 @@
             {% if result %}
                 <div class="alert alert-success mt-3 fade-in" role="alert">
                     <i class="fas fa-check-circle"></i>
-                    ./config/plugins.py saved successfully.
+                    <strong>Success!</strong> ./config/plugins.py saved successfully.
                 </div>
             {% else %}
                 <div class="alert alert-danger mt-3 fade-in" role="alert">
                     <i class="fas fa-exclamation-triangle"></i>
-                    Error saving configuration.
+                    <strong>Error!</strong> Error saving configuration.
                 </div>
             {% endif %}
         {% endif %}
@@ -390,6 +384,7 @@
         {% include 'footer.html' %}
     </div>
 
+    <script src="/theme-manager.js"></script>
     <script>
         let pluginData = [];
         let originalContent = '';
@@ -609,16 +604,18 @@
             .then(data => {
                 if (data.success) {
                     button.innerHTML = '<i class="fas fa-check"></i> Started';
+                    button.classList.remove('btn-outline-success');
                     button.classList.add('btn-success');
                 } else {
                     button.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Error';
+                    button.classList.remove('btn-outline-success');
                     button.classList.add('btn-danger');
                 }
 
                 setTimeout(() => {
                     button.innerHTML = originalText;
                     button.disabled = false;
-                    button.className = button.className.replace(' btn-success', '').replace(' btn-danger', '');
+                    button.className = 'btn btn-outline-success btn-sm run-plugin';
                 }, 3000);
             })
             .catch(error => {
@@ -626,6 +623,7 @@
                 setTimeout(() => {
                     button.innerHTML = originalText;
                     button.disabled = false;
+                    button.className = 'btn btn-outline-success btn-sm run-plugin';
                 }, 3000);
             });
         }
@@ -706,6 +704,11 @@
             if (confirm('Reset raw content to original?')) {
                 document.getElementById('plugin-content').value = originalContent;
             }
+        });
+
+        // Listen for theme changes
+        window.addEventListener('themechange', function(e) {
+            console.log('Theme changed to:', e.detail.effectiveTheme);
         });
     </script>
 </body>

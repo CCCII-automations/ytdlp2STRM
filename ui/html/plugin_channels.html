@@ -1,178 +1,355 @@
 <!DOCTYPE html>
-<html data-bs-theme="auto">
+<html lang="en">
 <head>
     <title>ytdlp2STRM - {{ plugin.name|title }} Channels</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/js/bootstrap.min.js"></script>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.2/font/bootstrap-icons.css" integrity="sha384-b6lVK+yci+bfDmaY1u0zE8YYJt0TZxLEAFyYSLHId4xoVvsrQu3INevFKo+Xir8e" crossorigin="anonymous">
-    <link rel="stylesheet" href="/styles.css" crossorigin="anonymous">
-    <script src="/bs-theme-mode.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="/styles.css">
     <style>
-        .channel-item {
-            transition: all 0.3s ease;
+        /* Page-specific styles */
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 2rem;
         }
+
+        .channel-item {
+            transition: var(--transition);
+            margin-bottom: 1rem;
+        }
+
         .channel-item:hover {
             transform: translateX(5px);
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            box-shadow: var(--shadow-md);
         }
+
         .add-channel-btn {
-            background: linear-gradient(45deg, #28a745, #20c997);
+            background: linear-gradient(45deg, var(--success), #20c997);
             border: none;
-            color: white;
-            transition: all 0.3s ease;
+            color: var(--text-light);
+            transition: var(--transition);
         }
+
         .add-channel-btn:hover {
             transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+            color: var(--text-light);
+        }
+
+        .input-group {
+            display: flex;
+            align-items: stretch;
+        }
+
+        .input-group-text {
+            display: flex;
+            align-items: center;
+            padding: 0.75rem 1rem;
+            font-size: var(--font-size-base);
+            font-weight: 400;
+            line-height: 1.5;
+            color: var(--text-secondary);
+            text-align: center;
+            white-space: nowrap;
+            background-color: var(--bg-secondary);
+            border: 1px solid var(--border-primary);
+            border-right: 0;
+            border-radius: var(--border-radius-sm) 0 0 var(--border-radius-sm);
+        }
+
+        .input-group .form-control {
+            position: relative;
+            flex: 1 1 auto;
+            width: 1%;
+            min-width: 0;
+            border-left: 0;
+            border-radius: 0;
+        }
+
+        .input-group .btn {
+            border-radius: 0 var(--border-radius-sm) var(--border-radius-sm) 0;
+            margin-left: -1px;
+        }
+
+        .templates-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .template-card {
+            border: 1px solid var(--border-primary);
+            border-radius: var(--border-radius-sm);
+            padding: 1rem;
+            cursor: pointer;
+            transition: var(--transition);
+            background: var(--bg-card);
+        }
+
+        .template-card:hover {
+            border-color: var(--primary);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .template-card h6 {
+            color: var(--primary);
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .template-card small {
+            color: var(--text-secondary);
+        }
+
+        .info-text {
+            font-size: var(--font-size-sm);
+            color: var(--text-muted);
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .tips-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            margin-top: 1rem;
+        }
+
+        .tips-list {
+            list-style: none;
+            padding: 0;
+        }
+
+        .tips-list li {
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: var(--font-size-sm);
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 1rem;
+            }
+
+            .tips-grid {
+                grid-template-columns: 1fr;
+                gap: 1rem;
+            }
+
+            .templates-grid {
+                grid-template-columns: 1fr;
+            }
         }
     </style>
 </head>
 <body>
-    <div class="col-lg-10 mx-auto p-3 py-md-5">
-        <div class="d-flex justify-content-between align-items-center pb-3 mb-5 border-bottom">
-            <h1 class="mb-0">
-                <i class="bi bi-list-ul me-2"></i>
-                ytdlp2STRM - {{ plugin.name|title }} Channels
-            </h1>
-            <a href="/" class="btn btn-primary">
-                <i class="bi bi-house-fill me-1"></i> Home
-            </a>
+    <div class="container">
+        <!-- Page Header -->
+        <div class="page-header">
+            <div class="header-controls">
+                <div class="theme-switcher">
+                    <select class="theme-select" aria-label="Choose theme">
+                        <option value="auto">🔄 Auto (System)</option>
+                        <option value="light">☀️ Light Mode</option>
+                        <option value="dark">🌙 Dark Mode</option>
+                    </select>
+                </div>
+                <a href="/" class="btn btn-outline-light">
+                    <i class="fas fa-home"></i> Home
+                </a>
+            </div>
+            <div style="font-size: 3rem; margin-bottom: 1rem;">
+                <i class="fas fa-list"></i>
+            </div>
+            <h1>{{ plugin.name|title }} Channels</h1>
+            <p>Manage channels, usernames, and URLs for this plugin</p>
         </div>
-        <form method="post">
-            <div class="mb-3" id="plugin-fields">
-                {% if request == "POST": %}
-                    {% if result: %}
-                        <div class="alert alert-success mt-5" role="alert">
-                            <i class="bi bi-check-circle me-2"></i>
-                            {{ plugin.path }}/channels.json saved successfully.
+
+        <!-- Success/Error Messages -->
+        {% if request == "POST" %}
+            {% if result %}
+                <div class="alert alert-success fade-in" role="alert">
+                    <i class="fas fa-check-circle"></i>
+                    <strong>Success!</strong> {{ plugin.path }}/channels.json saved successfully.
+                </div>
+            {% else %}
+                <div class="alert alert-danger fade-in" role="alert">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <strong>Error!</strong> Error saving channels configuration.
+                </div>
+            {% endif %}
+        {% endif %}
+
+        <!-- Main Form -->
+        <div class="section">
+            <div class="section-header">
+                <h3>
+                    <i class="fas fa-file-code me-2"></i>
+                    {{ plugin.path }}/channels_list.json
+                </h3>
+            </div>
+
+            <div class="info-text">
+                <i class="fas fa-info-circle"></i>
+                Add channels, usernames, or URLs that this plugin should monitor. Each entry should be on a separate line.
+            </div>
+
+            <form method="post">
+                <div id="plugin-fields">
+                    {% for field in plugin.channels %}
+                        <div class="channel-item input-group">
+                            <span class="input-group-text">
+                                <i class="fas fa-link"></i>
+                            </span>
+                            <input class="form-control" type="text" name="channels" value="{{ field }}" placeholder="Enter channel URL, username, or ID">
+                            <button class="btn btn-outline-danger" type="button" onclick="removeChannel(this)" title="Remove this channel">
+                                <i class="fas fa-trash"></i>
+                            </button>
                         </div>
-                    {% else %}
-                        <div class="alert alert-danger mt-5" role="alert">
-                            <i class="bi bi-exclamation-triangle me-2"></i>
-                            Error saving channels configuration.
-                        </div>
-                    {% endif %}
+                    {% endfor %}
+                </div>
+
+                <div class="d-flex gap-2 flex-wrap mb-4 mt-3">
+                    <button class="add-channel-btn btn" type="button" id="add-field">
+                        <i class="fas fa-plus-circle me-1"></i> Add Channel
+                    </button>
+                    <button class="btn btn-success" type="submit">
+                        <i class="fas fa-save me-1"></i> Save Channels
+                    </button>
+                    <a href="/plugin/{{ plugin.name }}" class="btn btn-outline-primary">
+                        <i class="fas fa-cog me-1"></i> Plugin Settings
+                    </a>
+                    <a href="/" class="btn btn-outline-secondary">
+                        <i class="fas fa-home me-1"></i> Back to Dashboard
+                    </a>
+                </div>
+            </form>
+        </div>
+
+        <!-- Quick Add Templates -->
+        <div class="section">
+            <div class="section-header">
+                <h4>
+                    <i class="fas fa-magic me-2"></i>
+                    Quick Add Templates
+                </h4>
+            </div>
+
+            <div class="templates-grid">
+                {% if plugin.name == 'youtube' %}
+                <div class="template-card" onclick="addTemplateChannel('https://www.youtube.com/@channelname')">
+                    <h6><i class="fab fa-youtube"></i> @channelname format</h6>
+                    <small>Modern YouTube channel handle format</small>
+                </div>
+                <div class="template-card" onclick="addTemplateChannel('UCChannelID123456789012345678')">
+                    <h6><i class="fas fa-hashtag"></i> Channel ID format</h6>
+                    <small>Direct YouTube channel ID</small>
+                </div>
+                <div class="template-card" onclick="addTemplateChannel('https://www.youtube.com/playlist?list=PLPlaylistID')">
+                    <h6><i class="fas fa-list-ul"></i> Playlist format</h6>
+                    <small>YouTube playlist URL</small>
+                </div>
+                {% elif plugin.name == 'twitch' %}
+                <div class="template-card" onclick="addTemplateChannel('streamername')">
+                    <h6><i class="fab fa-twitch"></i> Username only</h6>
+                    <small>Just the Twitch username</small>
+                </div>
+                <div class="template-card" onclick="addTemplateChannel('https://www.twitch.tv/streamername')">
+                    <h6><i class="fas fa-link"></i> Full URL format</h6>
+                    <small>Complete Twitch channel URL</small>
+                </div>
+                {% else %}
+                <div class="template-card" onclick="addTemplateChannel('https://example.com/channel')">
+                    <h6><i class="fas fa-link"></i> Channel URL</h6>
+                    <small>Full channel or profile URL</small>
+                </div>
+                <div class="template-card" onclick="addTemplateChannel('username')">
+                    <h6><i class="fas fa-user"></i> Username</h6>
+                    <small>Just the username or handle</small>
+                </div>
                 {% endif %}
-
-                <div class="mb-3">
-                    <label class="form-label">
-                        <i class="bi bi-file-earmark-code me-1"></i>
-                        {{ plugin.path }}/channels_list.json
-                    </label>
-                    <div class="text-muted small mb-3">
-                        <i class="bi bi-info-circle me-1"></i>
-                        Add channels, usernames, or URLs that this plugin should monitor. Each entry should be on a separate line.
-                    </div>
-                </div>
-
-                {% for field in plugin.channels %}
-                    <div class="mb-3 input-group channel-item">
-                        <span class="input-group-text">
-                            <i class="bi bi-link-45deg"></i>
-                        </span>
-                        <input class="form-control" type="text" name="channels" value="{{ field }}" placeholder="Enter channel URL, username, or ID">
-                        <button class="btn btn-outline-danger" type="button" onclick="removeChannel(this)" title="Remove this channel">
-                            <i class="bi bi-trash"></i>
-                        </button>
-                    </div>
-                {% endfor %}
             </div>
+        </div>
 
-            <div class="d-flex gap-2 flex-wrap mb-4">
-                <button class="btn add-channel-btn" type="button" id="add-field">
-                    <i class="bi bi-plus-circle me-1"></i> Add Channel
-                </button>
-                <button class="btn btn-success" type="submit">
-                    <i class="bi bi-floppy me-1"></i> Save Channels
-                </button>
-                <a href="/plugin/{{ plugin.name }}" class="btn btn-outline-primary">
-                    <i class="bi bi-gear me-1"></i> Plugin Settings
-                </a>
-                <a href="/" class="btn btn-outline-secondary">
-                    <i class="bi bi-house-fill me-1"></i> Go back
-                </a>
+        <!-- Tips and Information -->
+        <div class="section">
+            <h4 class="mb-3">
+                <i class="fas fa-lightbulb me-2"></i>
+                Tips & Information
+            </h4>
+            <div class="tips-grid">
+                <div>
+                    <h6>General Tips:</h6>
+                    <ul class="tips-list">
+                        <li><i class="fas fa-check-circle text-success"></i> One entry per line</li>
+                        <li><i class="fas fa-check-circle text-success"></i> URLs or usernames both work</li>
+                        <li><i class="fas fa-check-circle text-success"></i> Remove duplicates automatically</li>
+                        <li><i class="fas fa-check-circle text-success"></i> Invalid entries will be highlighted</li>
+                        <li><i class="fas fa-check-circle text-success"></i> Empty fields are removed on save</li>
+                    </ul>
+                </div>
+                {% if plugin.name == 'youtube' %}
+                <div>
+                    <h6>YouTube Specific:</h6>
+                    <ul class="tips-list">
+                        <li><i class="fab fa-youtube text-danger"></i> @handle format recommended</li>
+                        <li><i class="fas fa-hashtag text-primary"></i> Channel IDs start with "UC"</li>
+                        <li><i class="fas fa-list text-warning"></i> Playlists start with "PL"</li>
+                        <li><i class="fas fa-globe text-info"></i> Full URLs are always accepted</li>
+                    </ul>
+                </div>
+                {% elif plugin.name == 'twitch' %}
+                <div>
+                    <h6>Twitch Specific:</h6>
+                    <ul class="tips-list">
+                        <li><i class="fab fa-twitch text-primary"></i> Case-insensitive usernames</li>
+                        <li><i class="fas fa-link text-info"></i> Full URLs work perfectly</li>
+                        <li><i class="fas fa-user text-success"></i> Just username is preferred</li>
+                        <li><i class="fas fa-clock text-warning"></i> Live streams are detected automatically</li>
+                    </ul>
+                </div>
+                {% else %}
+                <div>
+                    <h6>Best Practices:</h6>
+                    <ul class="tips-list">
+                        <li><i class="fas fa-link text-primary"></i> Use full URLs when possible</li>
+                        <li><i class="fas fa-check text-success"></i> Test with one channel first</li>
+                        <li><i class="fas fa-eye text-info"></i> Monitor logs for errors</li>
+                        <li><i class="fas fa-sync text-warning"></i> Update regularly for best results</li>
+                    </ul>
+                </div>
+                {% endif %}
             </div>
+        </div>
 
-            <!-- Quick Add Templates -->
-            <div class="card">
-                <div class="card-header">
-                    <h6 class="mb-0">
-                        <i class="bi bi-lightbulb me-1"></i>
-                        Quick Add Templates
-                    </h6>
-                </div>
-                <div class="card-body">
-                    <div class="row">
-                        {% if plugin.name == 'youtube' %}
-                        <div class="col-md-6">
-                            <h6>YouTube Examples:</h6>
-                            <div class="list-group list-group-flush">
-                                <button type="button" class="list-group-item list-group-item-action template-btn" data-template="https://www.youtube.com/@channelname">
-                                    <i class="bi bi-at me-1"></i> @channelname format
-                                </button>
-                                <button type="button" class="list-group-item list-group-item-action template-btn" data-template="UCChannelID123456789012345678">
-                                    <i class="bi bi-hash me-1"></i> Channel ID format
-                                </button>
-                                <button type="button" class="list-group-item list-group-item-action template-btn" data-template="https://www.youtube.com/playlist?list=PLPlaylistID">
-                                    <i class="bi bi-collection-play me-1"></i> Playlist format
-                                </button>
-                            </div>
-                        </div>
-                        {% elif plugin.name == 'twitch' %}
-                        <div class="col-md-6">
-                            <h6>Twitch Examples:</h6>
-                            <div class="list-group list-group-flush">
-                                <button type="button" class="list-group-item list-group-item-action template-btn" data-template="streamername">
-                                    <i class="bi bi-person me-1"></i> Username only
-                                </button>
-                                <button type="button" class="list-group-item list-group-item-action template-btn" data-template="https://www.twitch.tv/streamername">
-                                    <i class="bi bi-link me-1"></i> Full URL format
-                                </button>
-                            </div>
-                        </div>
-                        {% endif %}
-                        <div class="col-md-6">
-                            <h6>General Tips:</h6>
-                            <ul class="list-unstyled">
-                                <li><i class="bi bi-check-circle text-success me-1"></i> One entry per line</li>
-                                <li><i class="bi bi-check-circle text-success me-1"></i> URLs or usernames both work</li>
-                                <li><i class="bi bi-check-circle text-success me-1"></i> Remove duplicates automatically</li>
-                                <li><i class="bi bi-check-circle text-success me-1"></i> Invalid entries will be highlighted</li>
-                            </ul>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </form>
         {% include 'footer.html' %}
     </div>
+
+    <script src="/theme-manager.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             var addFieldButton = document.getElementById('add-field');
-            var pluginFields = document.getElementById('plugin-fields');
-
             addFieldButton.addEventListener('click', function() {
                 addNewChannelField();
-            });
-
-            // Template button functionality
-            document.querySelectorAll('.template-btn').forEach(btn => {
-                btn.addEventListener('click', function() {
-                    const template = this.dataset.template;
-                    addNewChannelField(template);
-                });
             });
         });
 
         function addNewChannelField(value = '') {
             var pluginFields = document.getElementById('plugin-fields');
             var newField = document.createElement('div');
-            newField.className = 'mb-3 input-group channel-item';
+            newField.className = 'channel-item input-group';
 
             var iconSpan = document.createElement('span');
             iconSpan.className = 'input-group-text';
-            iconSpan.innerHTML = '<i class="bi bi-link-45deg"></i>';
+            iconSpan.innerHTML = '<i class="fas fa-link"></i>';
 
             var newInput = document.createElement('input');
             newInput.className = 'form-control';
@@ -185,7 +362,7 @@
             deleteButton.className = 'btn btn-outline-danger';
             deleteButton.type = 'button';
             deleteButton.title = 'Remove this channel';
-            deleteButton.innerHTML = '<i class="bi bi-trash"></i>';
+            deleteButton.innerHTML = '<i class="fas fa-trash"></i>';
 
             deleteButton.addEventListener('click', function() {
                 removeChannel(this);
@@ -210,7 +387,7 @@
         }
 
         function removeChannel(button) {
-            const field = button.parentNode;
+            const field = button.closest('.channel-item');
             field.style.transition = 'all 0.3s ease';
             field.style.opacity = '0';
             field.style.transform = 'translateX(-20px)';
@@ -219,35 +396,69 @@
             }, 300);
         }
 
+        function addTemplateChannel(template) {
+            addNewChannelField(template);
+        }
+
         // Form validation
         document.querySelector('form').addEventListener('submit', function(e) {
             const inputs = document.querySelectorAll('input[name="channels"]');
             let hasEmpty = false;
+            let validInputs = 0;
 
             inputs.forEach(input => {
                 if (!input.value.trim()) {
-                    input.classList.add('is-invalid');
-                    hasEmpty = true;
+                    // Remove empty fields silently
+                    input.closest('.channel-item').remove();
                 } else {
                     input.classList.remove('is-invalid');
+                    validInputs++;
                 }
             });
 
-            if (hasEmpty) {
+            if (validInputs === 0) {
                 e.preventDefault();
-                alert('Please fill in all channel fields or remove empty ones.');
+                alert('Please add at least one channel before saving.');
             }
         });
 
-        // Add custom styles for invalid inputs
+        // Real-time validation
+        document.addEventListener('input', function(e) {
+            if (e.target.name === 'channels') {
+                const input = e.target;
+                const value = input.value.trim();
+
+                // Basic validation (you can enhance this based on plugin type)
+                if (value && (value.includes('http') || value.length > 3)) {
+                    input.classList.remove('is-invalid');
+                    input.classList.add('is-valid');
+                } else if (value) {
+                    input.classList.remove('is-valid');
+                    input.classList.add('is-invalid');
+                } else {
+                    input.classList.remove('is-valid', 'is-invalid');
+                }
+            }
+        });
+
+        // Add custom styles
         const style = document.createElement('style');
         style.textContent = `
             .form-control.is-invalid {
-                border-color: #dc3545;
-                box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25);
+                border-color: var(--danger);
+                box-shadow: 0 0 0 0.2rem rgba(239, 68, 68, 0.25);
+            }
+            .form-control.is-valid {
+                border-color: var(--success);
+                box-shadow: 0 0 0 0.2rem rgba(16, 185, 129, 0.25);
             }
         `;
         document.head.appendChild(style);
+
+        // Listen for theme changes
+        window.addEventListener('themechange', function(e) {
+            console.log('Theme changed to:', e.detail.effectiveTheme);
+        });
     </script>
 </body>
 </html>
