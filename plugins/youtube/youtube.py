@@ -101,20 +101,29 @@ class Youtube:
         self.sleep_interval = config.get('sleep_interval', 1)  # Add sleep interval
 
     def clean_channel_name(self, name):
-        """Clean channel name to UTF-8 without special characters"""
-        if not name:
+        """Clean channel name: ASCII-safe, underscore-separated, normalized"""
+        if not name or not name.strip():
             return "Unknown_Channel"
 
-        # Normalize to NFD (decomposed) and encode/decode to remove accents
+        # Normalize and remove accents
         name = unicodedata.normalize('NFD', name)
         name = name.encode('ascii', 'ignore').decode('utf-8')
 
-        # Remove special characters, keep only alphanumeric, spaces, and basic punctuation
-        name = re.sub(r'[^\w\s\-_]', '', name)
-        name = name.strip()
+        # Replace any non-word characters with underscore
+        name = re.sub(r'[^\w\s-]', '', name)
 
-        # Replace spaces with underscores
-        name = name.replace(' ', '_')
+        # Replace all whitespace (including tabs) with single underscore
+        name = re.sub(r'\s+', '_', name)
+
+        # Replace multiple underscores with one
+        name = re.sub(r'_+', '_', name)
+
+        # Trim underscores from ends
+        name = name.strip('_')
+
+        # Ensure fallback if name is empty after cleanup
+        if not name:
+            name = "Unknown_Channel"
 
         l.log("youtube", f"Cleaned channel name: {name}")
         return name
@@ -212,7 +221,7 @@ class Youtube:
 
     def check_and_update_existing_files(self, folder_path, video_id, video_info):
         """Check if files exist and update if needed"""
-        video_name = sanitize(video_info['title'])
+        video_name = sanitize(video_info['title']).replace(' ', '_')
 
         # Check STRM file
         strm_path = os.path.join(folder_path, f"{video_name}.strm")
