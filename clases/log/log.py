@@ -270,7 +270,9 @@ class Logger:
     def _update_cleanup_date(self):
         """Update the last cleanup date"""
         try:
-            os.makedirs(os.path.dirname(self.cleanup_file), exist_ok=True)
+            dir_path = os.path.dirname(self.cleanup_file)
+            if dir_path:
+                os.makedirs(dir_path, exist_ok=True)
             with open(self.cleanup_file, 'w', encoding='utf-8') as f:
                 f.write(datetime.now().date().isoformat())
         except Exception as e:
@@ -292,9 +294,9 @@ def log(author: str, text: str, level: LogLevel = None):
         log._logger.log(level, author, text)
 
 
-# Usage examples:
 if __name__ == "__main__":
-    logger = Logger(min_level=LogLevel.DEBUG, enable_colors=True)
+    min_level = getattr(LogLevel, 'DEBUG', getattr(LogLevel, 'INFO', None))
+    logger = Logger(min_level=min_level, enable_colors=True)
 
     # Basic logging
     logger.info("APP", "Application started")
