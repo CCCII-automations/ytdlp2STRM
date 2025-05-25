@@ -103,7 +103,9 @@ def setup_signal_handlers():
 
 
 # -- LOAD CONFIG AND CHANNELS FILES
-config_path = os.path.abspath('./config/crons.json')
+# Always use project root directory for config files
+project_root = Path(__file__).resolve().parents[2]  # Go up 2 levels from clases/cron/
+config_path = os.path.join(project_root, 'config', 'crons.json')
 
 
 def calculate_hash(file_path):
@@ -531,8 +533,8 @@ Examples:
     )
 
     parser.add_argument('--config', '-c',
-                        default='./config/crons.json',
-                        help='Path to cron configuration file (default: ./config/crons.json)')
+                        default=os.path.join(project_root, 'config', 'crons.json'),
+                        help='Path to cron configuration file (default: PROJECT_ROOT/config/crons.json)')
 
     parser.add_argument('--validate', '-v',
                         action='store_true',
@@ -569,6 +571,7 @@ Examples:
     if not os.path.exists(config_file_path):
         print(f"❌ Configuration file not found: {config_file_path}")
         print(f"💡 Create a configuration file with this format:")
+        print(f"📁 Expected location: {os.path.join(project_root, 'config', 'crons.json')}")
         print("""
 [
     {
