@@ -1,0 +1,20 @@
+{
+  "_comment": "IP Address Lockout Tracking for ytdlp2STRM Authentication",
+  "_version": "1.0.0",
+  "_description": "This file tracks locked IP addresses and their expiration times",
+  "_auto_cleanup": "Expired entries are automatically removed on application startup",
+  "locked_ip_addresses": [],
+  "lockout_history": [],
+  "settings": {
+    "max_history_entries": 1000,
+    "auto_cleanup_on_startup": true,
+    "log_unlocks": true
+  },
+  "statistics": {
+    "total_lockouts": 0,
+    "total_unlocks": 0,
+    "most_locked_ip": null,
+    "last_cleanup": null
+  },
+  "last_updated": "2024-12-19T12:00:00.000Z"
+}

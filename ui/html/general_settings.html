@@ -8,14 +8,53 @@
     <style>
         /* Page-specific styles */
         .container {
-            max-width: 1000px;
+            max-width: 1200px;
             margin: 0 auto;
             padding: 2rem;
         }
 
+        .config-tabs {
+            display: flex;
+            margin-bottom: 2rem;
+            border-bottom: 2px solid var(--border-primary);
+        }
+
+        .config-tab {
+            padding: 1rem 2rem;
+            background: var(--bg-secondary);
+            border: none;
+            border-bottom: 3px solid transparent;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: var(--transition);
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-size: 0.875rem;
+        }
+
+        .config-tab.active {
+            color: var(--primary);
+            border-bottom-color: var(--primary);
+            background: var(--bg-card);
+        }
+
+        .config-tab:hover:not(.active) {
+            color: var(--text-primary);
+            background: var(--bg-card);
+        }
+
+        .config-section {
+            display: none;
+        }
+
+        .config-section.active {
+            display: block;
+        }
+
         .config-info-grid {
             display: grid;
-            grid-template-columns: 1fr 1fr;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
             gap: 1rem;
             margin-top: 2rem;
         }
@@ -43,6 +82,117 @@
             word-break: break-all;
         }
 
+        .security-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .security-stat {
+            background: var(--bg-card);
+            padding: 1rem;
+            border-radius: var(--border-radius-sm);
+            border-left: 4px solid var(--primary);
+            text-align: center;
+        }
+
+        .security-stat.warning {
+            border-left-color: var(--warning);
+        }
+
+        .security-stat.danger {
+            border-left-color: var(--danger);
+        }
+
+        .security-stat-number {
+            font-size: 2rem;
+            font-weight: bold;
+            color: var(--text-primary);
+        }
+
+        .security-stat-label {
+            font-size: var(--font-size-sm);
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .user-management {
+            background: var(--bg-secondary);
+            border-radius: var(--border-radius-sm);
+            padding: 1.5rem;
+            margin-top: 1.5rem;
+            border: 1px solid var(--border-primary);
+        }
+
+        .user-list {
+            display: grid;
+            gap: 0.5rem;
+        }
+
+        .user-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.75rem;
+            background: var(--bg-card);
+            border-radius: var(--border-radius-sm);
+            border: 1px solid var(--border-primary);
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .user-role {
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.25rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .user-role.admin {
+            background: rgba(239, 68, 68, 0.1);
+            color: var(--danger);
+        }
+
+        .user-role.user {
+            background: rgba(59, 130, 246, 0.1);
+            color: var(--primary);
+        }
+
+        .locked-ips {
+            background: var(--bg-secondary);
+            border-radius: var(--border-radius-sm);
+            padding: 1.5rem;
+            margin-top: 1.5rem;
+            border: 1px solid var(--border-primary);
+        }
+
+        .locked-ip-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.75rem;
+            background: rgba(239, 68, 68, 0.1);
+            border-radius: var(--border-radius-sm);
+            border: 1px solid rgba(239, 68, 68, 0.2);
+            margin-bottom: 0.5rem;
+        }
+
+        .locked-ip-info {
+            flex: 1;
+        }
+
+        .locked-ip-time {
+            font-size: var(--font-size-sm);
+            color: var(--text-secondary);
+        }
+
         @media (max-width: 768px) {
             .container {
                 padding: 1rem;
@@ -50,6 +200,18 @@
 
             .config-info-grid {
                 grid-template-columns: 1fr;
+            }
+
+            .config-tabs {
+                flex-direction: column;
+            }
+
+            .config-tab {
+                text-align: center;
+            }
+
+            .security-stats {
+                grid-template-columns: repeat(2, 1fr);
             }
         }
     </style>
@@ -74,7 +236,7 @@
                 <i class="fas fa-cogs"></i>
             </div>
             <h1>General Settings</h1>
-            <p>Configure core application settings and preferences</p>
+            <p>Configure core application settings, authentication, and security</p>
         </div>
 
         <!-- Success/Error Messages -->
@@ -82,7 +244,7 @@
             {% if result %}
                 <div class="alert alert-success fade-in" role="alert">
                     <i class="fas fa-check-circle"></i>
-                    <strong>Success!</strong> ./config/config.json saved successfully.
+                    <strong>Success!</strong> Configuration saved successfully.
                 </div>
             {% else %}
                 <div class="alert alert-danger fade-in" role="alert">
@@ -92,127 +254,368 @@
             {% endif %}
         {% endif %}
 
-        <!-- Configuration Form -->
-        <div class="section">
-            <h3 class="mb-4">
-                <i class="fas fa-server me-2"></i>
-                Application Configuration
-            </h3>
+        <!-- Configuration Tabs -->
+        <div class="config-tabs">
+            <button class="config-tab active" data-tab="general">
+                <i class="fas fa-server"></i> General
+            </button>
+            <button class="config-tab" data-tab="authentication">
+                <i class="fas fa-shield-alt"></i> Authentication
+            </button>
+            <button class="config-tab" data-tab="security">
+                <i class="fas fa-lock"></i> Security Monitor
+            </button>
+        </div>
 
-            <form method="post">
-                {% for key, value in config_data.items() %}
+        <!-- Configuration Form -->
+        <form id="configForm" method="post">
+
+            <!-- General Settings Tab -->
+            <div class="config-section active" id="general">
+                <div class="section">
+                    <h3 class="mb-4">
+                        <i class="fas fa-server me-2"></i>
+                        Application Configuration
+                    </h3>
+
+                    {% for key, value in config_data.items() %}
+                    {% if not key.startswith('auth_') and not key.startswith('app_secret_key') and key not in ['admins',
+                    'users'] %}
                     <div class="form-group">
                         {% if key == 'ytdlp2strm_host' %}
-                            <label class="form-label" for="config_{{ loop.index }}_{{ key }}">
-                                <i class="fas fa-network-wired"></i>
-                                Host Address
-                            </label>
-                            <input class="form-control" type="text" id="config_{{ loop.index }}_{{ key }}" name="{{ key }}" value="{{ value }}" placeholder="0.0.0.0">
-                            <div class="config-description">
-                                IP address where the application will listen for connections. Use 0.0.0.0 to listen on all interfaces.
-                            </div>
+                        <label class="form-label" for="config_{{ loop.index }}_{{ key }}">
+                            <i class="fas fa-network-wired"></i>
+                            Host Address
+                        </label>
+                        <input class="form-control" id="config_{{ loop.index }}_{{ key }}" name="{{ key }}" placeholder="0.0.0.0"
+                               type="text" value="{{ value }}">
+                        <div class="config-description">
+                            IP address where the application will listen for connections. Use 0.0.0.0 to listen on all
+                            interfaces.
+                        </div>
 
                         {% elif key == 'ytdlp2strm_port' %}
-                            <label class="form-label" for="config_{{ loop.index }}_{{ key }}">
-                                <i class="fas fa-plug"></i>
-                                Port Number
-                            </label>
-                            <input class="form-control" type="number" id="config_{{ loop.index }}_{{ key }}" name="{{ key }}" value="{{ value }}" min="1" max="65535" placeholder="5000">
-                            <div class="config-description">
-                                Port number for the web interface (default: 5000). Make sure this port is available and not blocked by firewall.
-                            </div>
+                        <label class="form-label" for="config_{{ loop.index }}_{{ key }}">
+                            <i class="fas fa-plug"></i>
+                            Port Number
+                        </label>
+                        <input class="form-control" id="config_{{ loop.index }}_{{ key }}" max="65535"
+                               min="1" name="{{ key }}" placeholder="5000" type="number" value="{{ value }}">
+                        <div class="config-description">
+                            Port number for the web interface (default: 5000). Make sure this port is available and not
+                            blocked by firewall.
+                        </div>
 
                         {% elif key == 'ytdlp2strm_keep_old_strm' %}
-                            <label class="form-label" for="config_{{ loop.index }}_{{ key }}">
-                                <i class="fas fa-archive"></i>
-                                Keep Old STRM Files
+                        <label class="form-label" for="config_{{ loop.index }}_{{ key }}">
+                            <i class="fas fa-archive"></i>
+                            Keep Old STRM Files
+                        </label>
+                        <div class="d-flex align-items-center">
+                            <label class="toggle-switch">
+                                <input id="config_{{ loop.index }}_{{ key }}" if name="{{ key }}"
+                                       type="checkbox" value="True" value== {% "True" %}checked{% endif %}>
+                                <span class="slider"></span>
                             </label>
-                            <div class="d-flex align-items-center">
-                                <label class="toggle-switch">
-                                    <input type="checkbox" id="config_{{ loop.index }}_{{ key }}" name="{{ key }}" value="True" {% if value == "True" %}checked{% endif %}>
-                                    <span class="slider"></span>
-                                </label>
-                                <span class="ms-3">Preserve existing STRM files when updating</span>
-                            </div>
-                            <div class="config-description">
-                                When enabled, existing .strm files won't be deleted during updates. Disable to clean up old entries.
-                            </div>
+                            <span class="ms-3">Preserve existing STRM files when updating</span>
+                        </div>
+                        <div class="config-description">
+                            When enabled, existing .strm files won't be deleted during updates. Disable to clean up old
+                            entries.
+                        </div>
 
                         {% elif key == 'ytdlp2strm_temp_file_duration' %}
-                            <label class="form-label" for="config_{{ loop.index }}_{{ key }}">
-                                <i class="fas fa-clock"></i>
-                                Temp File Duration (seconds)
-                            </label>
-                            <input class="form-control" type="number" id="config_{{ loop.index }}_{{ key }}" name="{{ key }}" value="{{ value }}" min="3600" max="604800" placeholder="86400">
-                            <div class="config-description">
-                                How long to keep temporary files before cleanup. 86400 = 24 hours, 604800 = 7 days.
-                            </div>
+                        <label class="form-label" for="config_{{ loop.index }}_{{ key }}">
+                            <i class="fas fa-clock"></i>
+                            Temp File Duration (seconds)
+                        </label>
+                        <input class="form-control" id="config_{{ loop.index }}_{{ key }}" max="604800"
+                               min="3600" name="{{ key }}" placeholder="86400" type="number" value="{{ value }}">
+                        <div class="config-description">
+                            How long to keep temporary files before cleanup. 86400 = 24 hours, 604800 = 7 days.
+                        </div>
 
                         {% elif key == 'cookies' %}
-                            <label class="form-label" for="config_{{ loop.index }}_{{ key }}">
-                                <i class="fas fa-cookie-bite"></i>
-                                Global Cookie Authentication
-                            </label>
-                            <select class="form-control" id="config_{{ loop.index }}_{{ key }}" name="{{ key }}">
-                                <option value="none" {% if value == "none" %}selected{% endif %}>No Cookies</option>
-                                <option value="cookies" {% if value == "cookies" %}selected{% endif %}>Use Cookie File</option>
-                                <option value="browser" {% if value == "browser" %}selected{% endif %}>Extract from Browser</option>
-                            </select>
-                            <div class="config-description">
-                                Global authentication method for accessing private or age-restricted content across all plugins.
-                            </div>
+                        <label class="form-label" for="config_{{ loop.index }}_{{ key }}">
+                            <i class="fas fa-cookie-bite"></i>
+                            Global Cookie Authentication
+                        </label>
+                        <select class="form-control" id="config_{{ loop.index }}_{{ key }}" name="{{ key }}">
+                            <option if value="none" value== {%
+                            "none" %}selected{% endif %}>No Cookies</option>
+                            <option if value="cookies" value== {%
+                            "cookies" %}selected{% endif %}>Use Cookie File</option>
+                            <option if value="browser" value== {%
+                            "browser" %}selected{% endif %}>Extract from Browser</option>
+                        </select>
+                        <div class="config-description">
+                            Global authentication method for accessing private or age-restricted content across all
+                            plugins.
+                        </div>
 
                         {% elif key == 'cookie_value' %}
-                            <label class="form-label" for="config_{{ loop.index }}_{{ key }}">
-                                <i class="fas fa-file-code"></i>
-                                Global Cookie File Path
-                            </label>
-                            <input class="form-control" type="text" id="config_{{ loop.index }}_{{ key }}" name="{{ key }}" value="{{ value }}" placeholder="cookies/youtube-cookies.txt">
-                            <div class="config-description">
-                                Path to the global cookie file used when cookie authentication is enabled. This applies to all plugins unless overridden.
-                            </div>
+                        <label class="form-label" for="config_{{ loop.index }}_{{ key }}">
+                            <i class="fas fa-file-code"></i>
+                            Global Cookie File Path
+                        </label>
+                        <input class="form-control" id="config_{{ loop.index }}_{{ key }}" name="{{ key }}" placeholder="cookies/youtube-cookies.txt"
+                               type="text" value="{{ value }}">
+                        <div class="config-description">
+                            Path to the global cookie file used when cookie authentication is enabled. This applies to
+                            all plugins unless overridden.
+                        </div>
 
                         {% elif key == 'log_level' %}
-                            <label class="form-label" for="config_{{ loop.index }}_{{ key }}">
-                                <i class="fas fa-bug"></i>
-                                Log Level
-                            </label>
-                            <select class="form-control" id="config_{{ loop.index }}_{{ key }}" name="{{ key }}">
-                                <option value="DEBUG" {% if value == "DEBUG" %}selected{% endif %}>DEBUG - Verbose logging</option>
-                                <option value="INFO" {% if value == "INFO" %}selected{% endif %}>INFO - Standard logging</option>
-                                <option value="WARNING" {% if value == "WARNING" %}selected{% endif %}>WARNING - Important messages only</option>
-                                <option value="ERROR" {% if value == "ERROR" %}selected{% endif %}>ERROR - Errors only</option>
-                                <option value="CRITICAL" {% if value == "CRITICAL" %}selected{% endif %}>CRITICAL - Critical errors only</option>
-                            </select>
-                            <div class="config-description">
-                                Controls the verbosity of log output. DEBUG provides the most detail, CRITICAL the least.
-                            </div>
+                        <label class="form-label" for="config_{{ loop.index }}_{{ key }}">
+                            <i class="fas fa-bug"></i>
+                            Log Level
+                        </label>
+                        <select class="form-control" id="config_{{ loop.index }}_{{ key }}" name="{{ key }}">
+                            <option if value="DEBUG" value== {%
+                            "DEBUG" %}selected{% endif %}>DEBUG - Verbose logging</option>
+                            <option if value="INFO" value== {%
+                            "INFO" %}selected{% endif %}>INFO - Standard logging</option>
+                            <option if value="WARNING" value== {%
+                            "WARNING" %}selected{% endif %}>WARNING - Important messages only</option>
+                            <option if value="ERROR" value== {%
+                            "ERROR" %}selected{% endif %}>ERROR - Errors only</option>
+                            <option if value="CRITICAL" value== {%
+                            "CRITICAL" %}selected{% endif %}>CRITICAL - Critical errors only</option>
+                        </select>
+                        <div class="config-description">
+                            Controls the verbosity of log output. DEBUG provides the most detail, CRITICAL the least.
+                        </div>
 
                         {% else %}
-                            <label class="form-label" for="config_{{ loop.index }}_{{ key }}">
-                                <i class="fas fa-cog"></i>
-                                {{ key|replace('_', ' ')|title }}
-                            </label>
-                            <input class="form-control" type="text" id="config_{{ loop.index }}_{{ key }}" name="{{ key }}" value="{{ value }}">
-                            <div class="config-description">
-                                Configuration option: {{ key }}
-                            </div>
+                        <label class="form-label" for="config_{{ loop.index }}_{{ key }}">
+                            <i class="fas fa-cog"></i>
+                            {{ key|replace('_', ' ')|title }}
+                        </label>
+                        <input class="form-control" id="config_{{ loop.index }}_{{ key }}" name="{{ key }}" type="text"
+                               value="{{ value }}">
+                        <div class="config-description">
+                            Configuration option: {{ key }}
+                        </div>
                         {% endif %}
                     </div>
-                {% endfor %}
-
-                <div class="d-flex gap-3 justify-content-center mt-4">
-                    <button type="submit" class="btn btn-success btn-lg">
-                        <i class="fas fa-save me-2"></i>
-                        Save Configuration
-                    </button>
-                    <a href="/" class="btn btn-primary btn-lg">
-                        <i class="fas fa-home me-2"></i>
-                        Back to Dashboard
-                    </a>
+                    {% endif %}
+                    {% endfor %}
                 </div>
-            </form>
-        </div>
+            </div>
+
+            <!-- Authentication Settings Tab -->
+            <div class="config-section" id="authentication">
+                <div class="section">
+                    <h3 class="mb-4">
+                        <i class="fas fa-shield-alt me-2"></i>
+                        Authentication & Security Configuration
+                    </h3>
+
+                    <div class="form-group">
+                        <label class="form-label" for="auth_max_attempts">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            Maximum Login Attempts
+                        </label>
+                        <input class="form-control" id="auth_max_attempts" max="20" min="3"
+                               name="auth_max_attempts" type="number" value="{{ config_data.get('auth_max_attempts', 5) }}">
+                        <div class="config-description">
+                            Number of failed login attempts before IP lockout (3-20 attempts).
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="auth_lockout_time">
+                            <i class="fas fa-clock"></i>
+                            Lockout Duration (seconds)
+                        </label>
+                        <input class="form-control" id="auth_lockout_time" max="3600" min="60"
+                               name="auth_lockout_time" type="number" value="{{ config_data.get('auth_lockout_time', 300) }}">
+                        <div class="config-description">
+                            How long to lock IP addresses after max failed attempts (60-3600 seconds).
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="auth_captcha_threshold">
+                            <i class="fas fa-robot"></i>
+                            CAPTCHA Threshold
+                        </label>
+                        <input class="form-control" id="auth_captcha_threshold" max="10"
+                               min="2"
+                               name="auth_captcha_threshold" type="number" value="{{ config_data.get('auth_captcha_threshold', 3) }}">
+                        <div class="config-description">
+                            Show CAPTCHA after this many failed attempts (2-10 attempts).
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="auth_session_timeout">
+                            <i class="fas fa-user-clock"></i>
+                            Session Timeout (seconds)
+                        </label>
+                        <input class="form-control" id="auth_session_timeout" max="86400" min="300"
+                               name="auth_session_timeout" type="number" value="{{ config_data.get('auth_session_timeout', 7200) }}">
+                        <div class="config-description">
+                            User session timeout duration (300-86400 seconds). 7200 = 2 hours.
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="auth_enable_captcha">
+                            <i class="fas fa-puzzle-piece"></i>
+                            Enable CAPTCHA Protection
+                        </label>
+                        <div class="d-flex align-items-center">
+                            <label class="toggle-switch">
+                                <input config_data.get( id="auth_enable_captcha" if name="auth_enable_captcha"
+                                       type="checkbox" value="True" {%'auth_enable_captcha', True) %}checked{% endif %}>
+                                <span class="slider"></span>
+                            </label>
+                            <span class="ms-3">Enable CAPTCHA challenges for additional security</span>
+                        </div>
+                        <div class="config-description">
+                            When enabled, users must solve math problems after failed login attempts.
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="auth_log_events">
+                            <i class="fas fa-file-alt"></i>
+                            Log Security Events
+                        </label>
+                        <div class="d-flex align-items-center">
+                            <label class="toggle-switch">
+                                <input config_data.get( id="auth_log_events" if name="auth_log_events"
+                                       type="checkbox" value="True" {%'auth_log_events', True) %}checked{% endif %}>
+                                <span class="slider"></span>
+                            </label>
+                            <span class="ms-3">Log all authentication events for security monitoring</span>
+                        </div>
+                        <div class="config-description">
+                            Records login attempts, lockouts, and other security events.
+                        </div>
+                    </div>
+                </div>
+
+                <!-- User Management Section -->
+                <div class="user-management">
+                    <h4 class="mb-3">
+                        <i class="fas fa-users me-2"></i>
+                        User Management
+                    </h4>
+
+                    <div class="user-list">
+                        {% if config_data.get('admins') %}
+                        {% for username, user_data in config_data.get('admins', {}).items() %}
+                        <div class="user-item">
+                            <div class="user-info">
+                                <i class="fas fa-user-shield"></i>
+                                <span>{{ username }}</span>
+                                <span class="user-role admin">Admin</span>
+                            </div>
+                            <div>
+                                <button class="btn btn-sm btn-warning" onclick="changePassword('{{ username }}', 'admin')"
+                                        type="button">
+                                    <i class="fas fa-key"></i> Change Password
+                                </button>
+                                {% if username != 'admin' %}
+                                <button class="btn btn-sm btn-danger" onclick="removeUser('{{ username }}', 'admin')"
+                                        type="button">
+                                    <i class="fas fa-trash"></i> Remove
+                                </button>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% endfor %}
+                        {% endif %}
+
+                        {% if config_data.get('users') %}
+                        {% for username, user_data in config_data.get('users', {}).items() %}
+                        <div class="user-item">
+                            <div class="user-info">
+                                <i class="fas fa-user"></i>
+                                <span>{{ username }}</span>
+                                <span class="user-role user">User</span>
+                            </div>
+                            <div>
+                                <button class="btn btn-sm btn-warning" onclick="changePassword('{{ username }}', 'user')"
+                                        type="button">
+                                    <i class="fas fa-key"></i> Change Password
+                                </button>
+                                <button class="btn btn-sm btn-danger" onclick="removeUser('{{ username }}', 'user')"
+                                        type="button">
+                                    <i class="fas fa-trash"></i> Remove
+                                </button>
+                            </div>
+                        </div>
+                        {% endfor %}
+                        {% endif %}
+                    </div>
+
+                    <div class="mt-3">
+                        <button class="btn btn-primary" onclick="showAddUserModal()" type="button">
+                            <i class="fas fa-user-plus"></i> Add New User
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Security Monitor Tab -->
+            <div class="config-section" id="security">
+                <div class="section">
+                    <h3 class="mb-4">
+                        <i class="fas fa-lock me-2"></i>
+                        Security Monitoring
+                    </h3>
+
+                    <div class="security-stats" id="securityStats">
+                        <div class="security-stat">
+                            <div class="security-stat-number" id="totalEvents">-</div>
+                            <div class="security-stat-label">Security Events</div>
+                        </div>
+                        <div class="security-stat warning">
+                            <div class="security-stat-number" id="activeAttempts">-</div>
+                            <div class="security-stat-label">Active Attempts</div>
+                        </div>
+                        <div class="security-stat danger">
+                            <div class="security-stat-number" id="lockedIPs">-</div>
+                            <div class="security-stat-label">Locked IPs</div>
+                        </div>
+                    </div>
+
+                    <div class="locked-ips">
+                        <h4 class="mb-3">
+                            <i class="fas fa-ban me-2"></i>
+                            Locked IP Addresses
+                        </h4>
+                        <div id="lockedIPsList">
+                            <p class="text-muted">Loading locked IPs...</p>
+                        </div>
+                    </div>
+
+                    <div class="mt-3">
+                        <button class="btn btn-info" onclick="refreshSecurityStats()" type="button">
+                            <i class="fas fa-sync-alt"></i> Refresh Stats
+                        </button>
+                        <button class="btn btn-warning" onclick="clearAllLocks()" type="button">
+                            <i class="fas fa-unlock"></i> Clear All Locks
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Form Buttons -->
+            <div class="d-flex gap-3 justify-content-center mt-4">
+                <button class="btn btn-success btn-lg" type="submit">
+                    <i class="fas fa-save me-2"></i>
+                    Save Configuration
+                </button>
+                <a class="btn btn-primary btn-lg" href="/">
+                    <i class="fas fa-home me-2"></i>
+                    Back to Dashboard
+                </a>
+            </div>
+        </form>
 
         <!-- Configuration Info -->
         <div class="section">
@@ -229,71 +632,233 @@
                     <h6><i class="fas fa-globe"></i> Web Interface</h6>
                     <p>http://{{ config_data.get('ytdlp2strm_host', 'localhost') }}:{{ config_data.get('ytdlp2strm_port', '5000') }}</p>
                 </div>
+                <div class="config-info-card">
+                    <h6><i class="fas fa-shield-alt"></i> Security Logs</h6>
+                    <p>./logs/locked.json</p>
+                </div>
+                <div class="config-info-card">
+                    <h6><i class="fas fa-users"></i> Total Users</h6>
+                    <p>{{ (config_data.get('admins', {})|length) + (config_data.get('users', {})|length) }} accounts</p>
+                </div>
             </div>
         </div>
 
         {% include 'footer.html' %}
     </div>
 
+    <!-- Add User Modal -->
+    <div class="modal" id="addUserModal" style="display: none;">
+        <div class="modal-content">
+            <h4><i class="fas fa-user-plus"></i> Add New User</h4>
+            <form id="addUserForm">
+                <div class="form-group">
+                    <label>Username:</label>
+                    <input class="form-control" id="newUsername" required type="text">
+                </div>
+                <div class="form-group">
+                    <label>Password:</label>
+                    <input class="form-control" id="newPassword" required type="password">
+                </div>
+                <div class="form-group">
+                    <label>Role:</label>
+                    <select class="form-control" id="newRole">
+                        <option value="user">User</option>
+                        <option value="admin">Admin</option>
+                    </select>
+                </div>
+                <div class="modal-buttons">
+                    <button class="btn btn-primary" type="submit">Add User</button>
+                    <button class="btn btn-secondary" onclick="hideAddUserModal()" type="button">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <script src="/theme-manager.js"></script>
     <script>
-        // Handle toggle switches for boolean values
-        document.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
-            checkbox.addEventListener('change', function() {
-                // Create a hidden input to ensure the value is sent even when unchecked
-                const hiddenInput = document.createElement('input');
-                hiddenInput.type = 'hidden';
-                hiddenInput.name = this.name;
-                hiddenInput.value = this.checked ? 'True' : 'False';
+        // Tab switching functionality
+        document.addEventListener('DOMContentLoaded', function () {
+            const tabs = document.querySelectorAll('.config-tab');
+            const sections = document.querySelectorAll('.config-section');
 
-                // Remove any existing hidden input for this field
-                const existingHidden = document.querySelector(`input[type="hidden"][name="${this.name}"]`);
-                if (existingHidden) {
-                    existingHidden.remove();
-                }
+            tabs.forEach(tab => {
+                tab.addEventListener('click', function () {
+                    const targetTab = this.dataset.tab;
 
-                // Add the new hidden input
-                this.parentNode.parentNode.appendChild(hiddenInput);
+                    // Remove active class from all tabs and sections
+                    tabs.forEach(t => t.classList.remove('active'));
+                    sections.forEach(s => s.classList.remove('active'));
+
+                    // Add active class to clicked tab and corresponding section
+                    this.classList.add('active');
+                    document.getElementById(targetTab).classList.add('active');
+
+                    // Load security stats when security tab is activated
+                    if (targetTab === 'security') {
+                        refreshSecurityStats();
+                    }
+                });
             });
-        });
 
-        // Initialize checkbox states on page load
-        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize checkbox states
             document.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
+                checkbox.addEventListener('change', function () {
+                    const hiddenInput = document.createElement('input');
+                    hiddenInput.type = 'hidden';
+                    hiddenInput.name = this.name;
+                    hiddenInput.value = this.checked ? 'True' : 'False';
+
+                    const existingHidden = document.querySelector(`input[type="hidden"][name="${this.name}"]`);
+                    if (existingHidden) {
+                        existingHidden.remove();
+                    }
+
+                    this.parentNode.parentNode.appendChild(hiddenInput);
+                });
+
                 checkbox.dispatchEvent(new Event('change'));
             });
         });
 
+        // Security monitoring functions
+        async function refreshSecurityStats() {
+            try {
+                const response = await fetch('/api/security/status');
+                const data = await response.json();
+
+                document.getElementById('totalEvents').textContent = data.total_events || 0;
+                document.getElementById('activeAttempts').textContent = data.failed_attempts || 0;
+                document.getElementById('lockedIPs').textContent = data.active_ip_locks || 0;
+
+                // Update locked IPs list
+                const lockedIPsList = document.getElementById('lockedIPsList');
+                if (data.locked_ips && data.locked_ips.length > 0) {
+                    lockedIPsList.innerHTML = data.locked_ips.map(lock => `
+                        <div class="locked-ip-item">
+                            <div class="locked-ip-info">
+                                <strong>${lock.ip}</strong>
+                                <div class="locked-ip-time">
+                                    Locked: ${new Date(lock.time_locked * 1000).toLocaleString()}
+                                    ${lock.reason ? '- ' + lock.reason : ''}
+                                </div>
+                            </div>
+                            <button class="btn btn-sm btn-warning" onclick="unlockIP('${lock.ip}')">
+                                <i class="fas fa-unlock"></i> Unlock
+                            </button>
+                        </div>
+                    `).join('');
+                } else {
+                    lockedIPsList.innerHTML = '<p class="text-muted">No locked IP addresses</p>';
+                }
+            } catch (error) {
+                console.error('Failed to load security stats:', error);
+            }
+        }
+
+        async function unlockIP(ip) {
+            if (!confirm(`Unlock IP address ${ip}?`)) return;
+
+            try {
+                const response = await fetch('/api/security/unlock-ip', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ip: ip})
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    alert(`IP ${ip} unlocked successfully`);
+                    refreshSecurityStats();
+                } else {
+                    alert(`Failed to unlock IP: ${data.error}`);
+                }
+            } catch (error) {
+                alert('Network error occurred');
+            }
+        }
+
+        async function clearAllLocks() {
+            if (!confirm('Clear all IP locks? This will unlock all currently locked IP addresses.')) return;
+
+            // Implementation would require a new API endpoint
+            alert('Feature not yet implemented');
+        }
+
+        // User management functions
+        function showAddUserModal() {
+            document.getElementById('addUserModal').style.display = 'flex';
+        }
+
+        function hideAddUserModal() {
+            document.getElementById('addUserModal').style.display = 'none';
+            document.getElementById('addUserForm').reset();
+        }
+
+        document.getElementById('addUserForm').addEventListener('submit', async function (e) {
+            e.preventDefault();
+
+            const username = document.getElementById('newUsername').value;
+            const password = document.getElementById('newPassword').value;
+            const role = document.getElementById('newRole').value;
+
+            // Implementation would require a new API endpoint
+            alert('User management features require additional API endpoints');
+            hideAddUserModal();
+        });
+
+        function changePassword(username, role) {
+            const newPassword = prompt(`Enter new password for ${username}:`);
+            if (newPassword) {
+                // Implementation would require a new API endpoint
+                alert('Password change features require additional API endpoints');
+            }
+        }
+
+        function removeUser(username, role) {
+            if (confirm(`Remove user ${username}?`)) {
+                // Implementation would require a new API endpoint
+                alert('User removal features require additional API endpoints');
+            }
+        }
+
         // Form validation
-        document.querySelector('form').addEventListener('submit', function(e) {
-            const host = document.querySelector('input[name="ytdlp2strm_host"]');
-            const port = document.querySelector('input[name="ytdlp2strm_port"]');
-            const tempDuration = document.querySelector('input[name="ytdlp2strm_temp_file_duration"]');
+        document.getElementById('configForm').addEventListener('submit', function (e) {
+            const maxAttempts = document.getElementById('auth_max_attempts');
+            const lockoutTime = document.getElementById('auth_lockout_time');
+            const captchaThreshold = document.getElementById('auth_captcha_threshold');
+            const sessionTimeout = document.getElementById('auth_session_timeout');
 
             let hasErrors = false;
 
-            // Validate host
-            if (host && !host.value.trim()) {
-                host.classList.add('is-invalid');
+            // Validate authentication settings
+            if (maxAttempts && (parseInt(maxAttempts.value) < 3 || parseInt(maxAttempts.value) > 20)) {
+                maxAttempts.classList.add('is-invalid');
                 hasErrors = true;
-            } else if (host) {
-                host.classList.remove('is-invalid');
+            } else if (maxAttempts) {
+                maxAttempts.classList.remove('is-invalid');
             }
 
-            // Validate port
-            if (port && (parseInt(port.value) < 1 || parseInt(port.value) > 65535)) {
-                port.classList.add('is-invalid');
+            if (lockoutTime && (parseInt(lockoutTime.value) < 60 || parseInt(lockoutTime.value) > 3600)) {
+                lockoutTime.classList.add('is-invalid');
                 hasErrors = true;
-            } else if (port) {
-                port.classList.remove('is-invalid');
+            } else if (lockoutTime) {
+                lockoutTime.classList.remove('is-invalid');
             }
 
-            // Validate temp file duration
-            if (tempDuration && (parseInt(tempDuration.value) < 3600 || parseInt(tempDuration.value) > 604800)) {
-                tempDuration.classList.add('is-invalid');
+            if (captchaThreshold && (parseInt(captchaThreshold.value) < 2 || parseInt(captchaThreshold.value) > 10)) {
+                captchaThreshold.classList.add('is-invalid');
                 hasErrors = true;
-            } else if (tempDuration) {
-                tempDuration.classList.remove('is-invalid');
+            } else if (captchaThreshold) {
+                captchaThreshold.classList.remove('is-invalid');
+            }
+
+            if (sessionTimeout && (parseInt(sessionTimeout.value) < 300 || parseInt(sessionTimeout.value) > 86400)) {
+                sessionTimeout.classList.add('is-invalid');
+                hasErrors = true;
+            } else if (sessionTimeout) {
+                sessionTimeout.classList.remove('is-invalid');
             }
 
             if (hasErrors) {
@@ -302,9 +867,34 @@
             }
         });
 
-        // Add custom styles for invalid inputs
-        const style = document.createElement('style');
-        style.textContent = `
+        // Modal styles
+        const modalStyles = `
+            .modal {
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0, 0, 0, 0.5);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                z-index: 1000;
+            }
+            .modal-content {
+                background: var(--bg-card);
+                padding: 2rem;
+                border-radius: var(--border-radius);
+                max-width: 400px;
+                width: 90%;
+                box-shadow: var(--shadow-lg);
+            }
+            .modal-buttons {
+                display: flex;
+                gap: 1rem;
+                justify-content: flex-end;
+                margin-top: 1rem;
+            }
             .form-control.is-invalid {
                 border-color: var(--danger);
                 box-shadow: 0 0 0 0.2rem rgba(239, 68, 68, 0.25);
@@ -315,6 +905,9 @@
                 margin-top: 0.25rem;
             }
         `;
+
+        const style = document.createElement('style');
+        style.textContent = modalStyles;
         document.head.appendChild(style);
 
         // Listen for theme changes

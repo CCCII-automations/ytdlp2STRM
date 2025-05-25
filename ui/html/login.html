@@ -1,0 +1,715 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta content="width=device-width, initial-scale=1.0" name="viewport">
+    <title>Login - ytdlp2STRM</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="/styles.css" rel="stylesheet">
+    <style>
+        /* Login-specific styles that integrate with your existing design */
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .login-container {
+            background: var(--bg-card);
+            backdrop-filter: blur(10px);
+            border-radius: var(--border-radius);
+            padding: 3rem;
+            width: 100%;
+            max-width: 450px;
+            box-shadow: var(--shadow-lg);
+            border: 1px solid var(--border-primary);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .login-container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, var(--primary) 0%, var(--success) 50%, var(--warning) 100%);
+        }
+
+        .login-header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .login-header h1 {
+            color: var(--text-primary);
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+            font-weight: 800;
+        }
+
+        .security-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: rgba(16, 185, 129, 0.1);
+            color: var(--success);
+            padding: 0.5rem 1rem;
+            border-radius: 2rem;
+            font-size: 0.875rem;
+            font-weight: 600;
+            border: 1px solid rgba(16, 185, 129, 0.2);
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: var(--text-primary);
+            font-weight: 600;
+            font-size: 0.875rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 1rem;
+            border: 2px solid var(--border-primary);
+            border-radius: var(--border-radius-sm);
+            font-size: 1rem;
+            transition: var(--transition);
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+            background: var(--bg-card);
+        }
+
+        .login-btn {
+            width: 100%;
+            padding: 1rem;
+            background: linear-gradient(135deg, var(--primary) 0%, #8b5cf6 100%);
+            color: white;
+            border: none;
+            border-radius: var(--border-radius-sm);
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            margin-bottom: 1.5rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .login-btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .login-btn:disabled {
+            background: var(--border-primary);
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .login-btn .spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid transparent;
+            border-top: 2px solid currentColor;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        .alert {
+            padding: 1rem;
+            border-radius: var(--border-radius-sm);
+            margin-bottom: 1.5rem;
+            font-weight: 500;
+            border: 1px solid;
+        }
+
+        .alert-error {
+            background: rgba(239, 68, 68, 0.1);
+            color: var(--danger);
+            border-color: rgba(239, 68, 68, 0.2);
+        }
+
+        .alert-warning {
+            background: rgba(245, 158, 11, 0.1);
+            color: var(--warning);
+            border-color: rgba(245, 158, 11, 0.2);
+        }
+
+        .alert-success {
+            background: rgba(16, 185, 129, 0.1);
+            color: var(--success);
+            border-color: rgba(16, 185, 129, 0.2);
+        }
+
+        .attempt-counter {
+            text-align: center;
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+            margin-bottom: 1rem;
+            padding: 0.5rem;
+            background: var(--bg-secondary);
+            border-radius: var(--border-radius-sm);
+        }
+
+        .captcha-container {
+            background: var(--bg-secondary);
+            border: 2px dashed var(--border-primary);
+            border-radius: var(--border-radius-sm);
+            padding: 1.5rem;
+            text-align: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .captcha-question {
+            font-size: 1.125rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 0.75rem;
+        }
+
+        .captcha-input {
+            width: 100px;
+            text-align: center;
+            font-size: 1.125rem;
+            font-weight: 600;
+        }
+
+        .countdown {
+            text-align: center;
+            font-size: 1.125rem;
+            color: var(--danger);
+            font-weight: 600;
+            padding: 1rem;
+            background: rgba(239, 68, 68, 0.1);
+            border-radius: var(--border-radius-sm);
+            margin-bottom: 1.5rem;
+        }
+
+        .security-info {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-primary);
+            border-radius: var(--border-radius-sm);
+            padding: 1.5rem;
+            margin-top: 1.5rem;
+        }
+
+        .security-info h3 {
+            color: var(--text-primary);
+            margin-bottom: 1rem;
+            font-size: 1.125rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .security-feature {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 0.75rem;
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+        }
+
+        .feature-icon {
+            width: 24px;
+            height: 24px;
+            background: var(--success);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 0.75rem;
+            flex-shrink: 0;
+        }
+
+        .demo-credentials {
+            background: rgba(99, 102, 241, 0.1);
+            border: 1px solid rgba(99, 102, 241, 0.2);
+            border-radius: var(--border-radius-sm);
+            padding: 1rem;
+            margin-top: 1.5rem;
+            text-align: center;
+        }
+
+        .demo-credentials h4 {
+            color: var(--primary);
+            margin-bottom: 0.5rem;
+            font-size: 0.875rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .demo-credentials code {
+            background: var(--bg-card);
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.25rem;
+            font-weight: 600;
+            margin: 0 0.25rem;
+        }
+
+        @keyframes shake {
+            0%, 100% {
+                transform: translateX(0);
+            }
+            25% {
+                transform: translateX(-5px);
+            }
+            75% {
+                transform: translateX(5px);
+            }
+        }
+
+        .shake {
+            animation: shake 0.5s ease-in-out;
+        }
+
+        .theme-switcher {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+        }
+
+        .theme-select {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-primary);
+            border-radius: var(--border-radius-sm);
+            padding: 0.5rem;
+            color: var(--text-primary);
+            font-size: 0.75rem;
+        }
+
+        @media (max-width: 480px) {
+            .login-container {
+                margin: 1rem;
+                padding: 2rem;
+            }
+
+            .login-header h1 {
+                font-size: 1.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="theme-switcher">
+    <select aria-label="Choose theme" class="theme-select">
+        <option value="auto">🔄 Auto</option>
+        <option value="light">☀️ Light</option>
+        <option value="dark">🌙 Dark</option>
+    </select>
+</div>
+
+<div class="login-container">
+    <div class="login-header">
+        <h1><i class="fas fa-shield-alt"></i> Secure Login</h1>
+        <div class="security-badge">
+            <i class="fas fa-lock"></i>
+            <span>Brute Force Protected</span>
+        </div>
+    </div>
+
+    <div id="alertContainer"></div>
+
+    <div class="attempt-counter" id="attemptCounter">
+        <i class="fas fa-exclamation-triangle"></i>
+        Attempts remaining: <span id="attemptsLeft">5</span>/5
+    </div>
+
+    <form id="loginForm">
+        <div class="form-group">
+            <label for="username">
+                <i class="fas fa-user"></i> Username
+            </label>
+            <input autocomplete="username" id="username" name="username" placeholder="Enter your username" required
+                   type="text">
+        </div>
+
+        <div class="form-group">
+            <label for="password">
+                <i class="fas fa-lock"></i> Password
+            </label>
+            <input autocomplete="current-password" id="password" name="password" placeholder="Enter your password" required
+                   type="password">
+        </div>
+
+        <div class="captcha-container" id="captchaContainer" style="display: none;">
+            <div class="captcha-question" id="captchaQuestion">Loading...</div>
+            <input autocomplete="off" class="captcha-input" id="captchaAnswer" name="captcha_answer" placeholder="?"
+                   type="number">
+            <div style="margin-top: 0.5rem; font-size: 0.75rem; color: var(--text-muted);">
+                <i class="fas fa-robot"></i> Please solve this math problem to continue
+            </div>
+        </div>
+
+        <div class="countdown" id="countdownContainer" style="display: none;">
+            <i class="fas fa-clock"></i>
+            Please wait <span id="countdown">0</span> seconds before trying again
+        </div>
+
+        <button class="login-btn" id="loginBtn" type="submit">
+            <i class="fas fa-sign-in-alt"></i> Sign In Securely
+        </button>
+    </form>
+
+    <div class="demo-credentials">
+        <h4><i class="fas fa-info-circle"></i> Demo Credentials</h4>
+        <p>Username: <code>admin</code> | Password: <code>password123</code></p>
+        <p>Username: <code>user</code> | Password: <code>userpass</code></p>
+    </div>
+
+    <div class="security-info">
+        <h3>
+            <i class="fas fa-shield-alt"></i>
+            Security Features Active
+        </h3>
+        <div class="security-feature">
+            <div class="feature-icon">
+                <i class="fas fa-check"></i>
+            </div>
+            <span>Rate limiting per account (5 attempts)</span>
+        </div>
+        <div class="security-feature">
+            <div class="feature-icon">
+                <i class="fas fa-check"></i>
+            </div>
+            <span>Progressive delay system</span>
+        </div>
+        <div class="security-feature">
+            <div class="feature-icon">
+                <i class="fas fa-check"></i>
+            </div>
+            <span>CAPTCHA after 3 failed attempts</span>
+        </div>
+        <div class="security-feature">
+            <div class="feature-icon">
+                <i class="fas fa-check"></i>
+            </div>
+            <span>Account lockout protection</span>
+        </div>
+        <div class="security-feature">
+            <div class="feature-icon">
+                <i class="fas fa-check"></i>
+            </div>
+            <span>IP-based monitoring & logging</span>
+        </div>
+    </div>
+</div>
+
+<script src="/theme-manager.js"></script>
+<script>
+    class SecureLoginSystem {
+        constructor() {
+            this.maxAttempts = 5;
+            this.attempts = 0;
+            this.isLocked = false;
+            this.showCaptcha = false;
+
+            this.initializeEventListeners();
+            this.updateUI();
+        }
+
+        initializeEventListeners() {
+            document.getElementById('loginForm').addEventListener('submit', (e) => {
+                e.preventDefault();
+                this.handleLogin();
+            });
+
+            // Auto-focus username field
+            document.getElementById('username').focus();
+
+            // Handle Enter key in captcha field
+            document.getElementById('captchaAnswer').addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    this.handleLogin();
+                }
+            });
+        }
+
+        async generateCaptcha() {
+            try {
+                const response = await fetch('/api/captcha');
+                const data = await response.json();
+                document.getElementById('captchaQuestion').textContent = data.question;
+            } catch (error) {
+                console.error('Failed to generate CAPTCHA:', error);
+                document.getElementById('captchaQuestion').textContent = 'Error loading CAPTCHA';
+            }
+        }
+
+        async handleLogin() {
+            if (this.isLocked) {
+                this.showAlert('Account temporarily locked. Please wait.', 'error');
+                return;
+            }
+
+            const loginBtn = document.getElementById('loginBtn');
+            const originalText = loginBtn.innerHTML;
+
+            // Show loading state
+            loginBtn.innerHTML = '<span class="spinner"></span> Signing In...';
+            loginBtn.disabled = true;
+
+            const formData = new FormData();
+            formData.append('username', document.getElementById('username').value);
+            formData.append('password', document.getElementById('password').value);
+
+            if (this.showCaptcha) {
+                formData.append('captcha_answer', document.getElementById('captchaAnswer').value);
+            }
+
+            try {
+                const response = await fetch('/login', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    this.handleSuccessfulLogin(data);
+                } else {
+                    this.handleFailedLogin(data);
+                }
+            } catch (error) {
+                console.error('Login error:', error);
+                this.showAlert('Network error. Please try again.', 'error');
+            } finally {
+                // Reset button
+                loginBtn.innerHTML = originalText;
+                loginBtn.disabled = false;
+            }
+        }
+
+        handleSuccessfulLogin(data) {
+            this.showAlert('✅ Login successful! Redirecting...', 'success');
+
+            // Reset form
+            this.attempts = 0;
+            this.showCaptcha = false;
+            document.getElementById('captchaContainer').style.display = 'none';
+
+            // Redirect after short delay
+            setTimeout(() => {
+                window.location.href = data.redirect_url || '/';
+            }, 1000);
+        }
+
+        handleFailedLogin(data) {
+            // Handle lockout
+            if (data.locked) {
+                this.isLocked = true;
+                this.showAlert(data.message, 'error');
+                document.getElementById('loginBtn').disabled = true;
+                this.updateUI();
+                return;
+            }
+
+            // Update attempts
+            if (data.attempts_remaining !== undefined) {
+                this.attempts = this.maxAttempts - data.attempts_remaining;
+            }
+
+            // Show CAPTCHA if needed
+            if (data.show_captcha && !this.showCaptcha) {
+                this.showCaptcha = true;
+                document.getElementById('captchaContainer').style.display = 'block';
+                this.generateCaptcha();
+                document.getElementById('captchaAnswer').value = '';
+                document.getElementById('captchaAnswer').focus();
+            }
+
+            this.showAlert(data.message, 'error');
+            this.updateUI();
+
+            // Shake animation for failed attempt
+            document.querySelector('.login-container').classList.add('shake');
+            setTimeout(() => {
+                document.querySelector('.login-container').classList.remove('shake');
+            }, 500);
+
+            // Clear password field
+            document.getElementById('password').value = '';
+            document.getElementById('password').focus();
+        }
+
+        updateUI() {
+            const remainingAttempts = Math.max(0, this.maxAttempts - this.attempts);
+            document.getElementById('attemptsLeft').textContent = remainingAttempts;
+
+            // Update attempt counter color based on remaining attempts
+            const counter = document.getElementById('attemptCounter');
+            if (remainingAttempts <= 2) {
+                counter.style.color = 'var(--danger)';
+                counter.style.background = 'rgba(239, 68, 68, 0.1)';
+            } else if (remainingAttempts <= 3) {
+                counter.style.color = 'var(--warning)';
+                counter.style.background = 'rgba(245, 158, 11, 0.1)';
+            } else {
+                counter.style.color = 'var(--text-secondary)';
+                counter.style.background = 'var(--bg-secondary)';
+            }
+        }
+
+        showAlert(message, type) {
+            const alertContainer = document.getElementById('alertContainer');
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert alert-${type}`;
+
+            // Add appropriate icon
+            let icon = '';
+            switch (type) {
+                case 'success':
+                    icon = '<i class="fas fa-check-circle"></i> ';
+                    break;
+                case 'error':
+                    icon = '<i class="fas fa-exclamation-triangle"></i> ';
+                    break;
+                case 'warning':
+                    icon = '<i class="fas fa-exclamation-circle"></i> ';
+                    break;
+            }
+
+            alertDiv.innerHTML = icon + message;
+
+            alertContainer.innerHTML = '';
+            alertContainer.appendChild(alertDiv);
+
+            // Auto-remove alerts after delay
+            setTimeout(() => {
+                if (alertDiv.parentNode) {
+                    alertDiv.remove();
+                }
+            }, type === 'success' ? 3000 : 5000);
+        }
+
+        // Demo helper methods
+        fillDemoCredentials(username, password) {
+            document.getElementById('username').value = username;
+            document.getElementById('password').value = password;
+            document.getElementById('username').focus();
+        }
+    }
+
+    // Initialize the login system
+    const loginSystem = new SecureLoginSystem();
+
+    // Add click handlers for demo credentials
+    document.addEventListener('DOMContentLoaded', function () {
+        // Make demo credentials clickable
+        const demoCodes = document.querySelectorAll('.demo-credentials code');
+        let clickedCredentials = [];
+
+        demoCodes.forEach((code, index) => {
+            code.style.cursor = 'pointer';
+            code.title = 'Click to use these credentials';
+
+            code.addEventListener('click', function () {
+                clickedCredentials.push(this.textContent);
+
+                // When we have both username and password
+                if (clickedCredentials.length === 2) {
+                    loginSystem.fillDemoCredentials(clickedCredentials[0], clickedCredentials[1]);
+                    clickedCredentials = []; // Reset
+
+                    // Visual feedback
+                    this.style.background = 'var(--success)';
+                    this.style.color = 'white';
+                    setTimeout(() => {
+                        this.style.background = 'var(--bg-card)';
+                        this.style.color = 'var(--text-primary)';
+                    }, 500);
+                }
+            });
+        });
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', function (e) {
+            // Alt + 1 for admin credentials
+            if (e.altKey && e.key === '1') {
+                e.preventDefault();
+                loginSystem.fillDemoCredentials('admin', 'password123');
+            }
+            // Alt + 2 for user credentials
+            if (e.altKey && e.key === '2') {
+                e.preventDefault();
+                loginSystem.fillDemoCredentials('user', 'userpass');
+            }
+        });
+
+        console.log('🔐 Secure Login System initialized');
+        console.log('💡 Tip: Use Alt+1 for admin or Alt+2 for user demo credentials');
+    });
+
+    // Handle theme changes
+    window.addEventListener('themechange', function (e) {
+        console.log('Theme changed to:', e.detail.effectiveTheme);
+    });
+
+    // Add some interactive enhancements
+    document.querySelectorAll('input').forEach(input => {
+        input.addEventListener('focus', function () {
+            this.parentElement.style.transform = 'translateY(-2px)';
+        });
+
+        input.addEventListener('blur', function () {
+            this.parentElement.style.transform = 'translateY(0)';
+        });
+    });
+
+    // Prevent form submission on Enter in captcha field
+    document.getElementById('captchaAnswer').addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            loginSystem.handleLogin();
+        }
+    });
+
+    // Auto-generate CAPTCHA when container becomes visible
+    const captchaObserver = new MutationObserver(function (mutations) {
+        mutations.forEach(function (mutation) {
+            if (mutation.type === 'attributes' && mutation.attributeName === 'style') {
+                const captchaContainer = document.getElementById('captchaContainer');
+                if (captchaContainer.style.display !== 'none' && !loginSystem.captchaGenerated) {
+                    loginSystem.generateCaptcha();
+                    loginSystem.captchaGenerated = true;
+                }
+            }
+        });
+    });
+
+    captchaObserver.observe(document.getElementById('captchaContainer'), {
+        attributes: true,
+        attributeFilter: ['style']
+    });
+</script>
+</body>
+</html>

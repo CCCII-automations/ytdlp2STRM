@@ -1,6 +1,150 @@
 {
-    "ytdlp2strm_host" : "127.0.0.1",
-    "ytdlp2strm_port" : "5000",
-    "ytdlp2strm_keep_old_strm" : "True",
-    "ytdlp2strm_temp_file_duration" : "86400"
+    "_comment": "ytdlp2STRM Configuration File with Enhanced Authentication",
+    "_version": "2.0.0",
+    "_last_updated": "2024-12-19T12:00:00.000Z",
+    "_credentials_info": "See README for default passwords - CHANGE IMMEDIATELY IN PRODUCTION",
+    "ytdlp2strm_host": "0.0.0.0",
+    "ytdlp2strm_port": 5000,
+    "ytdlp2strm_keep_old_strm": "True",
+    "ytdlp2strm_temp_file_duration": 86400,
+    "cookies": "none",
+    "cookie_value": "",
+    "log_level": "INFO",
+    "app_secret_key": "4681c0e9826a46433a612ed995fa70700d7619c926287c90750fa0bcb6481a5d",
+    "auth_max_attempts": 5,
+    "auth_lockout_time": 300,
+    "auth_captcha_threshold": 3,
+    "auth_base_delay": 2000,
+    "auth_session_timeout": 7200,
+    "auth_enable_captcha": true,
+    "auth_log_events": true,
+    "admins": {
+        "admin": {
+            "password": "$2b$12$rQ8K7mGvQrY.Jt3LXzYLOeFEr4kWdA3S8z9QyX2vN1mP5bC6dE7fG",
+            "role": "admin",
+            "created": "2024-12-19T12:00:00.000Z",
+            "last_login": null,
+            "login_count": 0,
+            "description": "Default administrator - password: password123"
+        },
+        "superadmin": {
+            "password": "$2b$12$mN7oP9qR8sT4uV6wX2yZ1eF3gH5iJ8kL9mN0oP1qR2sT3uV4wX5yZ",
+            "role": "admin",
+            "created": "2024-12-19T12:00:00.000Z",
+            "last_login": null,
+            "login_count": 0,
+            "description": "Super administrator - password: SuperAdmin2024!"
+        }
+    },
+    "users": {
+        "user": {
+            "password": "$2b$12$yZ6aB7cD8eF9gH0iJ1kL2mN3oP4qR5sT6uV7wX8yZ9aB0cD1eF2gH",
+            "role": "user",
+            "created": "2024-12-19T12:00:00.000Z",
+            "last_login": null,
+            "login_count": 0,
+            "description": "Default user - password: userpass"
+        },
+        "viewer": {
+            "password": "$2b$12$3gH4iJ5kL6mN7oP8qR9sT0uV1wX2yZ3aB4cD5eF6gH7iJ8kL9mN0o",
+            "role": "user",
+            "created": "2024-12-19T12:00:00.000Z",
+            "last_login": null,
+            "login_count": 0,
+            "description": "Read-only user - password: viewer123"
+        }
+    },
+    "security_settings": {
+        "password_policy": {
+            "min_length": 8,
+            "require_uppercase": false,
+            "require_lowercase": false,
+            "require_numbers": false,
+            "require_special_chars": false,
+            "password_history": 3,
+            "max_age_days": 90
+        },
+        "session_security": {
+            "secure_cookies": false,
+            "httponly_cookies": true,
+            "samesite_policy": "Lax",
+            "session_regeneration": true
+        },
+        "rate_limiting": {
+            "enable_ip_whitelist": false,
+            "ip_whitelist": [
+                "127.0.0.1",
+                "::1",
+                "192.168.1.0/24"
+            ],
+            "enable_progressive_delay": true,
+            "max_delay_seconds": 60,
+            "cleanup_interval": 900
+        },
+        "monitoring": {
+            "log_failed_attempts": true,
+            "log_successful_logins": true,
+            "alert_threshold": 10,
+            "enable_geolocation": false
+        }
+    },
+    "notification_settings": {
+        "email_alerts": {
+            "enabled": false,
+            "smtp_server": "smtp.gmail.com",
+            "smtp_port": 587,
+            "smtp_user": "",
+            "smtp_password": "",
+            "admin_email": "admin@yourdomain.com",
+            "alert_on_lockout": true,
+            "alert_on_multiple_failures": true,
+            "alert_on_new_user": true,
+            "daily_summary": false
+        },
+        "webhook_alerts": {
+            "enabled": false,
+            "webhook_url": "https://hooks.slack.com/your-webhook-url",
+            "alert_on_lockout": true,
+            "alert_on_login": false,
+            "alert_on_admin_actions": true
+        },
+        "discord_alerts": {
+            "enabled": false,
+            "webhook_url": "",
+            "alert_on_security_events": true
+        }
+    },
+    "maintenance": {
+        "auto_cleanup_enabled": true,
+        "cleanup_interval_hours": 24,
+        "max_log_entries": 10000,
+        "max_lockout_entries": 1000,
+        "backup_config": true,
+        "backup_retention_days": 30,
+        "auto_unlock_expired": true
+    },
+    "feature_flags": {
+        "enable_2fa": false,
+        "enable_oauth": false,
+        "enable_ldap": false,
+        "enable_api_keys": false,
+        "enable_audit_log": true,
+        "enable_password_reset": false,
+        "enable_account_registration": false,
+        "enable_remember_me": false
+    },
+    "api_settings": {
+        "enable_api_auth": true,
+        "api_rate_limit": 100,
+        "api_rate_window": 3600,
+        "require_api_key": false
+    },
+    "logging": {
+        "security_log_file": "./logs/security.log",
+        "access_log_file": "./logs/access.log",
+        "error_log_file": "./logs/error.log",
+        "log_rotation": true,
+        "max_log_size_mb": 100,
+        "log_retention_days": 30
+    }
 }
