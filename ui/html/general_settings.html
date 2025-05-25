@@ -103,33 +103,33 @@
                 {% for key, value in config_data.items() %}
                     <div class="form-group">
                         {% if key == 'ytdlp2strm_host' %}
-                            <label class="form-label" for="{{ plugin.name }}_{{ key }}_1">
+                            <label class="form-label" for="config_{{ loop.index }}_{{ key }}">
                                 <i class="fas fa-network-wired"></i>
                                 Host Address
                             </label>
-                            <input class="form-control" type="text" id="{{ plugin.name }}_{{ key }}_1" name="{{ plugin.name }}_{{ key }}_" value="{{ value }}" placeholder="0.0.0.0">
+                            <input class="form-control" type="text" id="config_{{ loop.index }}_{{ key }}" name="{{ key }}" value="{{ value }}" placeholder="0.0.0.0">
                             <div class="config-description">
                                 IP address where the application will listen for connections. Use 0.0.0.0 to listen on all interfaces.
                             </div>
 
                         {% elif key == 'ytdlp2strm_port' %}
-                            <label class="form-label" for="{{ plugin.name }}_{{ key }}_2">
+                            <label class="form-label" for="config_{{ loop.index }}_{{ key }}">
                                 <i class="fas fa-plug"></i>
                                 Port Number
                             </label>
-                            <input class="form-control" type="number" id="{{ plugin.name }}_{{ key }}_2" name="{{ plugin.name }}_{{ key }}_" value="{{ value }}" min="1" max="65535" placeholder="5000">
+                            <input class="form-control" type="number" id="config_{{ loop.index }}_{{ key }}" name="{{ key }}" value="{{ value }}" min="1" max="65535" placeholder="5000">
                             <div class="config-description">
                                 Port number for the web interface (default: 5000). Make sure this port is available and not blocked by firewall.
                             </div>
 
                         {% elif key == 'ytdlp2strm_keep_old_strm' %}
-                            <label class="form-label" for="{{ plugin.name }}_{{ key }}_3">
+                            <label class="form-label" for="config_{{ loop.index }}_{{ key }}">
                                 <i class="fas fa-archive"></i>
                                 Keep Old STRM Files
                             </label>
                             <div class="d-flex align-items-center">
                                 <label class="toggle-switch">
-                                    <input type="checkbox" id="{{ plugin.name }}_{{ key }}_3" name="{{ plugin.name }}_{{ key }}_" value="True" {% if value == "True" %}checked{% endif %}>
+                                    <input type="checkbox" id="config_{{ loop.index }}_{{ key }}" name="{{ key }}" value="True" {% if value == "True" %}checked{% endif %}>
                                     <span class="slider"></span>
                                 </label>
                                 <span class="ms-3">Preserve existing STRM files when updating</span>
@@ -139,21 +139,21 @@
                             </div>
 
                         {% elif key == 'ytdlp2strm_temp_file_duration' %}
-                            <label class="form-label" for="{{ plugin.name }}_{{ key }}_4">
+                            <label class="form-label" for="config_{{ loop.index }}_{{ key }}">
                                 <i class="fas fa-clock"></i>
                                 Temp File Duration (seconds)
                             </label>
-                            <input class="form-control" type="number" id="{{ plugin.name }}_{{ key }}_4" name="{{ plugin.name }}_{{ key }}_" value="{{ value }}" min="3600" max="604800" placeholder="86400">
+                            <input class="form-control" type="number" id="config_{{ loop.index }}_{{ key }}" name="{{ key }}" value="{{ value }}" min="3600" max="604800" placeholder="86400">
                             <div class="config-description">
                                 How long to keep temporary files before cleanup. 86400 = 24 hours, 604800 = 7 days.
                             </div>
 
                         {% elif key == 'cookies' %}
-                            <label class="form-label" for="{{ plugin.name }}_{{ key }}_5">
+                            <label class="form-label" for="config_{{ loop.index }}_{{ key }}">
                                 <i class="fas fa-cookie-bite"></i>
                                 Global Cookie Authentication
                             </label>
-                            <select class="form-control" id="{{ plugin.name }}_{{ key }}_5" name="{{ plugin.name }}_{{ key }}_">
+                            <select class="form-control" id="config_{{ loop.index }}_{{ key }}" name="{{ key }}">
                                 <option value="none" {% if value == "none" %}selected{% endif %}>No Cookies</option>
                                 <option value="cookies" {% if value == "cookies" %}selected{% endif %}>Use Cookie File</option>
                                 <option value="browser" {% if value == "browser" %}selected{% endif %}>Extract from Browser</option>
@@ -163,21 +163,21 @@
                             </div>
 
                         {% elif key == 'cookie_value' %}
-                            <label class="form-label" for="{{ plugin.name }}_{{ key }}_6">
+                            <label class="form-label" for="config_{{ loop.index }}_{{ key }}">
                                 <i class="fas fa-file-code"></i>
                                 Global Cookie File Path
                             </label>
-                            <input class="form-control" type="text" id="{{ plugin.name }}_{{ key }}_6" name="{{ plugin.name }}_{{ key }}_" value="{{ value }}" placeholder="cookies/youtube-cookies.txt">
+                            <input class="form-control" type="text" id="config_{{ loop.index }}_{{ key }}" name="{{ key }}" value="{{ value }}" placeholder="cookies/youtube-cookies.txt">
                             <div class="config-description">
                                 Path to the global cookie file used when cookie authentication is enabled. This applies to all plugins unless overridden.
                             </div>
 
                         {% elif key == 'log_level' %}
-                            <label class="form-label" for="{{ plugin.name }}_{{ key }}_7">
+                            <label class="form-label" for="config_{{ loop.index }}_{{ key }}">
                                 <i class="fas fa-bug"></i>
                                 Log Level
                             </label>
-                            <select class="form-control" id="{{ plugin.name }}_{{ key }}_7" name="{{ plugin.name }}_{{ key }}_">
+                            <select class="form-control" id="config_{{ loop.index }}_{{ key }}" name="{{ key }}">
                                 <option value="DEBUG" {% if value == "DEBUG" %}selected{% endif %}>DEBUG - Verbose logging</option>
                                 <option value="INFO" {% if value == "INFO" %}selected{% endif %}>INFO - Standard logging</option>
                                 <option value="WARNING" {% if value == "WARNING" %}selected{% endif %}>WARNING - Important messages only</option>
@@ -189,11 +189,11 @@
                             </div>
 
                         {% else %}
-                            <label class="form-label" for="{{ plugin.name }}_{{ key }}_8">
+                            <label class="form-label" for="config_{{ loop.index }}_{{ key }}">
                                 <i class="fas fa-cog"></i>
                                 {{ key|replace('_', ' ')|title }}
                             </label>
-                            <input class="form-control" type="text" id="{{ plugin.name }}_{{ key }}_8" name="{{ plugin.name }}_{{ key }}_" value="{{ value }}">
+                            <input class="form-control" type="text" id="config_{{ loop.index }}_{{ key }}" name="{{ key }}" value="{{ value }}">
                             <div class="config-description">
                                 Configuration option: {{ key }}
                             </div>
