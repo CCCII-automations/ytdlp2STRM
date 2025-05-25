@@ -215,6 +215,69 @@
             }
         }
     </style>
+    <style>
+        /* Add these styles to your general_settings.html or include in your CSS */
+        .ip-whitelist-management {
+            background: var(--bg-secondary);
+            border-radius: var(--border-radius-sm);
+            padding: 1.5rem;
+            margin-top: 1.5rem;
+            border: 1px solid var(--border-primary);
+        }
+
+        .whitelist-entry {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.75rem;
+            background: var(--bg-card);
+            border-radius: var(--border-radius-sm);
+            border: 1px solid var(--border-primary);
+            margin-bottom: 0.5rem;
+        }
+
+        .whitelist-entry.current-ip {
+            border-left: 4px solid var(--success);
+            background: rgba(16, 185, 129, 0.05);
+        }
+
+        .whitelist-entry-info {
+            flex: 1;
+        }
+
+        .whitelist-entry-ip {
+            font-family: 'Monaco', 'Menlo', 'Consolas', monospace;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .whitelist-entry-type {
+            font-size: var(--font-size-sm);
+            color: var(--text-secondary);
+        }
+
+        .test-result-success {
+            color: var(--success);
+            background: rgba(16, 185, 129, 0.1);
+            padding: 0.5rem;
+            border-radius: var(--border-radius-sm);
+            border: 1px solid rgba(16, 185, 129, 0.2);
+        }
+
+        .test-result-danger {
+            color: var(--danger);
+            background: rgba(239, 68, 68, 0.1);
+            padding: 0.5rem;
+            border-radius: var(--border-radius-sm);
+            border: 1px solid rgba(239, 68, 68, 0.2);
+        }
+
+        .whitelist-toggle {
+            text-align: center;
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+    </style>
 </head>
 <body>
     <div class="container">
@@ -410,7 +473,72 @@
                         <i class="fas fa-shield-alt me-2"></i>
                         Authentication & Security Configuration
                     </h3>
+                    <div class="form-group">
+                        <label class="form-label" for="enable_ip_whitelist">
+                            <i class="fas fa-list-alt"></i>
+                            Enable IP Whitelist
+                        </label>
+                        <div class="d-flex align-items-center">
+                            <label class="toggle-switch">
+                                <input config_data.get( id="enable_ip_whitelist" if name="enable_ip_whitelist"
+                                       type="checkbox" value="True" {%'security_settings', {}).get('rate_limiting',
+                                {}).get('enable_ip_whitelist', False) %}checked{% endif %}>
+                                <span class="slider"></span>
+                            </label>
+                            <span class="ms-3">Bypass rate limiting for whitelisted IP addresses</span>
+                        </div>
+                        <div class="config-description">
+                            When enabled, IP addresses in the whitelist will not be subject to rate limiting, lockouts,
+                            or CAPTCHA challenges.
+                        </div>
+                    </div>
 
+                    <!-- IP Whitelist Management Section -->
+                    <div class="ip-whitelist-management">
+                        <h4 class="mb-3">
+                            <i class="fas fa-shield-alt me-2"></i>
+                            IP Whitelist Management
+                        </h4>
+
+                        <div class="whitelist-status mb-3" id="whitelistStatus">
+                            <div class="alert alert-info">
+                                <i class="fas fa-info-circle"></i>
+                                <strong>Current Status:</strong>
+                                <span id="whitelistStatusText">Loading...</span>
+                            </div>
+                        </div>
+
+                        <div class="whitelist-controls mb-3">
+                            <div class="input-group">
+                                <input class="form-control" id="newWhitelistIP" placeholder="Enter IP address or CIDR block (e.g., 192.168.1.100 or 192.168.1.0/24)"
+                                       type="text">
+                                <button class="btn btn-success" onclick="addToWhitelist()" type="button">
+                                    <i class="fas fa-plus"></i> Add IP
+                                </button>
+                            </div>
+                            <div class="form-text">
+                                Examples: 127.0.0.1, ::1, 192.168.1.0/24, 10.0.0.0/8
+                            </div>
+                        </div>
+
+                        <div class="whitelist-list" id="whitelistList">
+                            <h5>Current Whitelist:</h5>
+                            <div id="whitelistEntries">
+                                <p class="text-muted">Loading whitelist...</p>
+                            </div>
+                        </div>
+
+                        <div class="whitelist-test mt-3">
+                            <h5>Test IP Address:</h5>
+                            <div class="input-group">
+                                <input class="form-control" id="testIP" placeholder="Enter IP to test" type="text">
+                                <button class="btn btn-info" onclick="testIP()" type="button">
+                                    <i class="fas fa-search"></i> Test
+                                </button>
+                            </div>
+                            <div class="mt-2" id="testResult"></div>
+                        </div>
+                    </div>
                     <div class="form-group">
                         <label class="form-label" for="auth_max_attempts">
                             <i class="fas fa-exclamation-triangle"></i>
@@ -915,5 +1043,214 @@
             console.log('Theme changed to:', e.detail.effectiveTheme);
         });
     </script>
+    <script>
+        // Add these JavaScript functions to your general_settings.html
+
+        async function loadWhitelistStatus() {
+            try {
+                const response = await fetch('/api/security/whitelist');
+                const data = await response.json();
+
+                const statusText = document.getElementById('whitelistStatusText');
+                const statusAlert = document.getElementById('whitelistStatus').querySelector('.alert');
+
+                if (data.enabled) {
+                    statusText.textContent = `Enabled with ${data.whitelist.length} entries`;
+                    statusAlert.className = 'alert alert-success';
+
+                    if (data.current_ip_whitelisted) {
+                        statusText.textContent += ` (Your IP ${data.current_ip} is whitelisted)`;
+                    } else {
+                        statusText.textContent += ` (Your IP ${data.current_ip} is NOT whitelisted)`;
+                    }
+                } else {
+                    statusText.textContent = 'Disabled - all IPs subject to rate limiting';
+                    statusAlert.className = 'alert alert-warning';
+                }
+
+                // Update checkbox
+                document.getElementById('enable_ip_whitelist').checked = data.enabled;
+
+                // Load whitelist entries
+                loadWhitelistEntries(data.whitelist, data.current_ip);
+
+            } catch (error) {
+                console.error('Failed to load whitelist status:', error);
+                document.getElementById('whitelistStatusText').textContent = 'Error loading status';
+            }
+        }
+
+        function loadWhitelistEntries(whitelist, currentIP) {
+            const container = document.getElementById('whitelistEntries');
+
+            if (whitelist.length === 0) {
+                container.innerHTML = '<p class="text-muted">No IP addresses in whitelist</p>';
+                return;
+            }
+
+            container.innerHTML = whitelist.map(ip => {
+                const isCurrentIP = ip === currentIP || (ip.includes('/') && currentIP); // Simplified check
+                const currentClass = isCurrentIP ? 'current-ip' : '';
+                const currentLabel = isCurrentIP ? ' <span class="badge badge-success">Your IP</span>' : '';
+
+                const ipType = ip.includes('/') ? 'CIDR Block' : 'Single IP';
+
+                return `
+            <div class="whitelist-entry ${currentClass}">
+                <div class="whitelist-entry-info">
+                    <div class="whitelist-entry-ip">${ip}${currentLabel}</div>
+                    <div class="whitelist-entry-type">${ipType}</div>
+                </div>
+                <button class="btn btn-sm btn-danger" onclick="removeFromWhitelist('${ip}')">
+                    <i class="fas fa-trash"></i> Remove
+                </button>
+            </div>
+        `;
+            }).join('');
+        }
+
+        async function addToWhitelist() {
+            const ipInput = document.getElementById('newWhitelistIP');
+            const ip = ipInput.value.trim();
+
+            if (!ip) {
+                alert('Please enter an IP address or CIDR block');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/security/whitelist/add', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ip: ip})
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    alert(data.message);
+                    ipInput.value = '';
+                    loadWhitelistStatus(); // Reload the display
+                } else {
+                    alert('Error: ' + data.error);
+                }
+            } catch (error) {
+                alert('Network error: ' + error.message);
+            }
+        }
+
+        async function removeFromWhitelist(ip) {
+            if (!confirm(`Remove ${ip} from whitelist?`)) return;
+
+            try {
+                const response = await fetch('/api/security/whitelist/remove', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ip: ip})
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    alert(data.message);
+                    loadWhitelistStatus(); // Reload the display
+                } else {
+                    alert('Error: ' + data.error);
+                }
+            } catch (error) {
+                alert('Network error: ' + error.message);
+            }
+        }
+
+        async function testIP() {
+            const testInput = document.getElementById('testIP');
+            const ip = testInput.value.trim();
+            const resultDiv = document.getElementById('testResult');
+
+            if (!ip) {
+                resultDiv.innerHTML = '<div class="test-result-danger">Please enter an IP address to test</div>';
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/security/whitelist/test', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ip: ip})
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    const resultClass = data.whitelisted ? 'test-result-success' : 'test-result-danger';
+                    const resultIcon = data.whitelisted ? 'fas fa-check-circle' : 'fas fa-times-circle';
+                    const resultText = data.whitelisted ? 'WHITELISTED' : 'NOT WHITELISTED';
+                    const statusText = data.whitelist_enabled ? '' : ' (Whitelist is disabled)';
+
+                    resultDiv.innerHTML = `
+                <div class="${resultClass}">
+                    <i class="${resultIcon}"></i>
+                    IP ${data.ip} is <strong>${resultText}</strong>${statusText}
+                </div>
+            `;
+                } else {
+                    resultDiv.innerHTML = `<div class="test-result-danger">Error: ${data.error}</div>`;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="test-result-danger">Network error: ${error.message}</div>`;
+            }
+        }
+
+        // Handle whitelist enable/disable toggle
+        document.getElementById('enable_ip_whitelist').addEventListener('change', async function () {
+            const enable = this.checked;
+
+            try {
+                const response = await fetch('/api/security/whitelist/toggle', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({enable: enable})
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    loadWhitelistStatus(); // Reload status
+                } else {
+                    alert('Error: ' + data.error);
+                    // Revert checkbox state
+                    this.checked = !enable;
+                }
+            } catch (error) {
+                alert('Network error: ' + error.message);
+                // Revert checkbox state
+                this.checked = !enable;
+            }
+        });
+
+        // Load whitelist status when authentication tab becomes active
+        document.addEventListener('DOMContentLoaded', function () {
+            const authTab = document.querySelector('[data-tab="authentication"]');
+            if (authTab) {
+                authTab.addEventListener('click', function () {
+                    setTimeout(loadWhitelistStatus, 100); // Small delay to ensure tab is active
+                });
+            }
+
+            // Load immediately if authentication tab is already active
+            if (authTab && authTab.classList.contains('active')) {
+                loadWhitelistStatus();
+            }
+        });
+    </script>
+
 </body>
 </html>

@@ -1,11 +1,12 @@
 # =============================================================================
-# ui/auth.py - Enhanced Authentication System with Config Integration
+# ui/auth.py - Enhanced Authentication System with IP Whitelist Implementation
 # =============================================================================
 
 import time
 import json
 import os
 import bcrypt
+import ipaddress
 from datetime import datetime, timedelta
 from functools import wraps
 from flask import session, request, redirect, url_for, jsonify, render_template
@@ -15,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 
 class AuthManager:
-    """Enhanced Authentication and security manager for ytdlp2STRM"""
+    """Enhanced Authentication and security manager for ytdlp2STRM with IP whitelist support"""
 
     def __init__(self):
         self.config_file = './config/config.json'
@@ -31,6 +32,13 @@ class AuthManager:
         self.base_delay = self.config.get('auth_base_delay', 2000)  # 2 seconds
         self.session_timeout = self.config.get('auth_session_timeout', 7200)  # 2 hours
 
+        # IP whitelist settings
+        self.enable_ip_whitelist = self.config.get('security_settings', {}).get('rate_limiting', {}).get(
+            'enable_ip_whitelist', False)
+        self.ip_whitelist_raw = self.config.get('security_settings', {}).get('rate_limiting', {}).get('ip_whitelist',
+                                                                                                      [])
+        self.ip_whitelist = self.parse_ip_whitelist(self.ip_whitelist_raw)
+
         # In-memory storage for failed attempts (reset on restart)
         self.failed_attempts = {}
         self.security_logs = []
@@ -40,6 +48,76 @@ class AuthManager:
 
         # Clean up expired locks on startup
         self.cleanup_expired_locks()
+
+        # Log IP whitelist status
+        if self.enable_ip_whitelist:
+            logger.info(f"✓ IP Whitelist enabled with {len(self.ip_whitelist)} entries")
+            for ip_entry in self.ip_whitelist_raw:
+                logger.info(f"  - Whitelisted: {ip_entry}")
+        else:
+            logger.info("✓ IP Whitelist disabled - all IPs subject to rate limiting")
+
+    def parse_ip_whitelist(self, whitelist_raw):
+        """Parse IP whitelist entries into network objects"""
+        parsed_whitelist = []
+
+        if not whitelist_raw:
+            return parsed_whitelist
+
+        for ip_entry in whitelist_raw:
+            try:
+                # Handle both single IPs and CIDR notation
+                if '/' in ip_entry:
+                    # CIDR notation (e.g., "192.168.1.0/24")
+                    network = ipaddress.ip_network(ip_entry, strict=False)
+                    parsed_whitelist.append(network)
+                else:
+                    # Single IP address
+                    ip = ipaddress.ip_address(ip_entry)
+                    # Convert single IP to /32 or /128 network
+                    if ip.version == 4:
+                        network = ipaddress.IPv4Network(f"{ip}/32")
+                    else:
+                        network = ipaddress.IPv6Network(f"{ip}/128")
+                    parsed_whitelist.append(network)
+
+                logger.debug(f"Parsed whitelist entry: {ip_entry} -> {network}")
+
+            except ValueError as e:
+                logger.error(f"Invalid IP whitelist entry '{ip_entry}': {e}")
+                continue
+
+        return parsed_whitelist
+
+    def is_ip_whitelisted(self, ip_address):
+        """Check if an IP address is in the whitelist"""
+        if not self.enable_ip_whitelist:
+            return False  # Whitelist disabled, no IPs are whitelisted
+
+        if not self.ip_whitelist:
+            return False  # Empty whitelist
+
+        try:
+            client_ip = ipaddress.ip_address(ip_address)
+
+            for network in self.ip_whitelist:
+                if client_ip in network:
+                    logger.debug(f"IP {ip_address} matches whitelist entry: {network}")
+                    return True
+
+            logger.debug(f"IP {ip_address} not found in whitelist")
+            return False
+
+        except ValueError as e:
+            logger.error(f"Invalid IP address '{ip_address}': {e}")
+            return False
+
+    def should_skip_rate_limiting(self, ip_address):
+        """Determine if rate limiting should be skipped for this IP"""
+        if self.is_ip_whitelisted(ip_address):
+            logger.info(f"Skipping rate limiting for whitelisted IP: {ip_address}")
+            return True
+        return False
 
     def load_config(self):
         """Load configuration from config.json"""
@@ -86,6 +164,20 @@ class AuthManager:
             "auth_session_timeout": 7200,
             "auth_enable_captcha": True,
             "auth_log_events": True,
+
+            # Security settings with IP whitelist
+            "security_settings": {
+                "rate_limiting": {
+                    "enable_ip_whitelist": False,
+                    "ip_whitelist": [
+                        "127.0.0.1",
+                        "::1"
+                    ],
+                    "enable_progressive_delay": True,
+                    "max_delay_seconds": 60,
+                    "cleanup_interval": 900
+                }
+            },
 
             # User accounts
             "admins": {
@@ -166,7 +258,12 @@ class AuthManager:
         return active_locks
 
     def is_ip_locked(self, ip_address):
-        """Check if IP address is locked"""
+        """Check if IP address is locked (respects whitelist)"""
+        # Check if IP is whitelisted - whitelisted IPs cannot be locked
+        if self.is_ip_whitelisted(ip_address):
+            logger.debug(f"IP {ip_address} is whitelisted, cannot be locked")
+            return False, 0
+
         locked_ips = self.cleanup_expired_locks()
         current_time = time.time()
 
@@ -178,7 +275,15 @@ class AuthManager:
         return False, 0
 
     def lock_ip(self, ip_address, reason="Multiple failed login attempts"):
-        """Lock an IP address"""
+        """Lock an IP address (respects whitelist)"""
+        # Never lock whitelisted IPs
+        if self.is_ip_whitelisted(ip_address):
+            logger.warning(f"Attempted to lock whitelisted IP {ip_address} - action blocked")
+            self.log_security_event('whitelist_protection',
+                                    f'IP {ip_address} protected from lockout by whitelist',
+                                    ip_address)
+            return False
+
         locked_ips = self.load_locked_ips()
         current_time = time.time()
 
@@ -198,17 +303,22 @@ class AuthManager:
         self.log_security_event('ip_locked', f'IP {ip_address} locked: {reason}', ip_address)
 
         logger.warning(f"IP {ip_address} locked for {self.lockout_time} seconds: {reason}")
+        return True
 
     def log_security_event(self, event_type, details, ip_address, username=None):
         """Log security events for monitoring"""
         if not self.config.get('auth_log_events', True):
             return
 
+        # Add whitelist status to security events
+        whitelisted = self.is_ip_whitelisted(ip_address) if self.enable_ip_whitelist else False
+
         event = {
             'timestamp': datetime.now().isoformat(),
             'type': event_type,
             'details': details,
             'ip': ip_address,
+            'ip_whitelisted': whitelisted,
             'username': username,
             'user_agent': request.headers.get('User-Agent', 'Unknown')[:100]
         }
@@ -218,10 +328,15 @@ class AuthManager:
         if len(self.security_logs) > 1000:
             self.security_logs = self.security_logs[-1000:]
 
-        logger.info(f"SECURITY EVENT [{event_type}]: {details} - IP: {ip_address} - User: {username}")
+        whitelist_status = " [WHITELISTED]" if whitelisted else ""
+        logger.info(f"SECURITY EVENT [{event_type}]: {details} - IP: {ip_address}{whitelist_status} - User: {username}")
 
     def check_rate_limit(self, username, ip_address):
-        """Check and update rate limiting"""
+        """Check and update rate limiting (respects whitelist)"""
+        # Skip rate limiting for whitelisted IPs
+        if self.should_skip_rate_limiting(ip_address):
+            return 0
+
         key = f"{username}:{ip_address}"
         current_time = time.time()
 
@@ -237,7 +352,14 @@ class AuthManager:
         return attempt_data['count']
 
     def record_failed_attempt(self, username, ip_address):
-        """Record failed login attempt"""
+        """Record failed login attempt (respects whitelist)"""
+        # Skip recording for whitelisted IPs
+        if self.should_skip_rate_limiting(ip_address):
+            self.log_security_event('failed_login_whitelisted',
+                                    f'Failed login from whitelisted IP - no penalty applied',
+                                    ip_address, username)
+            return
+
         key = f"{username}:{ip_address}"
         current_time = time.time()
 
@@ -247,7 +369,7 @@ class AuthManager:
         self.failed_attempts[key]['count'] += 1
         self.failed_attempts[key]['last_attempt'] = current_time
 
-        # Lock IP after max attempts
+        # Lock IP after max attempts (only for non-whitelisted IPs)
         if self.failed_attempts[key]['count'] >= self.max_attempts:
             self.lock_ip(ip_address, f'Failed login attempts for user: {username}')
 
@@ -281,12 +403,21 @@ class AuthManager:
         active_locks = [lock for lock in locked_ips
                         if time.time() < lock.get('time_locked', 0) + self.lockout_time]
 
+        # Count whitelisted vs non-whitelisted events
+        whitelisted_events = sum(1 for event in self.security_logs if event.get('ip_whitelisted', False))
+
         return {
             'total_events': len(self.security_logs),
+            'whitelisted_events': whitelisted_events,
             'active_ip_locks': len(active_locks),
             'failed_attempts': len(self.failed_attempts),
             'recent_events': self.security_logs[-10:] if self.security_logs else [],
             'locked_ips': active_locks,
+            'whitelist_info': {
+                'enabled': self.enable_ip_whitelist,
+                'entries': len(self.ip_whitelist),
+                'whitelist': self.ip_whitelist_raw
+            },
             'config': {
                 'max_attempts': self.max_attempts,
                 'lockout_time': self.lockout_time,
@@ -296,7 +427,7 @@ class AuthManager:
         }
 
     def update_auth_config(self, new_config):
-        """Update authentication configuration"""
+        """Update authentication configuration and reload whitelist"""
         self.config.update(new_config)
         if self.save_config(self.config):
             # Reload settings
@@ -305,6 +436,22 @@ class AuthManager:
             self.captcha_threshold = self.config.get('auth_captcha_threshold', 3)
             self.base_delay = self.config.get('auth_base_delay', 2000)
             self.session_timeout = self.config.get('auth_session_timeout', 7200)
+
+            # Reload IP whitelist settings
+            security_settings = self.config.get('security_settings', {}).get('rate_limiting', {})
+            old_whitelist_enabled = self.enable_ip_whitelist
+            self.enable_ip_whitelist = security_settings.get('enable_ip_whitelist', False)
+            self.ip_whitelist_raw = security_settings.get('ip_whitelist', [])
+            self.ip_whitelist = self.parse_ip_whitelist(self.ip_whitelist_raw)
+
+            # Log whitelist changes
+            if old_whitelist_enabled != self.enable_ip_whitelist:
+                status = "enabled" if self.enable_ip_whitelist else "disabled"
+                logger.info(f"IP whitelist {status} via configuration update")
+
+            if self.enable_ip_whitelist:
+                logger.info(f"IP whitelist updated with {len(self.ip_whitelist)} entries")
+
             return True
         return False
 
@@ -356,7 +503,7 @@ def requires_auth(f):
     def decorated_function(*args, **kwargs):
         # Check if user is authenticated
         if 'authenticated' not in session or not session['authenticated']:
-            # Log unauthorized access attempt
+            # Log unauthorized access attempt with whitelist info
             auth_manager.log_security_event('unauthorized_access',
                                             f'Attempted to access {request.endpoint}',
                                             request.remote_addr)

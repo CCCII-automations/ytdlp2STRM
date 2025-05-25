@@ -10,6 +10,7 @@ from clases.worker import worker as w
 from ui.ui import Ui
 from ui.auth import auth_manager, requires_auth, requires_admin
 import bcrypt
+import ipaddress
 
 _ui = Ui()
 socketio = SocketIO(app)
@@ -200,7 +201,7 @@ def general_settings():
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
-    """Authentication endpoint"""
+    """Authentication endpoint with IP whitelist support"""
     if request.method == 'GET':
         return render_template('login.html')
 
@@ -218,7 +219,10 @@ def login():
             'message': 'Username and password are required'
         }), 400
 
-    # Check if IP is locked
+    # Check if IP is whitelisted
+    is_whitelisted = auth_manager.is_ip_whitelisted(ip_address)
+
+    # Check if IP is locked (whitelisted IPs cannot be locked)
     is_locked, unlock_time = auth_manager.is_ip_locked(ip_address)
     if is_locked:
         remaining_time = int(unlock_time - time.time())
@@ -232,25 +236,29 @@ def login():
             'unlock_time': remaining_time
         }), 429
 
-    # Check rate limiting
+    # Check rate limiting (whitelisted IPs skip this)
     attempt_count = auth_manager.check_rate_limit(username, ip_address)
-    if attempt_count >= auth_manager.max_attempts:
+    if not is_whitelisted and attempt_count >= auth_manager.max_attempts:
         return jsonify({
             'success': False,
             'message': 'Too many failed attempts. IP address locked.',
             'locked': True
         }), 429
 
-    # Check CAPTCHA if required
-    need_captcha = attempt_count >= auth_manager.captcha_threshold
-    if need_captcha and auth_manager.config.get('auth_enable_captcha', True):
+    # Check CAPTCHA if required (whitelisted IPs may skip this based on config)
+    need_captcha = (not is_whitelisted and
+                    attempt_count >= auth_manager.captcha_threshold and
+                    auth_manager.config.get('auth_enable_captcha', True))
+
+    if need_captcha:
         expected_answer = session.get('captcha_answer')
         if not captcha_answer or int(captcha_answer) != expected_answer:
             return jsonify({
                 'success': False,
                 'message': 'CAPTCHA verification failed!',
                 'show_captcha': True,
-                'attempts_remaining': max(0, auth_manager.max_attempts - attempt_count)
+                'attempts_remaining': max(0, auth_manager.max_attempts - attempt_count) if not is_whitelisted else None,
+                'whitelisted': is_whitelisted
             }), 400
 
     # Verify credentials
@@ -265,8 +273,10 @@ def login():
         # Clear failed attempts
         auth_manager.clear_failed_attempts(username, ip_address)
 
+        # Log with whitelist status
+        whitelist_note = " (whitelisted IP)" if is_whitelisted else ""
         auth_manager.log_security_event('successful_login',
-                                        f'User {username} ({role}) logged in successfully',
+                                        f'User {username} ({role}) logged in successfully{whitelist_note}',
                                         ip_address, username)
 
         # Redirect to original URL or dashboard
@@ -275,24 +285,221 @@ def login():
             'success': True,
             'message': 'Login successful',
             'redirect_url': next_url,
-            'role': role
+            'role': role,
+            'whitelisted': is_whitelisted
         })
     else:
         # Failed login
         auth_manager.record_failed_attempt(username, ip_address)
+
+        # Log with whitelist status
+        whitelist_note = " (whitelisted IP - no penalties applied)" if is_whitelisted else ""
         auth_manager.log_security_event('failed_login',
-                                        f'Failed login attempt for user: {username}',
+                                        f'Failed login attempt for user: {username}{whitelist_note}',
                                         ip_address, username)
 
-        remaining_attempts = max(0, auth_manager.max_attempts - auth_manager.check_rate_limit(username, ip_address))
-        need_captcha = auth_manager.check_rate_limit(username, ip_address) >= auth_manager.captcha_threshold
+        # Calculate remaining attempts (whitelisted IPs have unlimited attempts)
+        if is_whitelisted:
+            remaining_attempts = None  # Unlimited for whitelisted IPs
+            message = f'Invalid credentials. (Whitelisted IP - unlimited attempts)'
+        else:
+            remaining_attempts = max(0, auth_manager.max_attempts - auth_manager.check_rate_limit(username, ip_address))
+            message = f'Invalid credentials. {remaining_attempts} attempts remaining.'
+
+        need_captcha = (not is_whitelisted and
+                        auth_manager.check_rate_limit(username, ip_address) >= auth_manager.captcha_threshold and
+                        auth_manager.config.get('auth_enable_captcha', True))
 
         return jsonify({
             'success': False,
-            'message': f'Invalid credentials. {remaining_attempts} attempts remaining.',
+            'message': message,
             'attempts_remaining': remaining_attempts,
-            'show_captcha': need_captcha and auth_manager.config.get('auth_enable_captcha', True)
+            'show_captcha': need_captcha,
+            'whitelisted': is_whitelisted
         }), 401
+
+
+# =============================================================================
+# ADD NEW API ENDPOINT FOR WHITELIST MANAGEMENT
+# =============================================================================
+
+@app.route('/api/security/whitelist', methods=['GET'])
+@requires_auth
+@requires_admin
+def get_whitelist():
+    """Get current IP whitelist configuration (admin only)"""
+    return jsonify({
+        'enabled': auth_manager.enable_ip_whitelist,
+        'whitelist': auth_manager.ip_whitelist_raw,
+        'parsed_count': len(auth_manager.ip_whitelist),
+        'current_ip': request.remote_addr,
+        'current_ip_whitelisted': auth_manager.is_ip_whitelisted(request.remote_addr)
+    })
+
+
+@app.route('/api/security/whitelist/test', methods=['POST'])
+@requires_auth
+@requires_admin
+def test_whitelist():
+    """Test if an IP would be whitelisted (admin only)"""
+    data = request.get_json()
+    test_ip = data.get('ip', '').strip()
+
+    if not test_ip:
+        return jsonify({'error': 'IP address required'}), 400
+
+    try:
+        is_whitelisted = auth_manager.is_ip_whitelisted(test_ip)
+        return jsonify({
+            'ip': test_ip,
+            'whitelisted': is_whitelisted,
+            'whitelist_enabled': auth_manager.enable_ip_whitelist
+        })
+    except Exception as e:
+        return jsonify({'error': f'Invalid IP address: {str(e)}'}), 400
+
+
+@app.route('/api/security/whitelist/add', methods=['POST'])
+@requires_auth
+@requires_admin
+def add_to_whitelist():
+    """Add IP to whitelist (admin only)"""
+    data = request.get_json()
+    ip_entry = data.get('ip', '').strip()
+
+    if not ip_entry:
+        return jsonify({'error': 'IP address or CIDR block required'}), 400
+
+    try:
+        # Validate the IP entry
+        if '/' in ip_entry:
+            ipaddress.ip_network(ip_entry, strict=False)
+        else:
+            ipaddress.ip_address(ip_entry)
+
+        # Get current config
+        config = auth_manager.config
+        if 'security_settings' not in config:
+            config['security_settings'] = {}
+        if 'rate_limiting' not in config['security_settings']:
+            config['security_settings']['rate_limiting'] = {}
+
+        # Add to whitelist
+        current_whitelist = config['security_settings']['rate_limiting'].get('ip_whitelist', [])
+        if ip_entry not in current_whitelist:
+            current_whitelist.append(ip_entry)
+            config['security_settings']['rate_limiting']['ip_whitelist'] = current_whitelist
+
+            # Save and reload
+            if auth_manager.save_config(config):
+                auth_manager.config = config
+                auth_manager.ip_whitelist_raw = current_whitelist
+                auth_manager.ip_whitelist = auth_manager.parse_ip_whitelist(current_whitelist)
+
+                auth_manager.log_security_event('whitelist_updated',
+                                                f'IP {ip_entry} added to whitelist by admin',
+                                                request.remote_addr, session.get('username'))
+
+                return jsonify({
+                    'success': True,
+                    'message': f'IP {ip_entry} added to whitelist',
+                    'whitelist': current_whitelist
+                })
+            else:
+                return jsonify({'error': 'Failed to save configuration'}), 500
+        else:
+            return jsonify({'error': 'IP already in whitelist'}), 400
+
+    except ValueError as e:
+        return jsonify({'error': f'Invalid IP address or CIDR block: {str(e)}'}), 400
+    except Exception as e:
+        return jsonify({'error': f'Failed to add IP: {str(e)}'}), 500
+
+
+@app.route('/api/security/whitelist/remove', methods=['POST'])
+@requires_auth
+@requires_admin
+def remove_from_whitelist():
+    """Remove IP from whitelist (admin only)"""
+    data = request.get_json()
+    ip_entry = data.get('ip', '').strip()
+
+    if not ip_entry:
+        return jsonify({'error': 'IP address required'}), 400
+
+    try:
+        # Get current config
+        config = auth_manager.config
+        current_whitelist = config.get('security_settings', {}).get('rate_limiting', {}).get('ip_whitelist', [])
+
+        if ip_entry in current_whitelist:
+            current_whitelist.remove(ip_entry)
+            config['security_settings']['rate_limiting']['ip_whitelist'] = current_whitelist
+
+            # Save and reload
+            if auth_manager.save_config(config):
+                auth_manager.config = config
+                auth_manager.ip_whitelist_raw = current_whitelist
+                auth_manager.ip_whitelist = auth_manager.parse_ip_whitelist(current_whitelist)
+
+                auth_manager.log_security_event('whitelist_updated',
+                                                f'IP {ip_entry} removed from whitelist by admin',
+                                                request.remote_addr, session.get('username'))
+
+                return jsonify({
+                    'success': True,
+                    'message': f'IP {ip_entry} removed from whitelist',
+                    'whitelist': current_whitelist
+                })
+            else:
+                return jsonify({'error': 'Failed to save configuration'}), 500
+        else:
+            return jsonify({'error': 'IP not found in whitelist'}), 404
+
+    except Exception as e:
+        return jsonify({'error': f'Failed to remove IP: {str(e)}'}), 500
+
+
+@app.route('/api/security/whitelist/toggle', methods=['POST'])
+@requires_auth
+@requires_admin
+def toggle_whitelist():
+    """Enable/disable IP whitelist (admin only)"""
+    data = request.get_json()
+    enable = data.get('enable', False)
+
+    try:
+        # Get current config
+        config = auth_manager.config
+        if 'security_settings' not in config:
+            config['security_settings'] = {}
+        if 'rate_limiting' not in config['security_settings']:
+            config['security_settings']['rate_limiting'] = {}
+
+        config['security_settings']['rate_limiting']['enable_ip_whitelist'] = bool(enable)
+
+        # Save and reload
+        if auth_manager.save_config(config):
+            auth_manager.config = config
+            auth_manager.enable_ip_whitelist = bool(enable)
+
+            status = "enabled" if enable else "disabled"
+            auth_manager.log_security_event('whitelist_toggled',
+                                            f'IP whitelist {status} by admin',
+                                            request.remote_addr, session.get('username'))
+
+            return jsonify({
+                'success': True,
+                'message': f'IP whitelist {status}',
+                'enabled': bool(enable),
+                'whitelist_count': len(auth_manager.ip_whitelist_raw)
+            })
+        else:
+            return jsonify({'error': 'Failed to save configuration'}), 500
+
+    except Exception as e:
+        return jsonify({'error': f'Failed to toggle whitelist: {str(e)}'}), 500
+
 
 
 @app.route('/api/captcha')
@@ -336,9 +543,19 @@ def logout():
 @requires_auth
 @requires_admin
 def security_status():
-    """Security monitoring endpoint (admin only)"""
-    return jsonify(auth_manager.get_security_stats())
+    """Security monitoring endpoint with whitelist info (admin only)"""
+    stats = auth_manager.get_security_stats()
 
+    # Add current request IP info
+    current_ip = request.remote_addr
+    stats['current_session'] = {
+        'ip': current_ip,
+        'whitelisted': auth_manager.is_ip_whitelisted(current_ip),
+        'user': session.get('username'),
+        'role': session.get('role')
+    }
+
+    return jsonify(stats)
 
 @app.route('/api/security/unlock-ip', methods=['POST'])
 @requires_auth
