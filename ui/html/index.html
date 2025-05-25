@@ -5,70 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ytdlp2STRM - Modern Dashboard</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="/styles.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.4.1/socket.io.js"></script>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        :root {
-            --primary: #6366f1;
-            --primary-dark: #4f46e5;
-            --secondary: #8b5cf6;
-            --accent: #06b6d4;
-            --success: #10b981;
-            --warning: #f59e0b;
-            --danger: #ef4444;
-            --dark: #1f2937;
-            --dark-light: #374151;
-            --gray: #6b7280;
-            --gray-light: #f3f4f6;
-            --white: #ffffff;
-            --gradient: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
-            --shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
-            --shadow-lg: 0 20px 40px rgba(0, 0, 0, 0.15);
-            --border-radius: 12px;
-            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-
-        body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            color: var(--dark);
-            line-height: 1.6;
-            overflow-x: hidden;
-        }
-
+        /* Page-specific styles */
         .container {
             max-width: 1400px;
             margin: 0 auto;
             padding: 2rem;
-        }
-
-        .header {
-            text-align: center;
-            margin-bottom: 3rem;
-            animation: fadeInDown 0.6s ease-out;
-        }
-
-        .header h1 {
-            font-size: clamp(2.5rem, 5vw, 4rem);
-            font-weight: 800;
-            background: linear-gradient(135deg, var(--white) 0%, #e2e8f0 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            margin-bottom: 1rem;
-            text-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
-        }
-
-        .header p {
-            font-size: 1.25rem;
-            color: rgba(255, 255, 255, 0.9);
-            font-weight: 300;
         }
 
         .dashboard {
@@ -82,65 +26,6 @@
             display: flex;
             flex-direction: column;
             gap: 1rem;
-        }
-
-        .nav-card {
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(20px);
-            border-radius: var(--border-radius);
-            padding: 1.5rem;
-            box-shadow: var(--shadow);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            transition: var(--transition);
-            cursor: pointer;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .nav-card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background: var(--gradient);
-            opacity: 0;
-            transition: var(--transition);
-            z-index: -1;
-        }
-
-        .nav-card:hover {
-            transform: translateY(-5px);
-            box-shadow: var(--shadow-lg);
-            color: var(--white);
-        }
-
-        .nav-card:hover::before {
-            left: 0;
-            opacity: 1;
-        }
-
-        .nav-card i {
-            font-size: 2rem;
-            margin-bottom: 1rem;
-            color: var(--primary);
-            transition: var(--transition);
-        }
-
-        .nav-card:hover i {
-            color: var(--white);
-        }
-
-        .nav-card h3 {
-            font-size: 1.25rem;
-            font-weight: 600;
-            margin-bottom: 0.5rem;
-        }
-
-        .nav-card p {
-            font-size: 0.875rem;
-            opacity: 0.8;
         }
 
         .main-content {
@@ -157,13 +42,14 @@
         }
 
         .status-card {
-            background: var(--white);
+            background: var(--bg-card);
             border-radius: var(--border-radius);
             padding: 1.5rem;
             box-shadow: var(--shadow);
             transition: var(--transition);
             position: relative;
             overflow: hidden;
+            border: 1px solid var(--border-primary);
         }
 
         .status-card::before {
@@ -178,7 +64,7 @@
 
         .status-card:nth-child(2)::before { background: var(--success); }
         .status-card:nth-child(3)::before { background: var(--warning); }
-        .status-card:nth-child(4)::before { background: var(--accent); }
+        .status-card:nth-child(4)::before { background: var(--info); }
 
         .status-card:hover {
             transform: translateY(-2px);
@@ -189,39 +75,14 @@
             font-size: 2rem;
             font-weight: 800;
             margin-bottom: 0.5rem;
+            color: var(--text-primary);
         }
 
         .status-label {
-            font-size: 0.875rem;
-            color: var(--gray);
+            font-size: var(--font-size-sm);
+            color: var(--text-secondary);
             text-transform: uppercase;
             letter-spacing: 0.5px;
-        }
-
-        .plugins-section, .crons-section {
-            background: var(--white);
-            border-radius: var(--border-radius);
-            padding: 2rem;
-            box-shadow: var(--shadow);
-            margin-bottom: 2rem;
-        }
-
-        .section-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 2rem;
-            padding-bottom: 1rem;
-            border-bottom: 2px solid var(--gray-light);
-        }
-
-        .section-title {
-            font-size: 1.5rem;
-            font-weight: 700;
-            color: var(--dark);
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
         }
 
         .plugin-columns {
@@ -231,23 +92,24 @@
         }
 
         .plugin-column {
-            border: 2px dashed var(--gray-light);
+            border: 2px dashed var(--border-primary);
             border-radius: var(--border-radius);
             padding: 1rem;
             min-height: 200px;
             transition: var(--transition);
+            background: var(--bg-secondary);
         }
 
         .plugin-column.drag-over {
             border-color: var(--primary);
-            background-color: rgba(99, 102, 241, 0.1);
+            background: rgba(99, 102, 241, 0.1);
         }
 
         .plugin-column h4 {
             text-align: center;
             margin-bottom: 1rem;
-            color: var(--gray);
-            font-size: 1rem;
+            color: var(--text-secondary);
+            font-size: var(--font-size-base);
             text-transform: uppercase;
             letter-spacing: 0.5px;
         }
@@ -258,17 +120,18 @@
             justify-content: space-between;
             padding: 1rem;
             margin-bottom: 1rem;
-            background: var(--gray-light);
-            border-radius: var(--border-radius);
+            background: var(--bg-card);
+            border-radius: var(--border-radius-sm);
             transition: var(--transition);
             border-left: 4px solid var(--primary);
             cursor: grab;
             user-select: none;
+            border: 1px solid var(--border-primary);
         }
 
         .plugin-item:hover, .cron-item:hover {
             transform: translateX(5px);
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            box-shadow: var(--shadow-md);
         }
 
         .plugin-item.dragging {
@@ -278,12 +141,12 @@
 
         .plugin-item.enabled {
             border-left-color: var(--success);
-            background: rgba(16, 185, 129, 0.1);
+            background: rgba(16, 185, 129, 0.05);
         }
 
         .plugin-item.disabled {
             border-left-color: var(--danger);
-            background: rgba(239, 68, 68, 0.1);
+            background: rgba(239, 68, 68, 0.05);
         }
 
         .plugin-info, .cron-info {
@@ -293,11 +156,12 @@
         .plugin-name, .cron-name {
             font-weight: 600;
             margin-bottom: 0.25rem;
+            color: var(--text-primary);
         }
 
         .plugin-status, .cron-status {
-            font-size: 0.875rem;
-            color: var(--gray);
+            font-size: var(--font-size-sm);
+            color: var(--text-secondary);
         }
 
         .plugin-actions {
@@ -306,195 +170,11 @@
             flex-wrap: wrap;
         }
 
-        .btn {
-            padding: 0.5rem 1rem;
-            border: none;
-            border-radius: 8px;
-            font-size: 0.875rem;
-            font-weight: 500;
-            cursor: pointer;
-            transition: var(--transition);
-            text-decoration: none;
-            display: inline-flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-
-        .btn-primary {
-            background: var(--primary);
-            color: var(--white);
-        }
-
-        .btn-primary:hover {
-            background: var(--primary-dark);
-            transform: translateY(-1px);
-        }
-
-        .btn-success {
-            background: var(--success);
-            color: var(--white);
-        }
-
-        .btn-warning {
-            background: var(--warning);
-            color: var(--white);
-        }
-
-        .btn-danger {
-            background: var(--danger);
-            color: var(--white);
-        }
-
-        .btn-sm {
-            padding: 0.25rem 0.5rem;
-            font-size: 0.75rem;
-        }
-
-        .badge {
-            padding: 0.25rem 0.75rem;
-            border-radius: 20px;
-            font-size: 0.75rem;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-
-        .badge-success {
-            background: rgba(16, 185, 129, 0.1);
-            color: var(--success);
-        }
-
-        .badge-danger {
-            background: rgba(239, 68, 68, 0.1);
-            color: var(--danger);
-        }
-
-        .terminal {
-            background: #1a1a1a;
-            border-radius: var(--border-radius);
-            padding: 1.5rem;
-            margin-top: 2rem;
-            font-family: 'Monaco', 'Menlo', monospace;
-            color: #00ff00;
-            min-height: 300px;
-            overflow-y: auto;
-            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.3);
-            position: relative;
-        }
-
-        .terminal::before {
-            content: '● ● ●';
-            position: absolute;
-            top: 0.75rem;
-            left: 1rem;
-            color: #ff5f56;
-            font-size: 1rem;
-        }
-
-        .terminal-header {
-            color: #888;
-            margin-bottom: 1rem;
-            padding-top: 1rem;
-            border-bottom: 1px solid #333;
-            padding-bottom: 0.5rem;
-        }
-
-        .terminal-input {
-            display: flex;
-            align-items: center;
-            margin-top: 1rem;
-        }
-
-        .terminal-prompt {
-            color: #00ff00;
-            margin-right: 0.5rem;
-        }
-
-        .terminal-input input {
-            background: transparent;
-            border: none;
-            color: #00ff00;
-            font-family: inherit;
-            flex: 1;
-            outline: none;
-        }
-
-        .footer {
-            text-align: center;
-            padding: 2rem;
-            color: rgba(255, 255, 255, 0.8);
-            margin-top: 3rem;
-        }
-
-        .footer a {
-            color: var(--white);
-            text-decoration: none;
-            transition: var(--transition);
-        }
-
-        .footer a:hover {
-            color: var(--accent);
-        }
-
-        .coffee-btn {
-            display: inline-block;
-            margin-top: 1rem;
-            padding: 0.75rem 1.5rem;
-            background: #ffdd00;
-            color: #000;
-            border-radius: 25px;
-            text-decoration: none;
-            font-weight: 600;
-            transition: var(--transition);
-        }
-
-        .coffee-btn:hover {
-            transform: scale(1.05);
-            box-shadow: 0 5px 15px rgba(255, 221, 0, 0.4);
-        }
-
         .cron-schedule {
-            font-size: 0.75rem;
-            color: var(--gray);
+            font-size: var(--font-size-xs);
+            color: var(--text-muted);
             margin-top: 0.25rem;
         }
-
-        @keyframes fadeInDown {
-            from {
-                opacity: 0;
-                transform: translateY(-30px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        @keyframes slideInUp {
-            from {
-                opacity: 0;
-                transform: translateY(30px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        .nav-card, .status-card, .plugins-section, .crons-section {
-            animation: slideInUp 0.6s ease-out;
-            animation-fill-mode: both;
-        }
-
-        .nav-card:nth-child(1) { animation-delay: 0.1s; }
-        .nav-card:nth-child(2) { animation-delay: 0.2s; }
-        .nav-card:nth-child(3) { animation-delay: 0.3s; }
-        .nav-card:nth-child(4) { animation-delay: 0.4s; }
-
-        .status-card:nth-child(1) { animation-delay: 0.2s; }
-        .status-card:nth-child(2) { animation-delay: 0.3s; }
-        .status-card:nth-child(3) { animation-delay: 0.4s; }
-        .status-card:nth-child(4) { animation-delay: 0.5s; }
 
         @media (max-width: 768px) {
             .dashboard {
@@ -524,60 +204,52 @@
                 justify-content: flex-end;
             }
         }
-
-        /* Loading states */
-        .loading {
-            opacity: 0.6;
-            pointer-events: none;
-        }
-
-        .spinner {
-            display: inline-block;
-            width: 1rem;
-            height: 1rem;
-            border: 2px solid rgba(255, 255, 255, 0.3);
-            border-radius: 50%;
-            border-top-color: #fff;
-            animation: spin 1s ease-in-out infinite;
-        }
-
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
     </style>
 </head>
 <body>
     <div class="container">
-        <header class="header">
+        <header class="page-header">
+            <div class="header-controls">
+                <div class="theme-switcher">
+                    <select class="theme-select" aria-label="Choose theme">
+                        <option value="auto">🔄 Auto (System)</option>
+                        <option value="light">☀️ Light Mode</option>
+                        <option value="dark">🌙 Dark Mode</option>
+                    </select>
+                </div>
+                <a href="/" class="btn btn-outline-light">
+                    <i class="fas fa-home"></i> Home
+                </a>
+            </div>
             <h1>ytdlp2STRM</h1>
             <p>Advanced YouTube Download to Stream Management</p>
         </header>
 
         <div class="dashboard">
             <aside class="sidebar">
-                <div class="nav-card" onclick="window.location.href='/general'">
+                <a href="/general" class="nav-card">
                     <i class="fas fa-cog"></i>
                     <h3>General Settings</h3>
                     <p>Configure core application settings and preferences</p>
-                </div>
+                </a>
 
-                <div class="nav-card" onclick="window.location.href='/plugins'">
+                <a href="/plugins" class="nav-card">
                     <i class="fas fa-puzzle-piece"></i>
                     <h3>Plugin Manager</h3>
                     <p>Enable, disable and configure plugins</p>
-                </div>
+                </a>
 
-                <div class="nav-card" onclick="window.location.href='/crons'">
+                <a href="/crons" class="nav-card">
                     <i class="fas fa-clock"></i>
                     <h3>Scheduler</h3>
                     <p>Manage automated tasks and cron jobs</p>
-                </div>
+                </a>
 
-                <div class="nav-card" onclick="window.location.href='/log'">
+                <a href="/log" class="nav-card">
                     <i class="fas fa-file-alt"></i>
                     <h3>System Logs</h3>
                     <p>View application logs and debug information</p>
-                </div>
+                </a>
             </aside>
 
             <main class="main-content">
@@ -608,7 +280,7 @@
                     </div>
                 </div>
 
-                <section class="plugins-section">
+                <section class="section">
                     <div class="section-header">
                         <h2 class="section-title">
                             <i class="fas fa-puzzle-piece"></i>
@@ -695,7 +367,7 @@
                     </div>
                 </section>
 
-                <section class="crons-section">
+                <section class="section">
                     <div class="section-header">
                         <h2 class="section-title">
                             <i class="fas fa-clock"></i>
@@ -743,6 +415,7 @@
         {% include 'footer.html' %}
     </div>
 
+    <script src="/theme-manager.js"></script>
     <script>
         // Socket.IO connection for real-time updates
         const socket = io();
@@ -993,6 +666,13 @@
         // Initialize drag and drop
         document.addEventListener('DOMContentLoaded', function() {
             console.log('Dashboard initialized');
+            updateStatusCounts();
+        });
+
+        // Listen for theme changes to update terminal colors if needed
+        window.addEventListener('themechange', function(e) {
+            console.log('Theme changed to:', e.detail.effectiveTheme);
+            // You can add theme-specific logic here
         });
     </script>
 </body>

@@ -1,53 +1,65 @@
 <!DOCTYPE html>
-<html data-bs-theme="auto">
+<html lang="en">
 <head>
     <title>ytdlp2STRM - Scheduler & CRONS</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/js/bootstrap.min.js"></script>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.2/font/bootstrap-icons.css">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="/styles.css" crossorigin="anonymous">
-    <script src="/bs-theme-mode.js"></script>
+    <link rel="stylesheet" href="/styles.css">
     <style>
-        .crons-header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border-radius: 12px;
+        /* Page-specific styles */
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
             padding: 2rem;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 1rem;
             margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: var(--bg-card);
+            border-radius: var(--border-radius-sm);
+            padding: 1rem;
             text-align: center;
-            position: relative;
+            border: 1px solid var(--border-primary);
+            transition: var(--transition);
         }
 
-        .home-btn-header {
-            position: absolute;
-            top: 1rem;
-            right: 1rem;
+        .stat-card:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
         }
 
-        .cron-section {
-            background: white;
-            border-radius: 12px;
-            padding: 2rem;
-            margin-bottom: 2rem;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-            border: 1px solid #dee2e6;
+        .stat-number {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        .stat-label {
+            font-size: var(--font-size-xs);
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
 
         .cron-item {
-            border: 1px solid #e9ecef;
-            border-radius: 8px;
+            border: 1px solid var(--border-primary);
+            border-radius: var(--border-radius-sm);
             padding: 1rem;
             margin-bottom: 1rem;
-            transition: all 0.3s ease;
-            background: #f8f9fa;
+            transition: var(--transition);
+            background: var(--bg-card);
         }
 
         .cron-item:hover {
             transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-            border-color: #0d6efd;
+            box-shadow: var(--shadow-md);
+            border-color: var(--primary);
         }
 
         .cron-header {
@@ -56,12 +68,12 @@
             gap: 0.5rem;
             align-items: center;
             font-weight: 600;
-            color: #495057;
+            color: var(--text-primary);
             padding: 0.5rem;
-            background: #e9ecef;
-            border-radius: 6px;
+            background: var(--bg-secondary);
+            border-radius: var(--border-radius-sm);
             margin-bottom: 1rem;
-            font-size: 0.875rem;
+            font-size: var(--font-size-sm);
         }
 
         .cron-row {
@@ -71,50 +83,29 @@
             align-items: center;
         }
 
-        .form-control {
-            border-radius: 6px;
-            border: 1px solid #ced4da;
-            transition: all 0.3s ease;
-            font-size: 0.875rem;
-        }
-
-        .form-control:focus {
-            border-color: #0d6efd;
-            box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
-        }
-
-        .btn {
-            border-radius: 6px;
-            transition: all 0.3s ease;
-        }
-
-        .btn:hover {
-            transform: translateY(-1px);
-        }
-
         .add-cron-btn {
-            background: linear-gradient(45deg, #28a745, #20c997);
+            background: linear-gradient(45deg, var(--success), #20c997);
             border: none;
-            color: white;
+            color: var(--text-light);
             padding: 0.75rem 1.5rem;
-            border-radius: 8px;
+            border-radius: var(--border-radius-sm);
             font-weight: 500;
-            transition: all 0.3s ease;
+            transition: var(--transition);
         }
 
         .add-cron-btn:hover {
             transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
         }
 
         .remove-btn {
             width: 40px;
             height: 40px;
-            border-radius: 6px;
+            border-radius: var(--border-radius-sm);
             display: flex;
             align-items: center;
             justify-content: center;
-            transition: all 0.3s ease;
+            transition: var(--transition);
         }
 
         .remove-btn:hover {
@@ -122,10 +113,10 @@
         }
 
         .info-section {
-            background: #f8f9fa;
-            border-left: 4px solid #0d6efd;
+            background: var(--bg-secondary);
+            border-left: 4px solid var(--primary);
             padding: 1rem;
-            border-radius: 0 8px 8px 0;
+            border-radius: 0 var(--border-radius-sm) var(--border-radius-sm) 0;
             margin-top: 2rem;
         }
 
@@ -137,85 +128,50 @@
         }
 
         .template-card {
-            border: 1px solid #dee2e6;
-            border-radius: 8px;
+            border: 1px solid var(--border-primary);
+            border-radius: var(--border-radius-sm);
             padding: 1rem;
             cursor: pointer;
-            transition: all 0.3s ease;
-            background: white;
+            transition: var(--transition);
+            background: var(--bg-card);
         }
 
         .template-card:hover {
-            border-color: #0d6efd;
+            border-color: var(--primary);
             transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            box-shadow: var(--shadow-md);
         }
 
         .template-card h6 {
-            color: #0d6efd;
+            color: var(--primary);
             margin-bottom: 0.5rem;
         }
 
         .template-card small {
-            color: #6c757d;
-        }
-
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-            gap: 1rem;
-            margin-bottom: 2rem;
-        }
-
-        .stat-card {
-            background: white;
-            border-radius: 8px;
-            padding: 1rem;
-            text-align: center;
-            border: 1px solid #dee2e6;
-            transition: all 0.3s ease;
-        }
-
-        .stat-card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-        }
-
-        .stat-number {
-            font-size: 1.5rem;
-            font-weight: 700;
-            color: #0d6efd;
-        }
-
-        .stat-label {
-            font-size: 0.75rem;
-            color: #6c757d;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-
-        .fade-in {
-            animation: fadeIn 0.5s ease-in;
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(-10px); }
-            to { opacity: 1; transform: translateY(0); }
+            color: var(--text-secondary);
         }
 
         .plugin-badge {
-            background: #e7f3ff;
-            color: #0066cc;
+            background: rgba(59, 130, 246, 0.1);
+            color: var(--info);
             padding: 0.25rem 0.5rem;
             border-radius: 4px;
-            font-size: 0.75rem;
+            font-size: var(--font-size-xs);
             font-weight: 500;
         }
 
         .schedule-preview {
-            font-size: 0.75rem;
-            color: #6c757d;
+            font-size: var(--font-size-xs);
+            color: var(--text-secondary);
             margin-top: 0.25rem;
+        }
+
+        .mobile-label {
+            font-weight: 600;
+            font-size: var(--font-size-xs);
+            color: var(--text-secondary);
+            margin-bottom: 0.25rem;
+            display: block;
         }
 
         @media (max-width: 768px) {
@@ -228,16 +184,12 @@
                 display: none;
             }
 
-            .mobile-label {
-                font-weight: 600;
-                font-size: 0.75rem;
-                color: #6c757d;
-                margin-bottom: 0.25rem;
-                display: block;
-            }
-
             .desktop-only {
                 display: none;
+            }
+
+            .container {
+                padding: 1rem;
             }
         }
 
@@ -249,12 +201,21 @@
     </style>
 </head>
 <body>
-    <div class="col-lg-12 mx-auto p-3 py-md-5">
+    <div class="container">
         <!-- Header -->
-        <div class="crons-header">
-            <a href="/" class="btn btn-outline-light home-btn-header">
-                <i class="fas fa-home me-1"></i> Home
-            </a>
+        <div class="page-header">
+            <div class="header-controls">
+                <div class="theme-switcher">
+                    <select class="theme-select" aria-label="Choose theme">
+                        <option value="auto">🔄 Auto (System)</option>
+                        <option value="light">☀️ Light Mode</option>
+                        <option value="dark">🌙 Dark Mode</option>
+                    </select>
+                </div>
+                <a href="/" class="btn btn-outline-light">
+                    <i class="fas fa-home"></i> Home
+                </a>
+            </div>
             <div style="font-size: 3rem; margin-bottom: 1rem;">
                 <i class="fas fa-clock"></i>
             </div>
@@ -286,19 +247,19 @@
         {% if request == "POST" %}
             {% if result %}
                 <div class="alert alert-success fade-in" role="alert">
-                    <i class="fas fa-check-circle me-2"></i>
+                    <i class="fas fa-check-circle"></i>
                     <strong>Success!</strong> ./config/crons.json saved successfully.
                 </div>
             {% else %}
                 <div class="alert alert-danger fade-in" role="alert">
-                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    <i class="fas fa-exclamation-triangle"></i>
                     <strong>Error!</strong> Failed to save cron configuration.
                 </div>
             {% endif %}
         {% endif %}
 
         <!-- Main Form -->
-        <div class="cron-section">
+        <div class="section">
             <h3 class="mb-4">
                 <i class="fas fa-calendar-alt me-2"></i>
                 Scheduled Tasks Configuration
@@ -400,7 +361,7 @@
                     {% else %}
                     <!-- Empty state message -->
                     <div class="text-center py-5" id="empty-state">
-                        <i class="fas fa-clock" style="font-size: 3rem; color: #dee2e6; margin-bottom: 1rem;"></i>
+                        <i class="fas fa-clock" style="font-size: 3rem; color: var(--text-muted); margin-bottom: 1rem;"></i>
                         <h5 class="text-muted">No scheduled tasks yet</h5>
                         <p class="text-muted">Click "Add New Cron Job" or use a quick template to get started</p>
                     </div>
@@ -425,7 +386,7 @@
         </div>
 
         <!-- Quick Templates -->
-        <div class="cron-section">
+        <div class="section">
             <h4 class="mb-3">
                 <i class="fas fa-magic me-2"></i>
                 Quick Templates
@@ -502,13 +463,13 @@
         {% include 'footer.html' %}
     </div>
 
+    <script src="/theme-manager.js"></script>
     <script>
         let cronCount = {{ crons|length if crons else 0 }};
 
         document.addEventListener('DOMContentLoaded', function() {
             updateStats();
             updateAllPreviews();
-
             document.getElementById('add-cron').addEventListener('click', addNewCron);
         });
 
@@ -837,6 +798,12 @@
 
         // Initialize tooltips after DOM is loaded
         setTimeout(addTooltips, 100);
+
+        // Listen for theme changes
+        window.addEventListener('themechange', function(e) {
+            console.log('Theme changed to:', e.detail.effectiveTheme);
+            // Update any theme-specific elements if needed
+        });
     </script>
 </body>
 </html>
