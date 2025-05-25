@@ -1,79 +1,599 @@
 <!DOCTYPE html>
-<html data-bs-theme=”auto”>
+<html data-bs-theme="auto">
 <head>
-    <title>ytdlp2STRM - {{ plugin.name }} Channels</title>
+    <title>ytdlp2STRM - {{ plugin.name|title }} Settings</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/js/bootstrap.min.js"></script>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.2/font/bootstrap-icons.css" integrity="sha384-b6lVK+yci+bfDmaY1u0zE8YYJt0TZxLEAFyYSLHId4xoVvsrQu3INevFKo+Xir8e" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.2/font/bootstrap-icons.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link rel="stylesheet" href="/styles.css" crossorigin="anonymous">
     <script src="/bs-theme-mode.js"></script>
+    <style>
+        .config-section {
+            background: white;
+            border-radius: 12px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            border: 1px solid #dee2e6;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-label {
+            font-weight: 600;
+            color: #495057;
+            margin-bottom: 0.5rem;
+        }
+
+        .form-control {
+            border-radius: 8px;
+            border: 1px solid #ced4da;
+            padding: 0.75rem 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .form-control:focus {
+            border-color: #0d6efd;
+            box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
+        }
+
+        .config-description {
+            font-size: 0.875rem;
+            color: #6c757d;
+            margin-top: 0.25rem;
+        }
+
+        .plugin-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 12px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            text-align: center;
+        }
+
+        .plugin-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            opacity: 0.9;
+        }
+
+        .plugin-title {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        .plugin-path {
+            opacity: 0.8;
+            font-size: 0.9rem;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+            justify-content: center;
+            margin-top: 2rem;
+        }
+
+        .btn {
+            border-radius: 8px;
+            padding: 0.75rem 1.5rem;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+
+        .alert {
+            border-radius: 8px;
+            border: none;
+            padding: 1rem 1.5rem;
+        }
+
+        .config-grid {
+            display: grid;
+            gap: 1.5rem;
+        }
+
+        .config-row {
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            gap: 1rem;
+            align-items: start;
+        }
+
+        .config-info {
+            padding: 1rem;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border-left: 4px solid #0d6efd;
+        }
+
+        .config-info h6 {
+            margin-bottom: 0.5rem;
+            color: #495057;
+            font-weight: 600;
+        }
+
+        .config-info p {
+            margin: 0;
+            font-size: 0.875rem;
+            color: #6c757d;
+        }
+
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 60px;
+            height: 34px;
+        }
+
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: .4s;
+            border-radius: 34px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 26px;
+            width: 26px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+
+        input:checked + .slider {
+            background-color: #0d6efd;
+        }
+
+        input:checked + .slider:before {
+            transform: translateX(26px);
+        }
+
+        @media (max-width: 768px) {
+            .config-row {
+                grid-template-columns: 1fr;
+            }
+
+            .action-buttons {
+                flex-direction: column;
+            }
+        }
+
+        .fade-in {
+            animation: fadeIn 0.5s ease-in;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
 </head>
 <body>
     <div class="col-lg-10 mx-auto p-3 py-md-5">
-        <h1 class="d-flex align-items-center pb-3 mb-5 border-bottom">ytdlp2STRM - {{ plugin.name }} Channels</h1>
-        <form method="post">
-            <div class="mb-3" id="plugin-fields">
-                {% if request == "POST": %}
-                    {% if result: %}
-                        <div class="alert alert-success mt-5" role="alert">
-                            {{ plugin.path }}/channels.json saved.
-                        </div>
-                    {% else %}
-                        <div class="alert alert-danger mt-5" role="alert">
-                            Error
-                        </div>
-                    {% endif %}
+        <!-- Plugin Header -->
+        <div class="plugin-header">
+            <div class="plugin-icon">
+                {% if plugin.name == 'youtube' %}
+                    <i class="fab fa-youtube"></i>
+                {% elif plugin.name == 'twitch' %}
+                    <i class="fab fa-twitch"></i>
+                {% elif plugin.name == 'twitter' %}
+                    <i class="fab fa-twitter"></i>
+                {% else %}
+                    <i class="fas fa-puzzle-piece"></i>
                 {% endif %}
-
-                <label class="form-label">{{ plugin.path }}/channels_list.json</label>
-                {% for field in plugin.channels %}
-                    <div class="mb-3 input-group">
-                        <input class="form-control" type="text" name="channels" value="{{ field }}">
-                        <button class="btn btn-danger" type="button" onclick="this.parentNode.parentNode.removeChild(this.parentNode);">
-                            <i class="bi bi-trash"></i>
-                        </button>                        
-                    </div>
-                {% endfor %}
             </div>
-            <button class="btn btn-primary" type="button" id="add-field">Add channel</button>
-            <button class="btn btn-primary" type="submit">Save</button>
-            <a href="/" class="btn btn-primary">Go back</a>
-        </form>
+            <div class="plugin-title">{{ plugin.name|title }} Plugin</div>
+            <div class="plugin-path">{{ plugin.path }}/config.json</div>
+        </div>
+
+        <!-- Success/Error Messages -->
+        {% if request == "POST" %}
+            {% if result %}
+                <div class="alert alert-success fade-in" role="alert">
+                    <i class="fas fa-check-circle me-2"></i>
+                    <strong>Success!</strong> Configuration saved successfully.
+                </div>
+            {% else %}
+                <div class="alert alert-danger fade-in" role="alert">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    <strong>Error!</strong> Failed to save configuration.
+                </div>
+            {% endif %}
+        {% endif %}
+
+        <!-- Configuration Form -->
+        <div class="config-section">
+            <h3 class="mb-4">
+                <i class="fas fa-cog me-2"></i>
+                Plugin Configuration
+            </h3>
+
+            <form method="post">
+                <div class="config-grid">
+                    {% for key, value in plugin.config.items() %}
+                        <div class="form-group">
+                            {% if key == 'strm_output_folder' %}
+                                <label class="form-label" for="{{ plugin.name }}_{{ key }}">
+                                    <i class="fas fa-folder me-1"></i>
+                                    STRM Output Folder
+                                </label>
+                                <input class="form-control" type="text" id="{{ plugin.name }}_{{ key }}" name="{{ key }}" value="{{ value }}" placeholder="/path/to/output/folder">
+                                <div class="config-description">
+                                    The directory where .strm files will be created for media server integration.
+                                </div>
+
+                            {% elif key == 'channels_list_file' %}
+                                <label class="form-label" for="{{ plugin.name }}_{{ key }}">
+                                    <i class="fas fa-list me-1"></i>
+                                    Channels List File
+                                </label>
+                                <input class="form-control" type="text" id="{{ plugin.name }}_{{ key }}" name="{{ key }}" value="{{ value }}" readonly>
+                                <div class="config-description">
+                                    Path to the JSON file containing the list of channels to monitor.
+                                    <a href="/plugin/{{ plugin.name }}/channels" class="text-decoration-none">
+                                        <i class="fas fa-edit"></i> Edit Channels
+                                    </a>
+                                </div>
+
+                            {% elif key == 'days_dateafter' %}
+                                <label class="form-label" for="{{ plugin.name }}_{{ key }}">
+                                    <i class="fas fa-calendar me-1"></i>
+                                    Days Date After
+                                </label>
+                                <input class="form-control" type="number" id="{{ plugin.name }}_{{ key }}" name="{{ key }}" value="{{ value }}" min="1" max="9999">
+                                <div class="config-description">
+                                    Download videos from this many days ago (10 = last 10 days, 1000 = approximately 3 years back).
+                                </div>
+
+                            {% elif key == 'videos_limit' %}
+                                <label class="form-label" for="{{ plugin.name }}_{{ key }}">
+                                    <i class="fas fa-hashtag me-1"></i>
+                                    Videos Limit
+                                </label>
+                                <input class="form-control" type="number" id="{{ plugin.name }}_{{ key }}" name="{{ key }}" value="{{ value }}" min="1" max="10000">
+                                <div class="config-description">
+                                    Maximum number of videos to download per channel.
+                                </div>
+
+                            {% elif key == 'sleep_interval' %}
+                                <label class="form-label" for="{{ plugin.name }}_{{ key }}">
+                                    <i class="fas fa-clock me-1"></i>
+                                    Sleep Interval (seconds)
+                                </label>
+                                <input class="form-control" type="number" id="{{ plugin.name }}_{{ key }}" name="{{ key }}" value="{{ value }}" min="1" max="60" step="0.1">
+                                <div class="config-description">
+                                    Minimum delay between downloads to avoid rate limiting.
+                                </div>
+
+                            {% elif key == 'max_sleep_interval' %}
+                                <label class="form-label" for="{{ plugin.name }}_{{ key }}">
+                                    <i class="fas fa-hourglass-half me-1"></i>
+                                    Max Sleep Interval (seconds)
+                                </label>
+                                <input class="form-control" type="number" id="{{ plugin.name }}_{{ key }}" name="{{ key }}" value="{{ value }}" min="1" max="120" step="0.1">
+                                <div class="config-description">
+                                    Maximum random delay between downloads.
+                                </div>
+
+                            {% elif key == 'sponsorblock' %}
+                                <label class="form-label" for="{{ plugin.name }}_{{ key }}">
+                                    <i class="fas fa-fast-forward me-1"></i>
+                                    SponsorBlock Integration
+                                </label>
+                                <div class="d-flex align-items-center">
+                                    <label class="toggle-switch">
+                                        <input type="checkbox" id="{{ plugin.name }}_{{ key }}" name="{{ key }}" value="True" {% if value == "True" %}checked{% endif %}>
+                                        <span class="slider"></span>
+                                    </label>
+                                    <span class="ms-3">Enable sponsor segment skipping</span>
+                                </div>
+                                <div class="config-description">
+                                    Automatically skip sponsored segments using SponsorBlock data.
+                                </div>
+
+                            {% elif key == 'sponsorblock_cats' %}
+                                <label class="form-label" for="{{ plugin.name }}_{{ key }}">
+                                    <i class="fas fa-tags me-1"></i>
+                                    SponsorBlock Categories
+                                </label>
+                                <select class="form-control" id="{{ plugin.name }}_{{ key }}" name="{{ key }}">
+                                    <option value="sponsor" {% if value == "sponsor" %}selected{% endif %}>Sponsor</option>
+                                    <option value="intro" {% if value == "intro" %}selected{% endif %}>Intro</option>
+                                    <option value="outro" {% if value == "outro" %}selected{% endif %}>Outro</option>
+                                    <option value="selfpromo" {% if value == "selfpromo" %}selected{% endif %}>Self Promotion</option>
+                                    <option value="interaction" {% if value == "interaction" %}selected{% endif %}>Interaction Reminder</option>
+                                    <option value="sponsor,intro,outro" {% if value == "sponsor,intro,outro" %}selected{% endif %}>Multiple Categories</option>
+                                </select>
+                                <div class="config-description">
+                                    Categories of segments to skip when SponsorBlock is enabled.
+                                </div>
+
+                            {% elif key == 'cookies' %}
+                                <label class="form-label" for="{{ plugin.name }}_{{ key }}">
+                                    <i class="fas fa-cookie me-1"></i>
+                                    Cookie Authentication
+                                </label>
+                                <select class="form-control" id="{{ plugin.name }}_{{ key }}" name="{{ key }}">
+                                    <option value="none" {% if value == "none" %}selected{% endif %}>No Cookies</option>
+                                    <option value="cookies" {% if value == "cookies" %}selected{% endif %}>Use Cookie File</option>
+                                    <option value="browser" {% if value == "browser" %}selected{% endif %}>Extract from Browser</option>
+                                </select>
+                                <div class="config-description">
+                                    Authentication method for accessing private or age-restricted content.
+                                </div>
+
+                            {% elif key == 'cookie_value' %}
+                                <label class="form-label" for="{{ plugin.name }}_{{ key }}">
+                                    <i class="fas fa-file me-1"></i>
+                                    Cookie File Path
+                                </label>
+                                <input class="form-control" type="text" id="{{ plugin.name }}_{{ key }}" name="{{ key }}" value="{{ value }}" placeholder="cookies/youtube_cookies.txt">
+                                <div class="config-description">
+                                    Path to the cookie file for authentication (when using cookie file method).
+                                </div>
+
+                            {% else %}
+                                <label class="form-label" for="{{ plugin.name }}_{{ key }}">
+                                    <i class="fas fa-cog me-1"></i>
+                                    {{ key|replace('_', ' ')|title }}
+                                </label>
+                                <input class="form-control" type="text" id="{{ plugin.name }}_{{ key }}" name="{{ key }}" value="{{ value }}">
+                                <div class="config-description">
+                                    Configuration option: {{ key }}
+                                </div>
+                            {% endif %}
+                        </div>
+                    {% endfor %}
+                </div>
+
+                <div class="action-buttons">
+                    <button type="submit" class="btn btn-success btn-lg">
+                        <i class="fas fa-save me-2"></i>
+                        Save Configuration
+                    </button>
+                    <a href="/plugin/{{ plugin.name }}/channels" class="btn btn-warning btn-lg">
+                        <i class="fas fa-list me-2"></i>
+                        Manage Channels
+                    </a>
+                    <a href="/" class="btn btn-primary btn-lg">
+                        <i class="fas fa-home me-2"></i>
+                        Back to Dashboard
+                    </a>
+                </div>
+            </form>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="config-section">
+            <h4 class="mb-3">
+                <i class="fas fa-bolt me-2"></i>
+                Quick Actions
+            </h4>
+            <div class="row">
+                <div class="col-md-4">
+                    <div class="config-info">
+                        <h6><i class="fas fa-play me-1"></i> Test Plugin</h6>
+                        <p>Run a test to verify the plugin configuration.</p>
+                        <button class="btn btn-outline-primary btn-sm mt-2" onclick="testPlugin('{{ plugin.name }}')">
+                            <i class="fas fa-play"></i> Test Now
+                        </button>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="config-info">
+                        <h6><i class="fas fa-download me-1"></i> Manual Run</h6>
+                        <p>Execute the plugin manually for immediate processing.</p>
+                        <button class="btn btn-outline-success btn-sm mt-2" onclick="runPlugin('{{ plugin.name }}')">
+                            <i class="fas fa-download"></i> Run Plugin
+                        </button>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="config-info">
+                        <h6><i class="fas fa-file-alt me-1"></i> View Logs</h6>
+                        <p>Check recent activity and debug information.</p>
+                        <a href="/log" class="btn btn-outline-info btn-sm mt-2">
+                            <i class="fas fa-file-alt"></i> View Logs
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <footer class="pt-5 my-5 text-muted border-top">
-            <a href="https://github.com/fe80Grau/ytdlp2STRM" target="_blank"><i class="bi bi-github"></i> fe80grau / ytdlp2STRM</a>
-            <a style="float:right" href="https://www.buymeacoffee.com/fe80grau" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" style="width: 90px !important;" ></a>
-          </footer>
+            <a href="https://github.com/fe80Grau/ytdlp2STRM" target="_blank">
+                <i class="bi bi-github"></i> fe80grau / ytdlp2STRM
+            </a>
+            <a style="float:right" href="https://www.buymeacoffee.com/fe80grau" target="_blank">
+                <img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" style="width: 90px !important;">
+            </a>
+        </footer>
     </div>
+
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            var addFieldButton = document.getElementById('add-field');
-            var pluginFields = document.getElementById('plugin-fields');
+        function testPlugin(pluginName) {
+            const button = event.target;
+            const originalText = button.innerHTML;
 
-            addFieldButton.addEventListener('click', function() {
-                var newField = document.createElement('div');
-                newField.className = 'mb-3 input-group';
+            button.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Testing...';
+            button.disabled = true;
 
-                var newInput = document.createElement('input');
-                newInput.className = 'form-control';
-                newInput.type = 'text';
-                newInput.name = 'channels';
+            fetch(`/api/run-plugin/${pluginName}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ test: true })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    button.innerHTML = '<i class="fas fa-check me-1"></i> Test Successful';
+                    button.classList.add('btn-success');
+                    button.classList.remove('btn-outline-primary');
+                } else {
+                    button.innerHTML = '<i class="fas fa-exclamation-triangle me-1"></i> Test Failed';
+                    button.classList.add('btn-danger');
+                    button.classList.remove('btn-outline-primary');
+                }
 
-                var deleteButton = document.createElement('button');
-                deleteButton.className = 'btn btn-danger';
-                var trashIcon = document.createElement('i');
-                trashIcon.className = 'bi bi-trash';
-                deleteButton.appendChild(trashIcon);
+                setTimeout(() => {
+                    button.innerHTML = originalText;
+                    button.disabled = false;
+                    button.className = 'btn btn-outline-primary btn-sm mt-2';
+                }, 3000);
+            })
+            .catch(error => {
+                button.innerHTML = '<i class="fas fa-exclamation-triangle me-1"></i> Error';
+                button.classList.add('btn-danger');
+                setTimeout(() => {
+                    button.innerHTML = originalText;
+                    button.disabled = false;
+                    button.className = 'btn btn-outline-primary btn-sm mt-2';
+                }, 3000);
+            });
+        }
 
-                deleteButton.addEventListener('click', function() {
-                    newField.remove();
-                });
+        function runPlugin(pluginName) {
+            const button = event.target;
+            const originalText = button.innerHTML;
 
-                newField.appendChild(newInput);
-                newField.appendChild(deleteButton);
-                pluginFields.appendChild(newField);
+            button.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Running...';
+            button.disabled = true;
+
+            fetch(`/api/run-plugin/${pluginName}`, {
+                method: 'POST'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    button.innerHTML = '<i class="fas fa-check me-1"></i> Started';
+                    button.classList.add('btn-success');
+                    button.classList.remove('btn-outline-success');
+                } else {
+                    button.innerHTML = '<i class="fas fa-exclamation-triangle me-1"></i> Failed';
+                    button.classList.add('btn-danger');
+                    button.classList.remove('btn-outline-success');
+                }
+
+                setTimeout(() => {
+                    button.innerHTML = originalText;
+                    button.disabled = false;
+                    button.className = 'btn btn-outline-success btn-sm mt-2';
+                }, 3000);
+            })
+            .catch(error => {
+                button.innerHTML = '<i class="fas fa-exclamation-triangle me-1"></i> Error';
+                setTimeout(() => {
+                    button.innerHTML = originalText;
+                    button.disabled = false;
+                    button.className = 'btn btn-outline-success btn-sm mt-2';
+                }, 3000);
+            });
+        }
+
+        // Handle toggle switches for boolean values
+        document.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
+            checkbox.addEventListener('change', function() {
+                // Create a hidden input to ensure the value is sent even when unchecked
+                const hiddenInput = document.createElement('input');
+                hiddenInput.type = 'hidden';
+                hiddenInput.name = this.name;
+                hiddenInput.value = this.checked ? 'True' : 'False';
+
+                // Remove any existing hidden input for this field
+                const existingHidden = document.querySelector(`input[type="hidden"][name="${this.name}"]`);
+                if (existingHidden) {
+                    existingHidden.remove();
+                }
+
+                // Add the new hidden input
+                this.parentNode.parentNode.appendChild(hiddenInput);
             });
         });
+
+        // Initialize checkbox states on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            document.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
+                checkbox.dispatchEvent(new Event('change'));
+            });
+        });
+
+        // Form validation
+        document.querySelector('form').addEventListener('submit', function(e) {
+            const outputFolder = document.querySelector('input[name="strm_output_folder"]');
+            const videosLimit = document.querySelector('input[name="videos_limit"]');
+            const sleepInterval = document.querySelector('input[name="sleep_interval"]');
+
+            let hasErrors = false;
+
+            // Validate output folder
+            if (outputFolder && !outputFolder.value.trim()) {
+                outputFolder.classList.add('is-invalid');
+                hasErrors = true;
+            } else if (outputFolder) {
+                outputFolder.classList.remove('is-invalid');
+            }
+
+            // Validate videos limit
+            if (videosLimit && (parseInt(videosLimit.value) < 1 || parseInt(videosLimit.value) > 10000)) {
+                videosLimit.classList.add('is-invalid');
+                hasErrors = true;
+            } else if (videosLimit) {
+                videosLimit.classList.remove('is-invalid');
+            }
+
+            // Validate sleep interval
+            if (sleepInterval && (parseFloat(sleepInterval.value) < 0.1 || parseFloat(sleepInterval.value) > 60)) {
+                sleepInterval.classList.add('is-invalid');
+                hasErrors = true;
+            } else if (sleepInterval) {
+                sleepInterval.classList.remove('is-invalid');
+            }
+
+            if (hasErrors) {
+                e.preventDefault();
+                alert('Please correct the highlighted errors before saving.');
+            }
+        });
+
+        // Add custom styles for invalid inputs
+        const style = document.createElement('style');
+        style.textContent = `
+            .form-control.is-invalid {
+                border-color: #dc3545;
+                box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25);
+            }
+        `;
+        document.head.appendChild(style);
     </script>
 </body>
 </html>

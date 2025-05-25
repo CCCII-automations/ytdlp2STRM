@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ytdlp2STRM - Modern Dashboard</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.4.1/socket.io.js"></script>
     <style>
         * {
             margin: 0;
@@ -223,6 +224,34 @@
             gap: 0.75rem;
         }
 
+        .plugin-columns {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+        }
+
+        .plugin-column {
+            border: 2px dashed var(--gray-light);
+            border-radius: var(--border-radius);
+            padding: 1rem;
+            min-height: 200px;
+            transition: var(--transition);
+        }
+
+        .plugin-column.drag-over {
+            border-color: var(--primary);
+            background-color: rgba(99, 102, 241, 0.1);
+        }
+
+        .plugin-column h4 {
+            text-align: center;
+            margin-bottom: 1rem;
+            color: var(--gray);
+            font-size: 1rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
         .plugin-item, .cron-item {
             display: flex;
             align-items: center;
@@ -233,11 +262,28 @@
             border-radius: var(--border-radius);
             transition: var(--transition);
             border-left: 4px solid var(--primary);
+            cursor: grab;
+            user-select: none;
         }
 
         .plugin-item:hover, .cron-item:hover {
             transform: translateX(5px);
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .plugin-item.dragging {
+            opacity: 0.5;
+            cursor: grabbing;
+        }
+
+        .plugin-item.enabled {
+            border-left-color: var(--success);
+            background: rgba(16, 185, 129, 0.1);
+        }
+
+        .plugin-item.disabled {
+            border-left-color: var(--danger);
+            background: rgba(239, 68, 68, 0.1);
         }
 
         .plugin-info, .cron-info {
@@ -257,6 +303,7 @@
         .plugin-actions {
             display: flex;
             gap: 0.5rem;
+            flex-wrap: wrap;
         }
 
         .btn {
@@ -296,6 +343,11 @@
         .btn-danger {
             background: var(--danger);
             color: var(--white);
+        }
+
+        .btn-sm {
+            padding: 0.25rem 0.5rem;
+            font-size: 0.75rem;
         }
 
         .badge {
@@ -347,6 +399,26 @@
             padding-bottom: 0.5rem;
         }
 
+        .terminal-input {
+            display: flex;
+            align-items: center;
+            margin-top: 1rem;
+        }
+
+        .terminal-prompt {
+            color: #00ff00;
+            margin-right: 0.5rem;
+        }
+
+        .terminal-input input {
+            background: transparent;
+            border: none;
+            color: #00ff00;
+            font-family: inherit;
+            flex: 1;
+            outline: none;
+        }
+
         .footer {
             text-align: center;
             padding: 2rem;
@@ -379,6 +451,12 @@
         .coffee-btn:hover {
             transform: scale(1.05);
             box-shadow: 0 5px 15px rgba(255, 221, 0, 0.4);
+        }
+
+        .cron-schedule {
+            font-size: 0.75rem;
+            color: var(--gray);
+            margin-top: 0.25rem;
         }
 
         @keyframes fadeInDown {
@@ -427,6 +505,10 @@
                 grid-template-columns: repeat(2, 1fr);
             }
 
+            .plugin-columns {
+                grid-template-columns: 1fr;
+            }
+
             .container {
                 padding: 1rem;
             }
@@ -441,6 +523,26 @@
                 width: 100%;
                 justify-content: flex-end;
             }
+        }
+
+        /* Loading states */
+        .loading {
+            opacity: 0.6;
+            pointer-events: none;
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 1rem;
+            height: 1rem;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
         }
     </style>
 </head>
@@ -481,19 +583,27 @@
             <main class="main-content">
                 <div class="status-grid">
                     <div class="status-card">
-                        <div class="status-number">12</div>
+                        <div class="status-number" id="active-plugins-count">{{ plugins|selectattr("enabled")|list|length }}</div>
                         <div class="status-label">Active Plugins</div>
                     </div>
                     <div class="status-card">
-                        <div class="status-number">8</div>
-                        <div class="status-label">Running Tasks</div>
+                        <div class="status-number">{{ plugins|length }}</div>
+                        <div class="status-label">Total Plugins</div>
                     </div>
                     <div class="status-card">
-                        <div class="status-number">24</div>
+                        <div class="status-number">{{ crons|length }}</div>
                         <div class="status-label">Scheduled Jobs</div>
                     </div>
                     <div class="status-card">
-                        <div class="status-number">156</div>
+                        <div class="status-number" id="total-channels-count">
+                            {% set total_channels = 0 %}
+                            {% for plugin in plugins %}
+                                {% if plugin.channels %}
+                                    {% set total_channels = total_channels + plugin.channels|length %}
+                                {% endif %}
+                            {% endfor %}
+                            {{ total_channels }}
+                        </div>
                         <div class="status-label">Total Channels</div>
                     </div>
                 </div>
@@ -502,79 +612,85 @@
                     <div class="section-header">
                         <h2 class="section-title">
                             <i class="fas fa-puzzle-piece"></i>
-                            Active Plugins
+                            Plugin Management
                         </h2>
-                        <a href="/plugins" class="btn btn-primary">
-                            <i class="fas fa-plus"></i>
-                            Manage Plugins
-                        </a>
-                    </div>
-
-                    <div class="plugin-item">
-                        <div class="plugin-info">
-                            <div class="plugin-name">YouTube Downloader</div>
-                            <div class="plugin-status">
-                                <span class="badge badge-success">Enabled</span>
-                                Last run: 2 hours ago
-                            </div>
-                        </div>
-                        <div class="plugin-actions">
-                            <a href="/plugin/youtube" class="btn btn-primary">
+                        <div>
+                            <a href="/plugins" class="btn btn-primary">
                                 <i class="fas fa-cog"></i>
-                                Settings
+                                Advanced Settings
                             </a>
-                            <a href="/plugin/youtube/channels" class="btn btn-warning">
-                                <i class="fas fa-list"></i>
-                                Channels
-                            </a>
-                            <button class="btn btn-success play-btn" data-plugin="youtube">
-                                <i class="fas fa-play"></i>
-                                Run
+                            <button id="save-plugins" class="btn btn-success" style="display: none;">
+                                <i class="fas fa-save"></i>
+                                Save Changes
                             </button>
                         </div>
                     </div>
 
-                    <div class="plugin-item">
-                        <div class="plugin-info">
-                            <div class="plugin-name">Twitch Recorder</div>
-                            <div class="plugin-status">
-                                <span class="badge badge-success">Enabled</span>
-                                Last run: 30 minutes ago
-                            </div>
+                    <div class="plugin-columns">
+                        <div class="plugin-column" id="enabled-plugins" ondrop="drop(event)" ondragover="allowDrop(event)">
+                            <h4><i class="fas fa-check-circle text-success"></i> Enabled Plugins</h4>
+                            {% for plugin in plugins %}
+                                {% if plugin.enabled %}
+                                <div class="plugin-item enabled" draggable="true" ondragstart="drag(event)" data-plugin="{{ plugin.name }}" data-enabled="true">
+                                    <div class="plugin-info">
+                                        <div class="plugin-name">{{ plugin.name|title }}</div>
+                                        <div class="plugin-status">
+                                            <span class="badge badge-success">Enabled</span>
+                                            {% if plugin.channels %}
+                                                {{ plugin.channels|length }} channels
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                    <div class="plugin-actions">
+                                        <a href="/plugin/{{ plugin.name }}" class="btn btn-primary btn-sm">
+                                            <i class="fas fa-cog"></i>
+                                            Settings
+                                        </a>
+                                        {% if plugin.channels %}
+                                        <a href="/plugin/{{ plugin.name }}/channels" class="btn btn-warning btn-sm">
+                                            <i class="fas fa-list"></i>
+                                            Channels
+                                        </a>
+                                        {% endif %}
+                                        <button class="btn btn-success btn-sm play-btn" data-plugin="{{ plugin.name }}">
+                                            <i class="fas fa-play"></i>
+                                            Run
+                                        </button>
+                                    </div>
+                                </div>
+                                {% endif %}
+                            {% endfor %}
                         </div>
-                        <div class="plugin-actions">
-                            <a href="/plugin/twitch" class="btn btn-primary">
-                                <i class="fas fa-cog"></i>
-                                Settings
-                            </a>
-                            <a href="/plugin/twitch/channels" class="btn btn-warning">
-                                <i class="fas fa-list"></i>
-                                Channels
-                            </a>
-                            <button class="btn btn-success play-btn" data-plugin="twitch">
-                                <i class="fas fa-play"></i>
-                                Run
-                            </button>
-                        </div>
-                    </div>
 
-                    <div class="plugin-item">
-                        <div class="plugin-info">
-                            <div class="plugin-name">Generic Extractor</div>
-                            <div class="plugin-status">
-                                <span class="badge badge-danger">Disabled</span>
-                                Last run: Never
-                            </div>
-                        </div>
-                        <div class="plugin-actions">
-                            <a href="/plugin/generic" class="btn btn-primary">
-                                <i class="fas fa-cog"></i>
-                                Settings
-                            </a>
-                            <button class="btn btn-success play-btn" data-plugin="generic">
-                                <i class="fas fa-play"></i>
-                                Run
-                            </button>
+                        <div class="plugin-column" id="disabled-plugins" ondrop="drop(event)" ondragover="allowDrop(event)">
+                            <h4><i class="fas fa-times-circle text-danger"></i> Disabled Plugins</h4>
+                            {% for plugin in plugins %}
+                                {% if not plugin.enabled %}
+                                <div class="plugin-item disabled" draggable="true" ondragstart="drag(event)" data-plugin="{{ plugin.name }}" data-enabled="false">
+                                    <div class="plugin-info">
+                                        <div class="plugin-name">{{ plugin.name|title }}</div>
+                                        <div class="plugin-status">
+                                            <span class="badge badge-danger">Disabled</span>
+                                            {% if plugin.channels %}
+                                                {{ plugin.channels|length }} channels
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                    <div class="plugin-actions">
+                                        <a href="/plugin/{{ plugin.name }}" class="btn btn-primary btn-sm">
+                                            <i class="fas fa-cog"></i>
+                                            Settings
+                                        </a>
+                                        {% if plugin.channels %}
+                                        <a href="/plugin/{{ plugin.name }}/channels" class="btn btn-warning btn-sm">
+                                            <i class="fas fa-list"></i>
+                                            Channels
+                                        </a>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                {% endif %}
+                            {% endfor %}
                         </div>
                     </div>
                 </section>
@@ -587,30 +703,24 @@
                         </h2>
                         <a href="/crons" class="btn btn-primary">
                             <i class="fas fa-plus"></i>
-                            Add Schedule
+                            Manage Schedule
                         </a>
                     </div>
 
+                    {% for cron in crons %}
                     <div class="cron-item">
                         <div class="cron-info">
-                            <div class="cron-name">YouTube Daily Sync</div>
-                            <div class="cron-status">Every 1 day at 02:00h - Next run: in 6 hours</div>
+                            <div class="cron-name">{{ cron.do[1]|title }} - {{ cron.do[3] }}</div>
+                            <div class="cron-status">
+                                Every
+                                {% if cron.qty %}{{ cron.qty }}{% endif %}
+                                {{ cron.every }}
+                                {% if cron.at %} at {{ cron.at }}{% endif %}
+                                {% if cron.timezone %} ({{ cron.timezone }}){% endif %}
+                            </div>
                         </div>
                     </div>
-
-                    <div class="cron-item">
-                        <div class="cron-info">
-                            <div class="cron-name">Twitch Hourly Check</div>
-                            <div class="cron-status">Every 1 hour - Next run: in 23 minutes</div>
-                        </div>
-                    </div>
-
-                    <div class="cron-item">
-                        <div class="cron-info">
-                            <div class="cron-name">Weekly Cleanup</div>
-                            <div class="cron-status">Every 7 days at 03:00h - Next run: in 3 days</div>
-                        </div>
-                    </div>
+                    {% endfor %}
                 </section>
 
                 <div class="terminal">
@@ -618,10 +728,13 @@
                     <div id="terminal-content">
                         <div>$ python3 cli.py --status</div>
                         <div style="color: #00ff00;">✓ System operational</div>
-                        <div style="color: #00ff00;">✓ 12 plugins loaded</div>
-                        <div style="color: #00ff00;">✓ 8 active tasks</div>
-                        <div style="color: #ffff00;">⚠ 2 warnings in log</div>
-                        <div>$ _</div>
+                        <div style="color: #00ff00;">✓ {{ plugins|length }} plugins loaded</div>
+                        <div style="color: #00ff00;">✓ {{ plugins|selectattr("enabled")|list|length }} active plugins</div>
+                        <div style="color: #ffff00;">⚠ Check logs for details</div>
+                    </div>
+                    <div class="terminal-input">
+                        <span class="terminal-prompt">$</span>
+                        <input type="text" id="command-input" placeholder="Enter command (python3 cli.py --help)" />
                     </div>
                 </div>
             </main>
@@ -629,31 +742,172 @@
 
         <footer class="footer">
             <div>
-                <a href="https://github.com/CCCII-automations/ytdlp2STRM" target="_blank">
-                    <i class="fab fa-github"></i> Cristian Casapu / ytdlp2STRM
+                <a href="https://github.com/fe80Grau/ytdlp2STRM" target="_blank">
+                    <i class="fab fa-github"></i> fe80grau / ytdlp2STRM
                 </a>
             </div>
-            <a href="https://www.buymeacoffee.com/cristiancasapu" target="_blank" class="coffee-btn">
+            <a href="https://www.buymeacoffee.com/fe80grau" target="_blank" class="coffee-btn">
                 <i class="fas fa-coffee"></i> Buy me a coffee
             </a>
         </footer>
     </div>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.4.1/socket.io.js"></script>
     <script>
         // Socket.IO connection for real-time updates
         const socket = io();
 
+        let pluginChanges = [];
+        let hasChanges = false;
+
+        // Drag and Drop functionality
+        function allowDrop(ev) {
+            ev.preventDefault();
+            ev.currentTarget.classList.add('drag-over');
+        }
+
+        function drag(ev) {
+            ev.dataTransfer.setData("text", ev.target.getAttribute('data-plugin'));
+            ev.dataTransfer.setData("enabled", ev.target.getAttribute('data-enabled'));
+            ev.target.classList.add('dragging');
+        }
+
+        function drop(ev) {
+            ev.preventDefault();
+            ev.currentTarget.classList.remove('drag-over');
+
+            const pluginName = ev.dataTransfer.getData("text");
+            const wasEnabled = ev.dataTransfer.getData("enabled") === 'true';
+            const targetColumn = ev.currentTarget.id;
+            const shouldBeEnabled = targetColumn === 'enabled-plugins';
+
+            // Find the dragged element
+            const draggedElement = document.querySelector(`[data-plugin="${pluginName}"]`);
+            draggedElement.classList.remove('dragging');
+
+            // Only proceed if there's actually a change
+            if (wasEnabled !== shouldBeEnabled) {
+                // Move the element to the target column
+                ev.currentTarget.appendChild(draggedElement);
+
+                // Update the element's appearance and data
+                draggedElement.setAttribute('data-enabled', shouldBeEnabled);
+                const badge = draggedElement.querySelector('.badge');
+                const runButton = draggedElement.querySelector('.play-btn');
+
+                if (shouldBeEnabled) {
+                    draggedElement.classList.remove('disabled');
+                    draggedElement.classList.add('enabled');
+                    badge.classList.remove('badge-danger');
+                    badge.classList.add('badge-success');
+                    badge.textContent = 'Enabled';
+                    if (runButton) {
+                        runButton.style.display = 'inline-flex';
+                    }
+                } else {
+                    draggedElement.classList.remove('enabled');
+                    draggedElement.classList.add('disabled');
+                    badge.classList.remove('badge-success');
+                    badge.classList.add('badge-danger');
+                    badge.textContent = 'Disabled';
+                    if (runButton) {
+                        runButton.style.display = 'none';
+                    }
+                }
+
+                // Track the change
+                const existingChange = pluginChanges.find(change => change.name === pluginName);
+                if (existingChange) {
+                    existingChange.enabled = shouldBeEnabled;
+                } else {
+                    pluginChanges.push({ name: pluginName, enabled: shouldBeEnabled });
+                }
+
+                hasChanges = true;
+                document.getElementById('save-plugins').style.display = 'inline-flex';
+                updateStatusCounts();
+            }
+        }
+
+        // Remove drag-over class when dragging leaves
+        document.addEventListener('dragleave', function(e) {
+            if (e.target.classList.contains('plugin-column')) {
+                e.target.classList.remove('drag-over');
+            }
+        });
+
+        // Save plugin changes
+        document.getElementById('save-plugins').addEventListener('click', function() {
+            if (!hasChanges) return;
+
+            this.innerHTML = '<span class="spinner"></span> Saving...';
+            this.disabled = true;
+
+            // Send changes to backend
+            fetch('/api/update-plugins', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ changes: pluginChanges })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    this.innerHTML = '<i class="fas fa-check"></i> Saved!';
+                    setTimeout(() => {
+                        this.style.display = 'none';
+                        this.innerHTML = '<i class="fas fa-save"></i> Save Changes';
+                        this.disabled = false;
+                        hasChanges = false;
+                        pluginChanges = [];
+                    }, 2000);
+                } else {
+                    this.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Error!';
+                    setTimeout(() => {
+                        this.innerHTML = '<i class="fas fa-save"></i> Save Changes';
+                        this.disabled = false;
+                    }, 2000);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                this.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Error!';
+                setTimeout(() => {
+                    this.innerHTML = '<i class="fas fa-save"></i> Save Changes';
+                    this.disabled = false;
+                }, 2000);
+            });
+        });
+
+        // Update status counts
+        function updateStatusCounts() {
+            const enabledCount = document.querySelectorAll('#enabled-plugins .plugin-item').length;
+            const totalChannels = Array.from(document.querySelectorAll('.plugin-item')).reduce((total, item) => {
+                const channelsText = item.querySelector('.plugin-status').textContent;
+                const match = channelsText.match(/(\d+) channels/);
+                return total + (match ? parseInt(match[1]) : 0);
+            }, 0);
+
+            document.getElementById('active-plugins-count').textContent = enabledCount;
+            document.getElementById('total-channels-count').textContent = totalChannels;
+        }
+
         // Handle plugin run buttons
         document.querySelectorAll('.play-btn').forEach(btn => {
-            btn.addEventListener('click', function() {
+            btn.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+
                 const plugin = this.dataset.plugin;
                 const originalText = this.innerHTML;
 
-                this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Running...';
+                this.innerHTML = '<span class="spinner"></span> Running...';
                 this.disabled = true;
 
-                // Simulate plugin execution
+                // Execute command via Socket.IO
+                socket.emit('execute_command', `python3 cli.py --media ${plugin}`);
+
+                // Reset button after timeout
                 setTimeout(() => {
                     this.innerHTML = '<i class="fas fa-check"></i> Complete';
                     this.classList.remove('btn-success');
@@ -664,30 +918,33 @@
                         this.disabled = false;
                     }, 2000);
                 }, 3000);
-
-                // Add terminal output
-                const terminalContent = document.getElementById('terminal-content');
-                const newLine = document.createElement('div');
-                newLine.innerHTML = `$ python3 cli.py --run ${plugin}`;
-                terminalContent.appendChild(newLine);
-
-                const output = document.createElement('div');
-                output.style.color = '#00ff00';
-                output.innerHTML = `✓ ${plugin} plugin started successfully`;
-                terminalContent.appendChild(output);
-
-                // Scroll to bottom
-                document.querySelector('.terminal').scrollTop = document.querySelector('.terminal').scrollHeight;
             });
         });
 
-        // Real-time status updates
-        socket.on('status_update', function(data) {
-            // Update status cards with real data
-            console.log('Status update:', data);
+        // Terminal command input
+        document.getElementById('command-input').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                const command = this.value.trim();
+                if (command) {
+                    // Add command to terminal
+                    const terminalContent = document.getElementById('terminal-content');
+                    const commandLine = document.createElement('div');
+                    commandLine.innerHTML = `$ ${command}`;
+                    terminalContent.appendChild(commandLine);
+
+                    // Execute command
+                    socket.emit('execute_command', command);
+
+                    // Clear input
+                    this.value = '';
+
+                    // Scroll to bottom
+                    document.querySelector('.terminal').scrollTop = document.querySelector('.terminal').scrollHeight;
+                }
+            }
         });
 
-        // Command output handling
+        // Socket.IO event handlers
         socket.on('command_output', function(output) {
             const terminalContent = document.getElementById('terminal-content');
             const newLine = document.createElement('div');
@@ -696,6 +953,26 @@
             terminalContent.appendChild(newLine);
 
             // Keep terminal scrolled to bottom
+            document.querySelector('.terminal').scrollTop = document.querySelector('.terminal').scrollHeight;
+        });
+
+        socket.on('command_completed', function(data) {
+            const terminalContent = document.getElementById('terminal-content');
+            const completedLine = document.createElement('div');
+            completedLine.innerHTML = '<span style="color: #ffff00;">Command completed</span>';
+            terminalContent.appendChild(completedLine);
+
+            // Scroll to bottom
+            document.querySelector('.terminal').scrollTop = document.querySelector('.terminal').scrollHeight;
+        });
+
+        socket.on('command_error', function(error) {
+            const terminalContent = document.getElementById('terminal-content');
+            const errorLine = document.createElement('div');
+            errorLine.innerHTML = `<span style="color: #ff0000;">Error: ${error}</span>`;
+            terminalContent.appendChild(errorLine);
+
+            // Scroll to bottom
             document.querySelector('.terminal').scrollTop = document.querySelector('.terminal').scrollHeight;
         });
 
@@ -713,8 +990,19 @@
         // Auto-refresh status every 30 seconds
         setInterval(() => {
             // In a real implementation, this would fetch actual data
-            console.log('Refreshing status...');
+            fetch('/api/status')
+                .then(response => response.json())
+                .then(data => {
+                    // Update status if needed
+                    console.log('Status refreshed:', data);
+                })
+                .catch(error => console.log('Status refresh failed:', error));
         }, 30000);
+
+        // Initialize drag and drop
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Dashboard initialized');
+        });
     </script>
 </body>
 </html>

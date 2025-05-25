@@ -1,10 +1,13 @@
 import json
 import shlex
+import os
+import re
 from clases.config import config as c
 from clases.cron import cron as cron
 from clases.log import log as l
 from flask_socketio import emit
 from subprocess import Popen, PIPE
+
 
 class Ui:
     def __init__(self):
@@ -16,92 +19,202 @@ class Ui:
     def general_settings(self):
         # Leer el archivo de configuración
         data = []
-        with open(self.config_file, 'r') as file:
-            data = json.load(file)
+        try:
+            with open(self.config_file, 'r') as file:
+                data = json.load(file)
+        except FileNotFoundError:
+            # Create default config if file doesn't exist
+            data = {
+                "output_path": "./output",
+                "log_level": "INFO",
+                "max_workers": 4,
+                "download_format": "best"
+            }
+            self.general_settings = data
         return data
-    
+
     @general_settings.setter
     def general_settings(self, data):
         # Guardar los valores en el archivo de configuración
+        os.makedirs(os.path.dirname(self.config_file), exist_ok=True)
         with open(self.config_file, 'w') as file:
-            json.dump(data, file)
+            json.dump(data, file, indent=4)
 
     @property
     def plugins_py(self):
-        data = []
-        with open(self.plugins_file, 'r') as file:
-            data = file.read()
+        data = ""
+        try:
+            with open(self.plugins_file, 'r') as file:
+                data = file.read()
+        except FileNotFoundError:
+            # Create default plugins.py if it doesn't exist
+            data = "# Plugin imports - uncomment to enable\n# import plugins.youtube\n# import plugins.twitch\n# import plugins.generic"
+            self.plugins_py = data
         return data
-    
+
     @plugins_py.setter
     def plugins_py(self, data):
+        os.makedirs(os.path.dirname(self.plugins_file), exist_ok=True)
         with open(self.plugins_file, 'w', newline="") as file:
             file.write(data)
 
     @property
     def plugins(self):
         plugins = []
-        
-        for plugin in self.plugins_py.split('\n'):
-            if 'plugins.' in plugin:
-                if not '#' in plugin:
-                    name = plugin.split('plugins.')[1].split(' ')[0]
-                    path = '{}/{}'.format(
-                        './plugins',
-                        name
-                    )
-                    config = c.config(
-                        '{}/{}'.format(
-                            path,
-                            'config.json'
-                        )
-                    ).get_config()
 
-                    channels = c.config(
-                        config['channels_list_file']
-                    ).get_channels()
+        # Parse plugins.py to find available plugins
+        plugins_content = self.plugins_py
 
-                    plugins.append(
-                        {
-                            'name' : name,
-                            'path' : path,
-                            'enabled' : True if not '#' in plugin else False,
-                            'config' :  config,
-                            'channels' : channels
-                        }
-                    )
+        # Look for plugin import lines
+        for line in plugins_content.split('\n'):
+            line = line.strip()
+            if 'plugins.' in line and ('import' in line or 'from' in line):
+                # Determine if plugin is enabled (not commented out)
+                is_enabled = not line.startswith('#')
+
+                # Extract plugin name
+                if 'import plugins.' in line:
+                    # Format: import plugins.pluginname
+                    plugin_name = line.split('plugins.')[1].split()[0]
+                elif 'from plugins.' in line:
+                    # Format: from plugins.pluginname import something
+                    plugin_name = line.split('plugins.')[1].split()[0]
+                else:
+                    continue
+
+                # Build plugin path
+                plugin_path = f'./plugins/{plugin_name}'
+
+                # Try to load plugin config
+                config_file = f'{plugin_path}/config.json'
+                config_data = {}
+                if os.path.exists(config_file):
+                    try:
+                        with open(config_file, 'r') as f:
+                            config_data = json.load(f)
+                    except:
+                        config_data = {"name": plugin_name, "enabled": is_enabled}
+
+                # Try to load channels - handle your specific structure
+                channels_file = config_data.get('channels_list_file', f'{plugin_path}/channel_list.json')
+                channels = []
+                if os.path.exists(channels_file):
+                    try:
+                        with open(channels_file, 'r') as f:
+                            channels_data = json.load(f)
+                            # Handle both list format and object format
+                            if isinstance(channels_data, list):
+                                channels = channels_data
+                            elif isinstance(channels_data, dict) and 'channels' in channels_data:
+                                channels = channels_data['channels']
+                    except:
+                        channels = []
+
+                plugin_info = {
+                    'name': plugin_name,
+                    'path': plugin_path,
+                    'enabled': is_enabled,
+                    'config': config_data,
+                    'channels': channels
+                }
+
+                plugins.append(plugin_info)
 
         return plugins
-    
+
     @plugins.setter
     def plugins(self, data):
         config_file = data['config_file']
         data.pop('config_file', None)
 
-        if 'channels' in data:
-            with open(config_file, 'w', newline="") as file:
-                file.write(
-                    json.dumps(
-                        data['channels'],
-                        indent=4
-                    )
-                )
-        else:
-            with open(config_file, 'w') as file:
-                json.dump(data, file)
+        os.makedirs(os.path.dirname(config_file), exist_ok=True)
 
+        if 'channels' in data:
+            # Handle channel list saving
+            with open(config_file, 'w') as file:
+                json.dump(data['channels'], file, indent=4)
+        else:
+            # Handle regular config saving
+            with open(config_file, 'w') as file:
+                json.dump(data, file, indent=4)
 
     @property
     def crons(self):
         data = []
-        with open(self.crons_file, 'r') as file:
-            data = json.load(file)
+        try:
+            with open(self.crons_file, 'r') as file:
+                data = json.load(file)
+        except FileNotFoundError:
+            # Create empty crons file if it doesn't exist
+            data = []
+            self.crons = json.dumps(data)
         return data
-    
+
     @crons.setter
     def crons(self, data):
+        os.makedirs(os.path.dirname(self.crons_file), exist_ok=True)
         with open(self.crons_file, 'w', newline="") as file:
             file.write(data)
+
+    def get_available_plugins(self):
+        """
+        Scan the plugins directory to find all available plugins
+        """
+        available_plugins = []
+        plugins_dir = './plugins'
+
+        if os.path.exists(plugins_dir):
+            for item in os.listdir(plugins_dir):
+                plugin_path = os.path.join(plugins_dir, item)
+                if os.path.isdir(plugin_path):
+                    # Check if it has the required files
+                    init_file = os.path.join(plugin_path, '__init__.py')
+                    config_file = os.path.join(plugin_path, 'config.json')
+
+                    if os.path.exists(init_file):
+                        plugin_info = {
+                            'name': item,
+                            'path': plugin_path,
+                            'has_config': os.path.exists(config_file),
+                            'enabled': self.is_plugin_enabled(item)
+                        }
+                        available_plugins.append(plugin_info)
+
+        return available_plugins
+
+    def is_plugin_enabled(self, plugin_name):
+        """
+        Check if a plugin is enabled in plugins.py
+        """
+        plugins_content = self.plugins_py
+        for line in plugins_content.split('\n'):
+            if f'plugins.{plugin_name}' in line and not line.strip().startswith('#'):
+                return True
+        return False
+
+    def enable_plugin(self, plugin_name):
+        """
+        Enable a plugin by uncommenting its import line
+        """
+        lines = self.plugins_py.split('\n')
+        for i, line in enumerate(lines):
+            if f'plugins.{plugin_name}' in line and line.strip().startswith('#'):
+                lines[i] = line.lstrip('#').lstrip()
+                self.plugins_py = '\n'.join(lines)
+                return True
+        return False
+
+    def disable_plugin(self, plugin_name):
+        """
+        Disable a plugin by commenting its import line
+        """
+        lines = self.plugins_py.split('\n')
+        for i, line in enumerate(lines):
+            if f'plugins.{plugin_name}' in line and not line.strip().startswith('#'):
+                lines[i] = f'# {line}'
+                self.plugins_py = '\n'.join(lines)
+                return True
+        return False
 
     def handle_output(self, output):
         emit('command_output', output.strip())  # Enviar a cliente
@@ -113,11 +226,11 @@ class Ui:
                 command = command.replace('python3', 'python3 -u')
             else:
                 command = command.replace('python', 'python -u')
-        
+
         secure_command = command.split(' ')
-        try :
-            if secure_command[2] == 'cli.py':
-                
+        try:
+            if len(secure_command) >= 3 and secure_command[2] == 'cli.py':
+
                 # Iniciar el proceso
                 process = Popen(shlex.split(command), stdout=PIPE, stderr=PIPE, text=True, encoding='utf-8')
 
@@ -127,23 +240,21 @@ class Ui:
                     if output == '' and process.poll() is not None:
                         break
                     if output:
-                        #print(output.strip())  # Debugging: Imprimir en el servidor
-                        #self.handle_output(output)
-                        l.log('ui', output)
+                        # Emit output to client
+                        emit('command_output', output.strip())
+                        # Log the output
+                        l.log('ui', output.strip())
 
-                
                 emit('command_completed', {'data': 'Comando completado'})
 
                 # Manejar salida de error si existe
                 _, stderr = process.communicate()
-                #if stderr:
-                #    emit('command_error', stderr.strip())
+                if stderr:
+                    emit('command_error', stderr.strip())
 
-                # Importante: Emitir 'command_completed' al finalizar el comando
-                #emit('command_completed', {'data': 'Comando completado'})
             else:
-                emit('command_output', 'only python cli.py command can be executed from here.')
+                emit('command_output', 'Only python cli.py commands can be executed from here.')
                 emit('command_completed', {'data': 'Comando completado'})
-        except:
-            emit('command_output', 'only python cli.py command can be executed from here.')
-            emit('command_completed', {'data': 'Comando completado'})
+        except Exception as e:
+            emit('command_output', f'Error executing command: {str(e)}')
+            emit('command_completed', {'data': 'Comando completado con errores'})
