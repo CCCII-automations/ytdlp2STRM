@@ -46,9 +46,6 @@ Examples:
 
 import schedule
 import time
-from cli import main as main_cli
-from clases.config import config as c
-from clases.log import log as l
 import threading
 import re
 from tzlocal import get_localzone  # $ pip install tzlocal
@@ -61,6 +58,23 @@ import argparse
 import sys
 import signal
 import json
+from pathlib import Path
+
+# Add the root directory to Python path to find modules
+root_dir = Path(__file__).resolve().parents[2]  # Go up 2 levels from clases/cron/
+sys.path.insert(0, str(root_dir))
+
+# Now import the modules
+try:
+    from cli import main as main_cli
+    from clases.config import config as c
+    from clases.log import log as l
+except ImportError as e:
+    print(f"❌ Error importing required modules: {e}")
+    print(f"💡 Make sure you're running this from the ytdlp2STRM directory structure")
+    print(f"📁 Current working directory: {os.getcwd()}")
+    print(f"🔍 Looking for modules in: {root_dir}")
+    sys.exit(1)
 
 # Global variables for signal handling
 stop_event = threading.Event()
