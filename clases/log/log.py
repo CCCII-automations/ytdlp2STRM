@@ -4,7 +4,6 @@ import io
 import json
 from datetime import datetime, timedelta
 from typing import Optional, Dict, Any
-from flask_socketio import emit
 
 # Set UTF-8 encoding for stdout
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', line_buffering=True)
@@ -114,24 +113,6 @@ class Logger:
             # If comparison fails, always log
             return True
 
-    def _emit_socketio(self, message: str, level: LogLevel):
-        """Emit message via SocketIO if available"""
-        try:
-            if ENUM_AVAILABLE and hasattr(level, 'value'):
-                level_str = level.value[0]
-            elif hasattr(level, 'value'):
-                level_str = level.value[0]
-            else:
-                level_str = str(level)
-
-            emit('command_output', {
-                'message': message,
-                'level': level_str,
-                'timestamp': datetime.now().isoformat()
-            })
-        except Exception:
-            self._write_to_file(f"[{datetime.now()}] [WARNING] Logger: SocketIO emit failed")
-
     def _write_to_file(self, message: str):
         """Write message to log file"""
         try:
@@ -157,29 +138,26 @@ class Logger:
 
         # File output (without colors)
         self._write_to_file(message)
-
-        # SocketIO emission
-        if emit_socket:
-            self._emit_socketio(message, level)
-
     # Convenience methods
-    def debug(self, author: str, text: str, extra_data: Optional[Dict[str, Any]] = None, **kwargs):
-        self.log(LogLevel.DEBUG, author, text, extra_data, **kwargs)
+    def debug(self, author: str, text: str, extra_data: Optional[Dict[str, Any]] = None):
+        self.log(LogLevel.DEBUG, author, text, extra_data)
 
-    def info(self, author: str, text: str, extra_data: Optional[Dict[str, Any]] = None, **kwargs):
-        self.log(LogLevel.INFO, author, text, extra_data, **kwargs)
+    def info(self, author: str, text: str, extra_data: Optional[Dict[str, Any]] = None):
+        self.log(LogLevel.INFO, author, text, extra_data)
 
-    def warning(self, author: str, text: str, extra_data: Optional[Dict[str, Any]] = None, **kwargs):
-        self.log(LogLevel.WARNING, author, text, extra_data, **kwargs)
+    def warning(self, author: str, text: str, extra_data: Optional[Dict[str, Any]] = None):
+        self.log(LogLevel.WARNING, author, text, extra_data)
 
-    def error(self, author: str, text: str, extra_data: Optional[Dict[str, Any]] = None, **kwargs):
-        self.log(LogLevel.ERROR, author, text, extra_data, **kwargs)
+    def error(self, author: str, text: str, extra_data: Optional[Dict[str, Any]] = None):
+        self.log(LogLevel.ERROR, author, text, extra_data)
 
-    def critical(self, author: str, text: str, extra_data: Optional[Dict[str, Any]] = None, **kwargs):
-        self.log(LogLevel.CRITICAL, author, text, extra_data, **kwargs)
+    def critical(self, author: str, text: str, extra_data: Optional[Dict[str, Any]] = None):
+        self.log(LogLevel.CRITICAL, author, text, extra_data)
 
-    def ui(self, text: str, **kwargs):
-        self.log(LogLevel.UI, "UI", text, emit_socket=kwargs.get('emit_socket', True))
+    def ui(self, text: str):
+        self.log(LogLevel.UI, "UI", text)
+
+        self.log(LogLevel.UI, "UI", text)
 
     def command_output(self, command: str, output: str, return_code: int = 0,
                        author: str = "CMD"):
