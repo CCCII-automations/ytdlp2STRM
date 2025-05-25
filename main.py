@@ -95,12 +95,17 @@ except ImportError as e:
     logger.error(f"Failed to import clases.cron: {e}")
     cron = None
 
+# Replace the existing routes import section (around lines 84-105) with this:
+
 # Import routes with detailed error handling
 try:
     logger.info("Attempting to import config.routes...")
     import config.routes
 
-    logger.info("✓ Successfully imported config.routes")
+    # Register all routes with the app
+    config.routes.register_all_routes(app)
+
+    logger.info("✓ Successfully imported config.routes and registered all blueprints")
 
     # Log registered routes
     logger.info("Registered Flask routes:")
@@ -114,7 +119,7 @@ except ImportError as e:
 
 
     # Add a debug route to help diagnose
-    @app.route('/')
+    @app.route('/debug/ytstatus')
     def debug_home():
         return f"""
         <h1>ytdlp2STRM Debug Mode</h1>
@@ -123,6 +128,9 @@ except ImportError as e:
         <p>Static folder: {app.static_folder}</p>
         <p>Check the logs for more details.</p>
         """
+except Exception as e:
+    logger.error(f"Failed to register routes: {e}")
+    logger.exception("Route registration error:")
 
 
 # Add debug route to check app status
