@@ -35,6 +35,7 @@ from pathlib import Path
 import requests
 import unicodedata
 from cachetools import TTLCache
+from fp.fp import FreeProxy
 
 root_dir = Path(__file__).resolve().parents[2]
 sys.path.append(str(root_dir))
@@ -777,6 +778,23 @@ def video_id_exists_in_content(media_folder, video_id):
                 except:
                     pass
     return False
+
+def get_free_proxy():
+    """Fetch a random working proxy using free-proxy"""
+    try:
+        proxy = FreeProxy(rand=True, timeout=1, https=True).get()
+        l.log("youtube", f"Using proxy: {proxy}")
+        return proxy
+    except Exception as e:
+        l.log("youtube", f"Failed to get proxy: {e}")
+        return None
+
+def set_proxy(self, command):
+    proxy_url = get_free_proxy()
+    if proxy_url:
+        command.extend(['--proxy', proxy_url])
+    else:
+        l.log("youtube", "Proceeding without proxy")
 
 
 def to_strm(method):
