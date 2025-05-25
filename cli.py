@@ -5,7 +5,7 @@ from clases.log import log as l
 from sanitize_filename import sanitize
 
 
-def main(raw_args=None):
+def main(*raw_args):
     parser = argparse.ArgumentParser()
 
     parser.add_argument('-m', '--media', help='Media platform')
@@ -17,14 +17,14 @@ def main(raw_args=None):
     # --
 
     args = parser.parse_args(raw_args)
-    method = args.media if args.media != None else "error"
-    params = args.params.split(',') if args.params != None else None
+    method = args.media if args.media is not None else "error"
+    params = args.params.split(',') if args.params is not None else None
 
-    # Keep working for old version
+    # Backward compatibility
     if method == "error":
-        method = args.m if args.m != None else None
-    if params == None:
-        params = args.p.split(',') if args.p != None else None
+        method = args.m if args.m is not None else None
+    if params is None:
+        params = args.p.split(',') if args.p is not None else None
 
     try:
         if "plugins" in method:
@@ -43,7 +43,6 @@ def main(raw_args=None):
             params = ["bridge"]
     except:
         params = None
-    # --
 
     now = datetime.now()
     dt_string = now.strftime("%d/%m/%Y %H:%M:%S")
@@ -52,16 +51,11 @@ def main(raw_args=None):
     l.log("CLI", log_text)
 
     if args.version:
-        log_text = (
-            'ytdlp2STRM version: {}'.format(
-                '1.0.1'
-            )
-        )
+        log_text = 'ytdlp2STRM version: {}'.format('1.0.1')
         l.log("CLI", log_text)
 
-    r = False
-    if params != None:
-        r = eval("{}.{}.{}".format("plugins", method, "to_strm"))(*params)
+    if params is not None:
+        eval("{}.{}.{}".format("plugins", method, "to_strm"))(*params)
 
 
 if __name__ == "__main__":
