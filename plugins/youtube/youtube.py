@@ -42,7 +42,7 @@ sys.path.append(str(root_dir))
 from clases.config import config as c
 from clases.worker import worker as w
 from clases.folders import folders as f
-from clases.nfo import nfo as n
+from clases.nfo.nfo import Nfo as n
 from clases.log import log as l
 
 from sanitize_filename import sanitize
@@ -669,7 +669,7 @@ class Youtube:
         }
 
         # Create NFO
-        n.nfo("episode", folder_path, nfo_data).make_nfo()
+        n("episode", folder_path, nfo_data).make_nfo()
         l.log("youtube", f"Created NFO file for: {video_name}")
 
         # Download thumbnail
@@ -799,7 +799,7 @@ def to_strm(method):
                 "studio": "Youtube"
             }
 
-            n.nfo("tvshow", folder_path, channel_nfo_data).make_nfo()
+            n("tvshow", folder_path, channel_nfo_data).make_nfo()
             l.log("youtube", "Created channel NFO file")
 
             # Step 4 & 5: Process videos one by one
@@ -1050,7 +1050,7 @@ def process_single_channel(channel_identifier):
         "studio": "Youtube"
     }
 
-    n.nfo("tvshow", folder_path, channel_nfo_data).make_nfo()
+    n("tvshow", folder_path, channel_nfo_data).make_nfo()
 
     # Process videos
     for video in videos:
