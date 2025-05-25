@@ -10,7 +10,7 @@
     "cookies": "cookies",
     "cookie_value": "youtube-cookies.txt",
     "log_level": "INFO",
-    "secret_key": "4681c0e9826a46433a612ed995fa70700d7619c926287c90750fa0bcb6481a5d",
+    "app_secret_key": "4681c0e9826a46433a612ed995fa70700d7619c926287c90750fa0bcb6481a5d",
     "auth_max_attempts": 5,
     "auth_lockout_time": 300,
     "auth_captcha_threshold": 3,
