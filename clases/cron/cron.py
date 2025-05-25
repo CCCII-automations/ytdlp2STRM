@@ -255,7 +255,8 @@ class Cron(threading.Thread):
         """Main run method - entry point for cron thread"""
         l.log('cron', "Starting cron thread execution")
         self.initialize_timezone()
-        self.schedule_tasks()
+        # Pass is_first_run=True to execute jobs immediately
+        self.schedule_tasks(is_first_run=True)
         self.watch_config()
 
     def initialize_timezone(self):
@@ -400,7 +401,7 @@ class Cron(threading.Thread):
             l.log('cron', f"Error scheduling interval job: {str(e)}")
             return False
 
-    def schedule_tasks(self):
+    def schedule_tasks(self, is_first_run=False):
         """Schedule all tasks from configuration"""
         l.log('cron', "Starting task scheduling process")
 
