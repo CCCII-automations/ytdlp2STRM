@@ -453,7 +453,7 @@ class Cron(threading.Thread):
         failed_jobs = 0
 
         for cron_config in crons:
-            if self.schedule_single_job(cron_config):
+            if self.schedule_single_job(cron_config, is_first_run=is_first_run):
                 successful_jobs += 1
             else:
                 failed_jobs += 1
