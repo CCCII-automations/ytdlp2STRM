@@ -35,7 +35,6 @@ def index():
 
 # Update your existing API routes
 @app.route('/api/update-plugins', methods=['POST'])
-@requires_auth  # Add this line
 def api_update_plugins():
     # Your existing code remains the same
     try:
@@ -84,7 +83,6 @@ def api_update_plugins():
 
 
 @app.route('/api/status', methods=['GET'])
-@requires_auth  # Add this line
 def api_status():
     # Your existing code remains the same
     try:
@@ -114,7 +112,6 @@ def api_status():
 
 
 @app.route('/api/run-plugin/<plugin_name>', methods=['POST'])
-@requires_auth  # Add this line
 def api_run_plugin(plugin_name):
     # Your existing code remains the same
     try:
@@ -142,7 +139,6 @@ def api_run_plugin(plugin_name):
 
 
 @app.route('/api/get-cron-params/<plugin_name>', methods=['GET'])
-@requires_auth
 def get_cron_params(plugin_name):
     """Get cron parameters for a specific plugin"""
     try:
