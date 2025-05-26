@@ -236,8 +236,14 @@ try:
     logger.info("Importing existing routes.py...")
 
     # This will import your routes.py which has all the @app.route decorators
-    # The fixed routes.py won't create a second SocketIO instance
     from ui import routes
+
+    # Register SocketIO events from routes.py
+    if hasattr(routes, 'register_socketio_events'):
+        routes.register_socketio_events(socketio)
+        logger.info("✓ SocketIO events registered from routes.py")
+    else:
+        logger.warning("⚠ register_socketio_events not found in routes.py")
 
     logger.info("✓ Successfully imported routes.py")
 
