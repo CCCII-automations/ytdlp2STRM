@@ -1,8 +1,9 @@
+# FIXED routes.py - Remove the duplicate SocketIO creation
 from __main__ import app
 from datetime import time
 
 from flask import request, render_template, session, send_from_directory, jsonify, url_for, redirect
-from flask_socketio import SocketIO, emit
+from flask_socketio import emit  # Remove SocketIO import, just use emit
 import json
 from clases.log import log as l
 import re
@@ -13,7 +14,12 @@ import bcrypt
 import ipaddress
 
 _ui = Ui()
-socketio = SocketIO(app)
+
+# Get the socketio instance from main.py instead
+def get_socketio():
+    """Get the socketio instance from main module"""
+    import __main__
+    return getattr(__main__, 'socketio', None)
 
 
 # =============================================================================
@@ -888,48 +894,46 @@ def view_log():
 # Store to prevent duplicate command executions
 _command_executions = {}
 
-
-@socketio.on('execute_command')
-def handle_command(command):
-    """Handle command execution with duplicate prevention"""
-    # Add authentication check for socket.io commands
-    if 'authenticated' not in session or not session['authenticated']:
-        emit('command_error', 'Authentication required')
+# Register the SocketIO handler with the main socketio instance
+def register_socketio_handlers():
+    """Register SocketIO handlers with the main socketio instance"""
+    socketio = get_socketio()
+    if socketio is None:
+        l.log("routes", "Warning: SocketIO instance not found")
         return
 
-    # Prevent duplicate commands
-    current_time = time.time()
-    command_hash = hash(command)
-
-    # Check if this exact command was executed very recently (within 2 seconds)
-    if command_hash in _command_executions:
-        last_execution = _command_executions[command_hash]
-        if current_time - last_execution < 2.0:
-            l.log("routes", f"Ignoring duplicate command execution: {command}")
+    @socketio.on('execute_command')
+    def handle_command(command):
+        """Handle command execution with duplicate prevention"""
+        # Add authentication check for socket.io commands
+        if 'authenticated' not in session or not session['authenticated']:
+            emit('command_error', 'Authentication required')
             return
 
-    # Record this execution
-    _command_executions[command_hash] = current_time
+        # Prevent duplicate commands
+        current_time = time.time()
+        command_hash = hash(command)
 
-    # Clean old entries (keep only last 10 commands)
-    if len(_command_executions) > 10:
-        oldest_hash = min(_command_executions.keys(),
-                          key=lambda h: _command_executions[h])
-        del _command_executions[oldest_hash]
+        # Check if this exact command was executed very recently (within 2 seconds)
+        if command_hash in _command_executions:
+            last_execution = _command_executions[command_hash]
+            if current_time - last_execution < 2.0:
+                l.log("routes", f"Ignoring duplicate command execution: {command}")
+                return
 
-    l.log("routes", f"Executing command: {command}")
+        # Record this execution
+        _command_executions[command_hash] = current_time
 
-    # Execute the command
-    _ui.handle_command(command)
+        # Clean old entries (keep only last 10 commands)
+        if len(_command_executions) > 10:
+            oldest_hash = min(_command_executions.keys(),
+                              key=lambda h: _command_executions[h])
+            del _command_executions[oldest_hash]
 
-@app.route('/test-socketio')
-def test_socketio():
-    return '''
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.4.1/socket.io.js"></script>
-    <script>
-    const socket = io();
-    socket.on('connect', () => console.log('Connected!'));
-    socket.emit('execute_command', 'python3 cli.py --media youtube --params download');
-    </script>
-    <h1>Check browser console</h1>
-    '''
+        l.log("routes", f"Executing command: {command}")
+
+        # Execute the command
+        _ui.handle_command(command)
+
+# Call this function when the module is imported
+register_socketio_handlers()

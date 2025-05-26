@@ -949,13 +949,15 @@ def to_strm(method):
         else:
             l.log("youtube", "No videos detected...")
 
-
-def to_download(method):
-    """NEW: Main function to download actual video files from channels"""
+def to_download(method, channel_list=None):
+    """Enhanced download function to process all kinds of media sources"""
     # Create download folder if it doesn't exist
     os.makedirs(download_folder, exist_ok=True)
 
-    for youtube_channel in channels:
+    # Use provided channel list or default to config channels
+    sources_to_process = channel_list if channel_list else channels
+
+    for youtube_channel in sources_to_process:
         yt = Youtube(youtube_channel, download_mode=True)
 
         l.log("youtube", " --------------- ")
@@ -1017,6 +1019,41 @@ def to_download(method):
 
         else:
             l.log("youtube", "No videos detected...")
+
+
+def download_channel(channel_identifier):
+    """Download videos from a single channel"""
+    to_download('download', [channel_identifier])
+
+
+def download_playlist(playlist_identifier):
+    """Download videos from a single playlist"""
+    playlist_id = f"list-{playlist_identifier}"
+    to_download('download', [playlist_id])
+
+
+def download_keyword(keyword):
+    """Download videos by keyword search"""
+    keyword_search = f"keyword-{keyword}"
+    to_download('download', [keyword_search])
+
+
+def download_audio_channel(channel_identifier):
+    """Download audio only from a single channel"""
+    audio_channel_id = f"extractaudio-{channel_identifier}"
+    to_download('download', [audio_channel_id])
+
+
+def download_audio_playlist(playlist_identifier):
+    """Download audio only from a single playlist"""
+    audio_playlist_id = f"extractaudio-list-{playlist_identifier}"
+    to_download('download', [audio_playlist_id])
+
+
+def download_audio_keyword(keyword):
+    """Download audio only by keyword search"""
+    audio_keyword_search = f"extractaudio-keyword-{keyword}"
+    to_download('download', [audio_keyword_search])
 
 
 def to_download_single(channel_identifier):
