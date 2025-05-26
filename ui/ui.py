@@ -244,42 +244,59 @@ class Ui:
     def handle_output(self, output):
         emit('command_output', output.strip())  # Enviar a cliente
 
-    def handle_command(self, command):
-        # Asegurarse de que el comando se ejecuta sin buffering
-        if not '-u' in command:
-            if 'python3' in command:
-                command = command.replace('python3', 'python3 -u')
-            else:
-                command = command.replace('python', 'python -u')
 
-        secure_command = command.split(' ')
-        try:
-            if len(secure_command) >= 3 and secure_command[2] == 'cli.py':
+# Replace the handle_command method in your ui.py with this enhanced version:
 
-                # Iniciar el proceso
-                process = Popen(shlex.split(command), stdout=PIPE, stderr=PIPE, text=True, encoding='utf-8')
+def handle_command(self, command):
+    # Debug: Log the received command
+    l.log('ui', f'Received command: "{command}"')
 
-                # Leer y emitir la salida en tiempo real
-                while True:
-                    output = process.stdout.readline()
-                    if output == '' and process.poll() is not None:
-                        break
-                    if output:
-                        # Emit output to client
-                        emit('command_output', output.strip())
-                        # Log the output
-                        l.log('ui', output.strip())
+    # Asegurarse de que el comando se ejecuta sin buffering
+    if not '-u' in command:
+        if 'python3' in command:
+            command = command.replace('python3', 'python3 -u')
+        else:
+            command = command.replace('python', 'python -u')
 
-                emit('command_completed', {'data': 'Comando completado'})
+    # Debug: Log the modified command
+    l.log('ui', f'Modified command: "{command}"')
 
-                # Manejar salida de error si existe
-                _, stderr = process.communicate()
-                if stderr:
-                    emit('command_error', stderr.strip())
+    secure_command = command.split(' ')
+    l.log('ui', f'Split command: {secure_command}')
 
-            else:
-                emit('command_output', 'Only python cli.py commands can be executed from here.')
-                emit('command_completed', {'data': 'Comando completado'})
-        except Exception as e:
-            emit('command_output', f'Error executing command: {str(e)}')
-            emit('command_completed', {'data': 'Comando completado con errores'})
+    try:
+        if len(secure_command) >= 3 and secure_command[2] == 'cli.py':
+            l.log('ui', 'Command validation passed, executing...')
+
+            # Iniciar el proceso
+            process = Popen(shlex.split(command), stdout=PIPE, stderr=PIPE, text=True, encoding='utf-8')
+
+            # Leer y emitir la salida en tiempo real
+            while True:
+                output = process.stdout.readline()
+                if output == '' and process.poll() is not None:
+                    break
+                if output:
+                    # Emit output to client
+                    emit('command_output', output.strip())
+                    # Log the output
+                    l.log('ui', output.strip())
+
+            emit('command_completed', {'data': 'Comando completado'})
+
+            # Manejar salida de error si existe
+            _, stderr = process.communicate()
+            if stderr:
+                l.log('ui', f'Command stderr: {stderr}')
+                emit('command_error', stderr.strip())
+
+        else:
+            error_msg = f'Only python cli.py commands can be executed from here. Received: {secure_command}'
+            l.log('ui', error_msg)
+            emit('command_output', error_msg)
+            emit('command_completed', {'data': 'Comando completado'})
+    except Exception as e:
+        error_msg = f'Error executing command: {str(e)}'
+        l.log('ui', error_msg)
+        emit('command_output', error_msg)
+        emit('command_completed', {'data': 'Comando completado con errores'})

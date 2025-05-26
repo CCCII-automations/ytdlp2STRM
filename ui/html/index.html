@@ -580,22 +580,32 @@
             this.innerHTML = '<span class="spinner"></span> Running...';
             this.disabled = true;
 
-            // Determine the command based on plugin type
-            let command;
-            if (plugin === 'youtube') {
-                // You can add a data attribute to specify download vs strm mode
-                const downloadMode = this.dataset.downloadMode === 'true';
-                const param = downloadMode ? 'download' : 'direct';
-                command = `python3 cli.py --media ${plugin} --params ${param}`;
-            } else {
-                // For other plugins, use default behavior
-                command = `python3 cli.py --media ${plugin} --params direct`;
-            }
+            // Get cron parameters for this plugin from server
+            fetch('/api/get-cron-params/' + plugin)
+                .then(response => response.json())
+                .then(data => {
+                    let command;
+                    if (data.success && data.params) {
+                        // Use parameters from crons.json
+                        command = `python3 cli.py --media ${plugin} --params ${data.params}`;
+                    } else {
+                        // Fallback to default
+                        command = `python3 cli.py --media ${plugin} --params download`;
+                    }
 
-            console.log('Executing command:', command);
+                    console.log('Executing command:', command);
+                    console.log('API Response:', data);
 
-            // Execute command via Socket.IO
-            socket.emit('execute_command', command);
+                    // Execute command via Socket.IO
+                    socket.emit('execute_command', command);
+                })
+                .catch(error => {
+                    console.error('Error getting cron params:', error);
+                    // Fallback command
+                    const command = `python3 cli.py --media ${plugin} --params direct`;
+                    console.log('Executing fallback command:', command);
+                    socket.emit('execute_command', command);
+                });
 
             // Reset button after timeout
             setTimeout(() => {
@@ -609,10 +619,9 @@
                     this.classList.add('btn-success');
                     this.disabled = false;
                 }, 2000);
-            }, 5000); // Increased timeout as downloads might take longer
+            }, 8000);
         });
     });
-
     // Enhanced terminal command input with better error handling
     document.getElementById('command-input').addEventListener('keypress', function (e) {
         if (e.key === 'Enter') {
