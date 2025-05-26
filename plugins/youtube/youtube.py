@@ -220,11 +220,14 @@ class Youtube:
             if not downloaded_file:
                 return
 
+
             video_name = os.path.splitext(downloaded_file)[0]
+            original_title = video_info['title']
         else:
             # Original STRM creation logic
             video_id = video_info['id']
             video_name = sanitize(video_info['title']).replace(" ", "_")
+            original_title = video_info['title']
 
             # Write STRM file
             strm_path = os.path.join(folder_path, f"{video_name}.strm")
@@ -245,7 +248,7 @@ class Youtube:
 
         nfo_data = {
             "item_name": video_name,
-            "title": video_name,
+            "title": original_title,
             "upload_date": upload_date,
             "year": year,
             "plot": video_info.get('description', '').replace('\n', ' <br/>\n '),
