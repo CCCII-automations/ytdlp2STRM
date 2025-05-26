@@ -9,7 +9,7 @@ def main(*raw_args):
     parser = argparse.ArgumentParser()
 
     parser.add_argument('-m', '--media', help='Media platform')
-    parser.add_argument('-p', '--params', help='Params to media platform mode.')
+    parser.add_argument('-p', '--params', help='Params to media platform mode.')  # FIXED: Changed from --param to --params
     parser.add_argument('-v', '--version', help='Show YTDLP2STRM version')
     # Keep working for old version
     parser.add_argument('--m', help='Media platform (old)')
@@ -35,15 +35,16 @@ def main(*raw_args):
         method = None
 
     try:
-        if "twitch" in params:
-            params = [params[1]]
-        if 'redirect' in params:
-            params = ["direct"]
-        if 'stream' in params:
-            params = ["bridge"]
-        # NEW: Handle download parameter
-        if 'download' in params:
-            params = ["download"]
+        if params:  # FIXED: Added null check
+            if "twitch" in params:
+                params = [params[1]]
+            if 'redirect' in params:
+                params = ["direct"]
+            if 'stream' in params:
+                params = ["bridge"]
+            # NEW: Handle download parameter
+            if 'download' in params:
+                params = ["download"]
     except:
         params = None
 
@@ -58,17 +59,30 @@ def main(*raw_args):
         l.log("CLI", log_text)
 
     if params is not None:
-        # Handle different function calls based on parameters
+        # FIXED: Handle different function calls based on parameters
         if method == "youtube":
-            if "download" in params:
+            if params and "download" in params:
                 # Call the download function
+                l.log("CLI", f"Calling YouTube download mode with params: {params}")
                 eval("{}.{}.{}".format("plugins", method, "to_download"))(*params)
             else:
                 # Call the regular STRM function
+                l.log("CLI", f"Calling YouTube STRM mode with params: {params}")
                 eval("{}.{}.{}".format("plugins", method, "to_strm"))(*params)
         else:
             # For other plugins, use the standard call
+            l.log("CLI", f"Calling {method} plugin with params: {params}")
             eval("{}.{}.{}".format("plugins", method, "to_strm"))(*params)
+    else:
+        # FIXED: Handle case when no params provided
+        if method == "youtube":
+            l.log("CLI", "No params provided, using default STRM mode")
+            eval("{}.{}.{}".format("plugins", method, "to_strm"))("download")
+        elif method is not None:
+            l.log("CLI", f"No params provided for {method}, using default")
+            eval("{}.{}.{}".format("plugins", method, "to_strm"))("download")
+        else:
+            l.log("CLI", "ERROR: No method specified")
 
 
 if __name__ == "__main__":

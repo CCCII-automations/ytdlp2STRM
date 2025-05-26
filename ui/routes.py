@@ -141,6 +141,72 @@ def api_run_plugin(plugin_name):
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
+@app.route('/api/get-cron-params/<plugin_name>', methods=['GET'])
+@requires_auth
+def get_cron_params(plugin_name):
+    """Get cron parameters for a specific plugin"""
+    try:
+        crons = _ui.crons
+
+        # Find cron configuration for this plugin
+        plugin_cron = None
+        for cron in crons:
+            if len(cron.get('do', [])) >= 2 and cron['do'][1] == plugin_name:
+                plugin_cron = cron
+                break
+
+        if plugin_cron and len(plugin_cron.get('do', [])) >= 4:
+            # Extract the parameter from the cron configuration
+            # Format: ["--media", "youtube", "--params", "direct"] or ["--media", "youtube", "--param", "direct"]
+            param_index = -1
+            do_array = plugin_cron['do']
+
+            # Find the parameter value (after --params or --param)
+            for i, item in enumerate(do_array):
+                if item in ['--params', '--param']:
+                    if i + 1 < len(do_array):
+                        param_index = i + 1
+                        break
+
+            if param_index > 0:
+                params = do_array[param_index]  # Get the parameter value
+
+                return jsonify({
+                    'success': True,
+                    'params': params,
+                    'cron_config': {
+                        'every': plugin_cron.get('every'),
+                        'qty': plugin_cron.get('qty'),
+                        'at': plugin_cron.get('at'),
+                        'timezone': plugin_cron.get('timezone')
+                    },
+                    'full_command': do_array
+                })
+            else:
+                # Parameter not found in expected format
+                return jsonify({
+                    'success': False,
+                    'params': 'direct',  # Default parameter
+                    'message': f'Parameter not found in cron config for {plugin_name}',
+                    'full_command': do_array
+                })
+        else:
+            # No cron found or missing parameters, return default
+            return jsonify({
+                'success': False,
+                'params': 'direct',  # Default parameter
+                'message': f'No cron configuration found for {plugin_name}',
+                'available_crons': [cron.get('do', []) for cron in crons]
+            })
+
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e),
+            'params': 'direct'  # Fallback parameter
+        }), 500
+
+
 # =============================================================================
 # UPDATE YOUR GENERAL SETTINGS ROUTE TO HANDLE AUTH CONFIG
 # =============================================================================
@@ -693,9 +759,8 @@ def plugin_py_settings():
 
 
 @app.route('/crons', methods=['GET', 'POST'])
-@requires_auth  # Add this line
+@requires_auth
 def crons_settings():
-    # Your existing code remains unchanged
     result = False
     if request.method == 'POST':
         headers = ('every', 'qty', 'at', 'timezone', 'plugin', 'param')
@@ -715,7 +780,8 @@ def crons_settings():
                 elif headers[x] == 'plugin':
                     crons[_x]['do'] = ['--media', _i]
                 elif headers[x] == 'param':
-                    crons[_x]['do'].append('--param')
+                    # FIXED: Changed from --param to --params for consistency
+                    crons[_x]['do'].append('--params')  # Changed this line
                     crons[_x]['do'].append(_i)
 
         _ui.crons = json.dumps(crons)

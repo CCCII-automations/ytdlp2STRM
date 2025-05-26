@@ -670,7 +670,7 @@
         document.querySelector('.terminal').scrollTop = document.querySelector('.terminal').scrollHeight;
     });
 
-    ocket.on('command_error', function (error) {
+    socket.on('command_error', function (error) {
         console.error('Command error received:', error);
         const terminalContent = document.getElementById('terminal-content');
         const errorLine = document.createElement('div');
