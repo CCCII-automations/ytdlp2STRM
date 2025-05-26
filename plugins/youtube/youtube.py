@@ -187,6 +187,7 @@ class Youtube:
                 '-o', output_template,
                 '--restrict-filenames',
                 '--sleep-interval', str(self.sleep_interval),
+                '-t', 'sleep',
                 '--no-warnings',
                 f'https://www.youtube.com/watch?v={video_id}'
             ]
