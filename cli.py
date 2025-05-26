@@ -88,28 +88,30 @@ def main(*raw_args):
             print(f"[CLI] Loading YouTube plugin...")
             l.log("CLI", f"Loading YouTube plugin...")
 
-            # Import YouTube module
-            from plugins.youtube import youtube
+            # FIXED: Import the module, not just the function
+            from plugins.youtube import youtube as youtube_module
 
             if params and params in ["download", "download-all"]:
                 print(f"[CLI] Executing YouTube download mode")
                 l.log("CLI", f"Calling YouTube download mode")
-                youtube.to_download('download')
+                # FIXED: Call the function from the module
+                youtube_module.to_download('download')
             else:
                 # Default to STRM mode
                 print(f"[CLI] Executing YouTube STRM mode with params: {params or 'direct'}")
                 l.log("CLI", f"Calling YouTube STRM mode with params: {params or 'direct'}")
-                youtube.to_strm(params or 'direct')
+                # FIXED: Call the function from the module
+                youtube_module.to_strm(params or 'direct')
 
         elif method == "twitch":
             print(f"[CLI] Loading Twitch plugin...")
             l.log("CLI", f"Loading Twitch plugin...")
 
             # Import Twitch module
-            from plugins.twitch import twitch
+            from plugins.twitch import twitch as twitch_module
 
             print(f"[CLI] Executing Twitch with params: {params or 'direct'}")
-            twitch.to_strm(params or 'direct')
+            twitch_module.to_strm(params or 'direct')
 
         else:
             # Try to dynamically load the plugin
@@ -117,7 +119,7 @@ def main(*raw_args):
             l.log("CLI", f"Attempting to load plugin: {method}")
 
             try:
-                # Dynamic import
+                # Dynamic import - FIXED: Import the module correctly
                 plugin_module = __import__(f'plugins.{method}.{method}', fromlist=[method])
 
                 if hasattr(plugin_module, 'to_strm'):

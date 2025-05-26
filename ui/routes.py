@@ -4,7 +4,7 @@ from datetime import time
 from flask import request, render_template, session, send_from_directory, jsonify, url_for, redirect
 from flask_socketio import SocketIO, emit
 import json
-import logging
+from clases.log import log as l
 import re
 from clases.worker import worker as w
 from ui.ui import Ui
@@ -14,7 +14,6 @@ import ipaddress
 
 _ui = Ui()
 socketio = SocketIO(app)
-logging.getLogger('werkzeug').setLevel(logging.WARNING)
 
 
 # =============================================================================
@@ -886,12 +885,39 @@ def view_log():
         return jsonify({'status': 'error', 'message': str(e)})
 
 
-# Your existing socketio handler
+# Store to prevent duplicate command executions
+_command_executions = {}
+
+
 @socketio.on('execute_command')
 def handle_command(command):
+    """Handle command execution with duplicate prevention"""
     # Add authentication check for socket.io commands
     if 'authenticated' not in session or not session['authenticated']:
         emit('command_error', 'Authentication required')
         return
 
+    # Prevent duplicate commands
+    current_time = time.time()
+    command_hash = hash(command)
+
+    # Check if this exact command was executed very recently (within 2 seconds)
+    if command_hash in _command_executions:
+        last_execution = _command_executions[command_hash]
+        if current_time - last_execution < 2.0:
+            l.log("routes", f"Ignoring duplicate command execution: {command}")
+            return
+
+    # Record this execution
+    _command_executions[command_hash] = current_time
+
+    # Clean old entries (keep only last 10 commands)
+    if len(_command_executions) > 10:
+        oldest_hash = min(_command_executions.keys(),
+                          key=lambda h: _command_executions[h])
+        del _command_executions[oldest_hash]
+
+    l.log("routes", f"Executing command: {command}")
+
+    # Execute the command
     _ui.handle_command(command)
