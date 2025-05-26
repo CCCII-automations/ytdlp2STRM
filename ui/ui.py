@@ -2,6 +2,7 @@ import json
 import shlex
 import os
 import re
+import time  # Added for duplicate prevention
 from clases.config import config as c
 from clases.cron import cron as cron
 from clases.log import log as l
@@ -12,6 +13,7 @@ import threading
 try:
     from flask import has_request_context
     from flask_socketio import emit
+
     FLASK_AVAILABLE = True
 except ImportError:
     FLASK_AVAILABLE = False
@@ -267,8 +269,30 @@ class Ui:
 
     def handle_command(self, command):
         """
-        Handle command execution with proper output streaming
+        Handle command execution with proper output streaming - prevent duplicates
         """
+        # Check if this is a duplicate call by using a simple debouncing mechanism
+        current_time = time.time()
+        command_key = f"cmd_{hash(command)}"
+
+        # Check if we've seen this exact command very recently (within 1 second)
+        if hasattr(self, '_last_commands'):
+            if command_key in self._last_commands:
+                if current_time - self._last_commands[command_key] < 1.0:
+                    l.log('ui', f'Ignoring duplicate command: "{command}"')
+                    return
+        else:
+            self._last_commands = {}
+
+        # Record this command execution
+        self._last_commands[command_key] = current_time
+
+        # Clean old entries (keep only last 10 commands)
+        if len(self._last_commands) > 10:
+            oldest_key = min(self._last_commands.keys(),
+                             key=lambda k: self._last_commands[k])
+            del self._last_commands[oldest_key]
+
         # Debug: Log the received command
         l.log('ui', f'Received command: "{command}"')
 
