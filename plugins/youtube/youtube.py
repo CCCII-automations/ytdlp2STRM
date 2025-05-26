@@ -1032,6 +1032,73 @@ def to_download(method):
             l.log("youtube", "No videos detected...")
 
 
+def to_download_single(channel_identifier):
+    """NEW: Download function for single channel/playlist/keyword - mirrors to_strm functionality"""
+    yt = Youtube(channel_identifier, download_mode=True)
+
+    l.log("youtube", " --------------- ")
+    l.log("youtube", f'Downloading from {channel_identifier}...')
+
+    videos = yt.get_results()
+
+    if not videos:
+        l.log("youtube", "No videos detected...")
+        return
+
+    channel_name = yt.channel_name
+    channel_url = yt.channel_url
+    channel_description = yt.channel_description
+
+    l.log("youtube", f'Channel URL: {channel_url}')
+    l.log("youtube", f'Channel Name: {channel_name}')
+    l.log("youtube", f'Channel Poster: {yt.channel_poster}')
+    l.log("youtube", f'Channel Landscape: {yt.channel_landscape}')
+    l.log("youtube", 'Channel Description:')
+    l.log("youtube", channel_description)
+    l.log("youtube", f'Videos to download: {len(videos)}')
+
+    # Process first video to get channel info if needed
+    first_video = videos[0]
+    channel_id = first_video['channel_id']
+
+    # Step 1: Create channel directory in download folder
+    folder_path, folder_name = yt.create_channel_directory(channel_id)
+
+    # Step 2: Download channel poster
+    yt.download_channel_poster(folder_path)
+
+    # Step 3: Create channel NFO
+    channel_nfo_data = {
+        "title": channel_name,
+        "plot": channel_description.replace('\n', ' <br/>'),
+        "season": "1",
+        "episode": "-1",
+        "landscape": yt.channel_landscape,
+        "poster": yt.channel_poster,
+        "studio": "Youtube"
+    }
+
+    n("tvshow", folder_path, channel_nfo_data).make_nfo()
+    l.log("youtube", "Created channel NFO file")
+
+    # Step 4 & 5: Download videos one by one
+    for video in videos:
+        video_id = video['id']
+
+        # Check if video file already exists
+        existing_file = video_file_exists_in_downloads(folder_path, video_id)
+        if existing_file:
+            l.log("youtube", f'Video file already exists: {existing_file}')
+
+            # Check and update missing files (NFO, etc)
+            needs_update = yt.check_and_update_existing_files(folder_path, video_id, video)
+
+            if not needs_update:
+                continue
+
+        # Step 6: Download actual video files
+        yt.write_video_files(video, folder_path, folder_name, channel_id)
+
 def serve_downloaded_file(video_id):
     """NEW: Serve downloaded video files instead of streaming"""
     # Look for the file in download folder

@@ -5,9 +5,18 @@ import re
 from clases.config import config as c
 from clases.cron import cron as cron
 from clases.log import log as l
-from flask_socketio import emit
 from subprocess import Popen, PIPE, STDOUT
 import threading
+
+# Only import Flask-SocketIO if we're in a Flask context
+try:
+    from flask import has_request_context
+    from flask_socketio import emit
+    FLASK_AVAILABLE = True
+except ImportError:
+    FLASK_AVAILABLE = False
+    has_request_context = lambda: False
+    emit = lambda *args, **kwargs: None
 
 
 class Ui:
@@ -242,6 +251,20 @@ class Ui:
                 return True
         return False
 
+    def safe_emit(self, event, data):
+        """
+        Safely emit to Flask-SocketIO only if we're in a request context
+        """
+        if FLASK_AVAILABLE and has_request_context():
+            try:
+                emit(event, data)
+            except RuntimeError as e:
+                # Log the error but don't fail
+                l.log('ui', f'Cannot emit {event}: {str(e)}')
+        else:
+            # Just log the message if we can't emit
+            l.log('ui', f'Would emit {event}: {data}')
+
     def handle_command(self, command):
         """
         Handle command execution with proper output streaming
@@ -249,8 +272,8 @@ class Ui:
         # Debug: Log the received command
         l.log('ui', f'Received command: "{command}"')
 
-        # Send initial acknowledgment
-        emit('command_output', f'$ {command}')
+        # Send initial acknowledgment (safely)
+        self.safe_emit('command_output', f'$ {command}')
 
         # Ensure Python runs unbuffered
         if 'python3' in command:
@@ -292,22 +315,22 @@ class Ui:
                             if line:
                                 line = line.rstrip()
                                 l.log('ui', f'Output: {line}')
-                                emit('command_output', line)
+                                self.safe_emit('command_output', line)
 
                         # Wait for process to complete
                         process.wait()
 
                         if process.returncode == 0:
-                            emit('command_completed', {'data': 'Command completed successfully'})
+                            self.safe_emit('command_completed', {'data': 'Command completed successfully'})
                             l.log('ui', 'Command completed successfully')
                         else:
-                            emit('command_error', f'Command exited with code {process.returncode}')
+                            self.safe_emit('command_error', f'Command exited with code {process.returncode}')
                             l.log('ui', f'Command exited with code {process.returncode}')
 
                     except Exception as e:
                         error_msg = f'Error reading output: {str(e)}'
                         l.log('ui', error_msg)
-                        emit('command_error', error_msg)
+                        self.safe_emit('command_error', error_msg)
                     finally:
                         if process.stdout:
                             process.stdout.close()
@@ -320,11 +343,11 @@ class Ui:
             else:
                 error_msg = f'Only python cli.py commands can be executed. Received: {command}'
                 l.log('ui', error_msg)
-                emit('command_output', error_msg)
-                emit('command_completed', {'data': 'Invalid command'})
+                self.safe_emit('command_output', error_msg)
+                self.safe_emit('command_completed', {'data': 'Invalid command'})
 
         except Exception as e:
             error_msg = f'Error executing command: {str(e)}'
             l.log('ui', error_msg)
-            emit('command_error', error_msg)
-            emit('command_completed', {'data': 'Command failed with errors'})
+            self.safe_emit('command_error', error_msg)
+            self.safe_emit('command_completed', {'data': 'Command failed with errors'})

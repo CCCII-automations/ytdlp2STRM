@@ -6,6 +6,7 @@ import threading
 from clases.config import config as c
 from clases.worker import worker as w
 from clases.log import log as l
+from clases.worker.worker import Worker
 
 config = c.config(
     './plugins/crunchyroll/config.json'
