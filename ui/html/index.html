@@ -184,6 +184,50 @@
             margin-top: 0.25rem;
         }
 
+        .terminal {
+            background: #1a1a1a;
+            color: #00ff00;
+            padding: 1rem;
+            border-radius: var(--border-radius);
+            font-family: 'Courier New', monospace;
+            height: 300px;
+            overflow-y: auto;
+            margin-top: 2rem;
+        }
+
+        .terminal-header {
+            color: #ffff00;
+            margin-bottom: 0.5rem;
+            font-weight: bold;
+        }
+
+        #terminal-content {
+            font-size: 0.9rem;
+            line-height: 1.4;
+        }
+
+        .terminal-input {
+            display: flex;
+            align-items: center;
+            margin-top: 1rem;
+            border-top: 1px solid #333;
+            padding-top: 0.5rem;
+        }
+
+        .terminal-prompt {
+            color: #00ff00;
+            margin-right: 0.5rem;
+        }
+
+        #command-input {
+            background: transparent;
+            border: none;
+            color: #00ff00;
+            flex: 1;
+            outline: none;
+            font-family: inherit;
+        }
+
         @media (max-width: 768px) {
             .dashboard {
                 grid-template-columns: 1fr;
@@ -263,9 +307,7 @@
         <main class="main-content">
             <div class="status-grid">
                 <div class="status-card">
-                    <div class="status-number" id="active-plugins-count">{{ plugins|selectattr("enabled")|list|length
-                        }}
-                    </div>
+                    <div class="status-number" id="active-plugins-count">{{ plugins|selectattr("enabled")|list|length }}</div>
                     <div class="status-label">Active Plugins</div>
                 </div>
                 <div class="status-card">
@@ -410,15 +452,15 @@
             <div class="terminal">
                 <div class="terminal-header">ytdlp2STRM Command Line Interface</div>
                 <div id="terminal-content">
-                    <div>$ python3 cli.py --status</div>
+                    <div>$ python3 cli.py --help</div>
+                    <div style="color: #00ff00;">ytdlp2STRM CLI - YouTube/Twitch to STRM converter</div>
                     <div style="color: #00ff00;">✓ System operational</div>
                     <div style="color: #00ff00;">✓ {{ plugins|length }} plugins loaded</div>
                     <div style="color: #00ff00;">✓ {{ plugins|selectattr("enabled")|list|length }} active plugins</div>
-                    <div style="color: #ffff00;">⚠ Check logs for details</div>
                 </div>
                 <div class="terminal-input">
                     <span class="terminal-prompt">$</span>
-                    <input id="command-input" placeholder="Enter command (python3 cli.py --help)" type="text"/>
+                    <input id="command-input" placeholder="Enter command (e.g., python3 cli.py --media youtube --params download)" type="text"/>
                 </div>
             </div>
         </main>
@@ -431,6 +473,34 @@
 <script>
     // Socket.IO connection for real-time updates
     const socket = io();
+
+    // Connection status tracking
+    let isConnected = false;
+
+    // Check connection status
+    socket.on('connect', function() {
+        console.log('Socket.IO connected successfully');
+        isConnected = true;
+        const terminalContent = document.getElementById('terminal-content');
+        const connectionLine = document.createElement('div');
+        connectionLine.innerHTML = '<span style="color: #00ff00;">✓ Connected to server</span>';
+        terminalContent.appendChild(connectionLine);
+        scrollTerminalToBottom();
+    });
+
+    socket.on('disconnect', function() {
+        console.log('Socket.IO disconnected');
+        isConnected = false;
+        const terminalContent = document.getElementById('terminal-content');
+        const disconnectionLine = document.createElement('div');
+        disconnectionLine.innerHTML = '<span style="color: #ff0000;">✗ Disconnected from server</span>';
+        terminalContent.appendChild(disconnectionLine);
+        scrollTerminalToBottom();
+    });
+
+    socket.on('connect_error', function(error) {
+        console.error('Socket.IO connection error:', error);
+    });
 
     let pluginChanges = [];
     let hasChanges = false;
@@ -505,14 +575,14 @@
     }
 
     // Remove drag-over class when dragging leaves
-    document.addEventListener('dragleave', function (e) {
+    document.addEventListener('dragleave', function(e) {
         if (e.target.classList.contains('plugin-column')) {
             e.target.classList.remove('drag-over');
         }
     });
 
     // Save plugin changes
-    document.getElementById('save-plugins').addEventListener('click', function () {
+    document.getElementById('save-plugins').addEventListener('click', function() {
         if (!hasChanges) return;
 
         this.innerHTML = '<span class="spinner"></span> Saving...';
@@ -526,33 +596,33 @@
             },
             body: JSON.stringify({changes: pluginChanges})
         })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    this.innerHTML = '<i class="fas fa-check"></i> Saved!';
-                    setTimeout(() => {
-                        this.style.display = 'none';
-                        this.innerHTML = '<i class="fas fa-save"></i> Save Changes';
-                        this.disabled = false;
-                        hasChanges = false;
-                        pluginChanges = [];
-                    }, 2000);
-                } else {
-                    this.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Error!';
-                    setTimeout(() => {
-                        this.innerHTML = '<i class="fas fa-save"></i> Save Changes';
-                        this.disabled = false;
-                    }, 2000);
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                this.innerHTML = '<i class="fas fa-check"></i> Saved!';
+                setTimeout(() => {
+                    this.style.display = 'none';
+                    this.innerHTML = '<i class="fas fa-save"></i> Save Changes';
+                    this.disabled = false;
+                    hasChanges = false;
+                    pluginChanges = [];
+                }, 2000);
+            } else {
                 this.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Error!';
                 setTimeout(() => {
                     this.innerHTML = '<i class="fas fa-save"></i> Save Changes';
                     this.disabled = false;
                 }, 2000);
-            });
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            this.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Error!';
+            setTimeout(() => {
+                this.innerHTML = '<i class="fas fa-save"></i> Save Changes';
+                this.disabled = false;
+            }, 2000);
+        });
     });
 
     // Update status counts
@@ -568,9 +638,37 @@
         document.getElementById('total-channels-count').textContent = totalChannels;
     }
 
+    // Terminal scrolling helper
+    function scrollTerminalToBottom() {
+        const terminal = document.querySelector('.terminal');
+        terminal.scrollTop = terminal.scrollHeight;
+    }
+
+    // Add output to terminal
+    function addTerminalOutput(text, color = '#00ff00') {
+        const terminalContent = document.getElementById('terminal-content');
+        const newLine = document.createElement('div');
+        newLine.style.color = color;
+        newLine.textContent = text;
+        terminalContent.appendChild(newLine);
+        scrollTerminalToBottom();
+    }
+
+    // Execute command via socket
+    function executeCommand(command) {
+        if (!isConnected) {
+            addTerminalOutput('Error: Not connected to server', '#ff0000');
+            return;
+        }
+
+        console.log('Executing command:', command);
+        addTerminalOutput(`$ ${command}`, '#ffff00');
+        socket.emit('execute_command', command);
+    }
+
     // Handle plugin run buttons
     document.querySelectorAll('.play-btn').forEach(btn => {
-        btn.addEventListener('click', function (e) {
+        btn.addEventListener('click', function(e) {
             e.preventDefault();
             e.stopPropagation();
 
@@ -580,36 +678,20 @@
             this.innerHTML = '<span class="spinner"></span> Running...';
             this.disabled = true;
 
-            // Get cron parameters for this plugin from server
-            fetch('/api/get-cron-params/' + plugin)
-                .then(response => response.json())
-                .then(data => {
-                    let command;
-                    if (data.success && data.params) {
-                        // Use parameters from crons.json
-                        command = `python3 cli.py --media ${plugin} --params ${data.params}`;
-                    } else {
-                        // Fallback to default
-                        command = `python3 cli.py --media ${plugin} --params download`;
-                    }
+            // Build and execute command
+            // For YouTube, use download parameter as shown in crons.json
+            let command;
+            if (plugin === 'youtube') {
+                command = `python3 cli.py --media ${plugin} --params download`;
+            } else {
+                command = `python3 cli.py --media ${plugin} --params direct`;
+            }
 
-                    console.log('Executing command:', command);
-                    console.log('API Response:', data);
+            executeCommand(command);
 
-                    // Execute command via Socket.IO
-                    socket.emit('execute_command', command);
-                })
-                .catch(error => {
-                    console.error('Error getting cron params:', error);
-                    // Fallback command
-                    const command = `python3 cli.py --media ${plugin} --params direct`;
-                    console.log('Executing fallback command:', command);
-                    socket.emit('execute_command', command);
-                });
-
-            // Reset button after timeout
+            // Reset button after delay
             setTimeout(() => {
-                this.innerHTML = '<i class="fas fa-check"></i> Complete';
+                this.innerHTML = '<i class="fas fa-check"></i> Started';
                 this.classList.remove('btn-success');
                 this.classList.add('btn-info');
 
@@ -618,127 +700,82 @@
                     this.classList.remove('btn-info');
                     this.classList.add('btn-success');
                     this.disabled = false;
-                }, 2000);
-            }, 8000);
+                }, 3000);
+            }, 2000);
         });
     });
-    // Enhanced terminal command input with better error handling
-    document.getElementById('command-input').addEventListener('keypress', function (e) {
+
+    // Enhanced terminal command input
+    document.getElementById('command-input').addEventListener('keypress', function(e) {
         if (e.key === 'Enter') {
             const command = this.value.trim();
             if (command) {
-                // Validate command format
-                if (!command.startsWith('python3 cli.py') && !command.startsWith('python cli.py')) {
-                    const terminalContent = document.getElementById('terminal-content');
-                    const errorLine = document.createElement('div');
-                    errorLine.innerHTML = '<span style="color: #ff0000;">Error: Only python cli.py commands are allowed</span>';
-                    terminalContent.appendChild(errorLine);
-                    this.value = '';
-                    return;
-                }
-
-                // Add command to terminal
-                const terminalContent = document.getElementById('terminal-content');
-                const commandLine = document.createElement('div');
-                commandLine.innerHTML = `$ ${command}`;
-                terminalContent.appendChild(commandLine);
-
-                // Execute command
-                console.log('Manual command execution:', command);
-                socket.emit('execute_command', command);
-
-                // Clear input
+                executeCommand(command);
                 this.value = '';
-
-                // Scroll to bottom
-                document.querySelector('.terminal').scrollTop = document.querySelector('.terminal').scrollHeight;
             }
         }
     });
-    // Enhanced socket handlers with better logging
-    socket.on('command_output', function (output) {
+
+    // Enhanced socket handlers
+    socket.on('command_output', function(output) {
         console.log('Command output received:', output);
-        const terminalContent = document.getElementById('terminal-content');
-        const newLine = document.createElement('div');
-        newLine.textContent = output;
-        newLine.style.color = '#00ff00';
-        terminalContent.appendChild(newLine);
-
-        // Keep terminal scrolled to bottom
-        document.querySelector('.terminal').scrollTop = document.querySelector('.terminal').scrollHeight;
+        addTerminalOutput(output, '#00ff00');
     });
 
-    socket.on('command_completed', function (data) {
+    socket.on('command_completed', function(data) {
         console.log('Command completed:', data);
-        const terminalContent = document.getElementById('terminal-content');
-        const completedLine = document.createElement('div');
-        completedLine.innerHTML = '<span style="color: #ffff00;">✓ Command completed successfully</span>';
-        terminalContent.appendChild(completedLine);
-
-        // Scroll to bottom
-        document.querySelector('.terminal').scrollTop = document.querySelector('.terminal').scrollHeight;
+        addTerminalOutput('✓ ' + (data.data || 'Command completed'), '#ffff00');
     });
 
-    socket.on('command_error', function (error) {
+    socket.on('command_error', function(error) {
         console.error('Command error received:', error);
-        const terminalContent = document.getElementById('terminal-content');
-        const errorLine = document.createElement('div');
-        errorLine.innerHTML = `<span style="color: #ff0000;">✗ Error: ${error}</span>`;
-        terminalContent.appendChild(errorLine);
-
-        // Scroll to bottom
-        document.querySelector('.terminal').scrollTop = document.querySelector('.terminal').scrollHeight;
-    });
-    // Debug connection status
-    socket.on('connect', function () {
-        console.log('Socket.IO connected successfully');
-        const terminalContent = document.getElementById('terminal-content');
-        const connectionLine = document.createElement('div');
-        connectionLine.innerHTML = '<span style="color: #00ff00;">✓ Connected to server</span>';
-        terminalContent.appendChild(connectionLine);
-    });
-
-    socket.on('disconnect', function () {
-        console.log('Socket.IO disconnected');
-        const terminalContent = document.getElementById('terminal-content');
-        const disconnectionLine = document.createElement('div');
-        disconnectionLine.innerHTML = '<span style="color: #ff0000;">✗ Disconnected from server</span>';
-        terminalContent.appendChild(disconnectionLine);
+        addTerminalOutput('✗ Error: ' + error, '#ff0000');
     });
 
     // Add some interactive animations
     document.querySelectorAll('.nav-card').forEach(card => {
-        card.addEventListener('mouseenter', function () {
+        card.addEventListener('mouseenter', function() {
             this.style.transform = 'translateY(-8px) scale(1.02)';
         });
 
-        card.addEventListener('mouseleave', function () {
+        card.addEventListener('mouseleave', function() {
             this.style.transform = 'translateY(0) scale(1)';
         });
     });
 
     // Auto-refresh status every 30 seconds
     setInterval(() => {
-        // In a real implementation, this would fetch actual data
         fetch('/api/status')
             .then(response => response.json())
             .then(data => {
-                // Update status if needed
-                console.log('Status refreshed:', data);
+                if (data.success) {
+                    console.log('Status refreshed:', data);
+                    // Update counts if needed
+                    if (data.stats) {
+                        document.getElementById('active-plugins-count').textContent = data.stats.active_plugins;
+                        document.getElementById('total-channels-count').textContent = data.stats.total_channels;
+                    }
+                }
             })
             .catch(error => console.log('Status refresh failed:', error));
     }, 30000);
 
-    // Initialize drag and drop
-    document.addEventListener('DOMContentLoaded', function () {
+    // Initialize on page load
+    document.addEventListener('DOMContentLoaded', function() {
         console.log('Dashboard initialized');
         updateStatusCounts();
+
+        // Test socket connection
+        if (socket.connected) {
+            console.log('Socket already connected');
+        } else {
+            console.log('Waiting for socket connection...');
+        }
     });
 
-    // Listen for theme changes to update terminal colors if needed
-    window.addEventListener('themechange', function (e) {
+    // Listen for theme changes
+    window.addEventListener('themechange', function(e) {
         console.log('Theme changed to:', e.detail.effectiveTheme);
-        // You can add theme-specific logic here
     });
 </script>
 </body>

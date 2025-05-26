@@ -6,7 +6,8 @@ from clases.config import config as c
 from clases.cron import cron as cron
 from clases.log import log as l
 from flask_socketio import emit
-from subprocess import Popen, PIPE
+from subprocess import Popen, PIPE, STDOUT
+import threading
 
 
 class Ui:
@@ -17,7 +18,7 @@ class Ui:
 
     @property
     def general_settings(self):
-        # Leer el archivo de configuración
+        # Read the configuration file
         data = []
         try:
             with open(self.config_file, 'r') as file:
@@ -35,7 +36,7 @@ class Ui:
 
     @general_settings.setter
     def general_settings(self, data):
-        # Guardar los valores en el archivo de configuración
+        # Save values to configuration file
         os.makedirs(os.path.dirname(self.config_file), exist_ok=True)
         with open(self.config_file, 'w') as file:
             json.dump(data, file, indent=4)
@@ -241,62 +242,89 @@ class Ui:
                 return True
         return False
 
-    def handle_output(self, output):
-        emit('command_output', output.strip())  # Enviar a cliente
+    def handle_command(self, command):
+        """
+        Handle command execution with proper output streaming
+        """
+        # Debug: Log the received command
+        l.log('ui', f'Received command: "{command}"')
 
+        # Send initial acknowledgment
+        emit('command_output', f'$ {command}')
 
-# Replace the handle_command method in your ui.py with this enhanced version:
-
-def handle_command(self, command):
-    # Debug: Log the received command
-    l.log('ui', f'Received command: "{command}"')
-
-    # Asegurarse de que el comando se ejecuta sin buffering
-    if not '-u' in command:
+        # Ensure Python runs unbuffered
         if 'python3' in command:
             command = command.replace('python3', 'python3 -u')
-        else:
+        elif 'python' in command:
             command = command.replace('python', 'python -u')
 
-    # Debug: Log the modified command
-    l.log('ui', f'Modified command: "{command}"')
+        # Debug: Log the modified command
+        l.log('ui', f'Modified command: "{command}"')
 
-    secure_command = command.split(' ')
-    l.log('ui', f'Split command: {secure_command}')
+        # Parse command
+        secure_command = command.split(' ')
+        l.log('ui', f'Split command: {secure_command}')
 
-    try:
-        if len(secure_command) >= 3 and secure_command[2] == 'cli.py':
-            l.log('ui', 'Command validation passed, executing...')
+        try:
+            # Validate command - allow both direct cli.py and full path
+            if ('cli.py' in command and ('python' in command or 'python3' in command)):
+                l.log('ui', 'Command validation passed, executing...')
 
-            # Iniciar el proceso
-            process = Popen(shlex.split(command), stdout=PIPE, stderr=PIPE, text=True, encoding='utf-8')
+                # Create environment with unbuffered output
+                env = os.environ.copy()
+                env['PYTHONUNBUFFERED'] = '1'
 
-            # Leer y emitir la salida en tiempo real
-            while True:
-                output = process.stdout.readline()
-                if output == '' and process.poll() is not None:
-                    break
-                if output:
-                    # Emit output to client
-                    emit('command_output', output.strip())
-                    # Log the output
-                    l.log('ui', output.strip())
+                # Start the process
+                process = Popen(
+                    shlex.split(command),
+                    stdout=PIPE,
+                    stderr=STDOUT,  # Combine stderr with stdout
+                    text=True,
+                    encoding='utf-8',
+                    bufsize=1,  # Line buffered
+                    env=env
+                )
 
-            emit('command_completed', {'data': 'Comando completado'})
+                # Function to read output in a separate thread
+                def read_output():
+                    try:
+                        for line in iter(process.stdout.readline, ''):
+                            if line:
+                                line = line.rstrip()
+                                l.log('ui', f'Output: {line}')
+                                emit('command_output', line)
 
-            # Manejar salida de error si existe
-            _, stderr = process.communicate()
-            if stderr:
-                l.log('ui', f'Command stderr: {stderr}')
-                emit('command_error', stderr.strip())
+                        # Wait for process to complete
+                        process.wait()
 
-        else:
-            error_msg = f'Only python cli.py commands can be executed from here. Received: {secure_command}'
+                        if process.returncode == 0:
+                            emit('command_completed', {'data': 'Command completed successfully'})
+                            l.log('ui', 'Command completed successfully')
+                        else:
+                            emit('command_error', f'Command exited with code {process.returncode}')
+                            l.log('ui', f'Command exited with code {process.returncode}')
+
+                    except Exception as e:
+                        error_msg = f'Error reading output: {str(e)}'
+                        l.log('ui', error_msg)
+                        emit('command_error', error_msg)
+                    finally:
+                        if process.stdout:
+                            process.stdout.close()
+
+                # Start output reading thread
+                output_thread = threading.Thread(target=read_output)
+                output_thread.daemon = True
+                output_thread.start()
+
+            else:
+                error_msg = f'Only python cli.py commands can be executed. Received: {command}'
+                l.log('ui', error_msg)
+                emit('command_output', error_msg)
+                emit('command_completed', {'data': 'Invalid command'})
+
+        except Exception as e:
+            error_msg = f'Error executing command: {str(e)}'
             l.log('ui', error_msg)
-            emit('command_output', error_msg)
-            emit('command_completed', {'data': 'Comando completado'})
-    except Exception as e:
-        error_msg = f'Error executing command: {str(e)}'
-        l.log('ui', error_msg)
-        emit('command_output', error_msg)
-        emit('command_completed', {'data': 'Comando completado con errores'})
+            emit('command_error', error_msg)
+            emit('command_completed', {'data': 'Command failed with errors'})
