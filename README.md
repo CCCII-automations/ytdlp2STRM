@@ -15,7 +15,7 @@
 # Linux
 * The next steps have been tested on Ubuntu 22.04 LTS. In terminal:
 ```console
-cd /opt && git clone https://github.com/fe80Grau/ytdlp2STRM.git
+cd /opt && git clone https://github.com/CCCII-automations/ytdlp2STRM.git
 ```
 * Install requierments.txt
 ```console
@@ -46,7 +46,7 @@ http://localhost:5000/
 # Windows
 * The next steps have been tested on Windows 11 Pro 22H2. Using Powershell or Windows Terminal with Administrator privileges:
 ```console
-cd C:\ProgramData; git clone https://github.com/fe80Grau/ytdlp2STRM.git;
+cd C:\ProgramData; git clone https://github.com/CCCII-automations/ytdlp2STRM.git;
 ```
 * Install requierments.txt
 ```console
