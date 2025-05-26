@@ -41,6 +41,9 @@ def main(*raw_args):
             params = ["direct"]
         if 'stream' in params:
             params = ["bridge"]
+        # NEW: Handle download parameter
+        if 'download' in params:
+            params = ["download"]
     except:
         params = None
 
@@ -55,7 +58,17 @@ def main(*raw_args):
         l.log("CLI", log_text)
 
     if params is not None:
-        eval("{}.{}.{}".format("plugins", method, "to_strm"))(*params)
+        # Handle different function calls based on parameters
+        if method == "youtube":
+            if "download" in params:
+                # Call the download function
+                eval("{}.{}.{}".format("plugins", method, "to_download"))(*params)
+            else:
+                # Call the regular STRM function
+                eval("{}.{}.{}".format("plugins", method, "to_strm"))(*params)
+        else:
+            # For other plugins, use the standard call
+            eval("{}.{}.{}".format("plugins", method, "to_strm"))(*params)
 
 
 if __name__ == "__main__":

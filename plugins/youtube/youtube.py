@@ -1,23 +1,30 @@
 #!/usr/bin/env python3
 """
-YouTube to STRM Downloader - Refactored Version
+YouTube to STRM Downloader - Enhanced Version with Full Download Support
 This script downloads YouTube videos/playlists and creates STRM files for media servers.
+Now includes ability to actually download video files locally.
 
 Usage Examples:
-    # Process all channels in config
-    python youtube_downloader.py
+    # Process all channels in config (STRM mode)
+    python youtube.py
 
-    # Process single channel
-    python youtube_downloader.py --channel "@channelname"
+    # Process single channel (STRM mode)
+    python youtube.py --channel "@channelname"
 
-    # Process playlist
-    python youtube_downloader.py --playlist "PLxxxxxxxxxxxxx"
+    # Process playlist (STRM mode)
+    python youtube.py --playlist "PLxxxxxxxxxxxxx"
 
-    # Extract audio only
-    python youtube_downloader.py --channel "extractaudio-@channelname"
+    # Extract audio only (STRM mode)
+    python youtube.py --channel "extractaudio-@channelname"
 
-    # Search by keyword
-    python youtube_downloader.py --keyword "python tutorial"
+    # Search by keyword (STRM mode)
+    python youtube.py --keyword "python tutorial"
+
+    # NEW: Download actual video files
+    python youtube.py --download-channel "@channelname"
+    python youtube.py --download-playlist "PLxxxxxxxxxxxxx"
+    python youtube.py --download-keyword "python tutorial"
+    python youtube.py --download-all  # Download all channels from config
 """
 
 import argparse
@@ -58,6 +65,7 @@ channels = c.config(config["channels_list_file"]).get_channels()
 
 # Configuration variables
 media_folder = config["strm_output_folder"]
+download_folder = config.get("strm_output_folder")  # NEW: Download folder
 days_dateafter = config["days_dateafter"]
 videos_limit = config["videos_limit"]
 
@@ -67,7 +75,7 @@ try:
     cookie_value = config["cookie_value"]
 except:
     cookies = 'cookies-from-browser'
-    cookie_value = 'chromium'  # Changed to Chromium as requested
+    cookie_value = 'chromium'
 
 source_platform = "youtube"
 host = ytdlp2strm_config['ytdlp2strm_host']
@@ -91,14 +99,15 @@ else:
 class Youtube:
     """Main YouTube processing class"""
 
-    def __init__(self, channel=None):
+    def __init__(self, channel=None, download_mode=False):
         self.channel = channel
         self.channel_url = None
         self.channel_name = None
         self.channel_description = None
         self.channel_poster = None
         self.channel_landscape = None
-        self.sleep_interval = config.get('sleep_interval', 1)  # Add sleep interval
+        self.sleep_interval = config.get('sleep_interval', 1)
+        self.download_mode = download_mode  # NEW: Flag for download mode
 
     def clean_channel_name(self, name):
         """Clean channel name: ASCII-safe, underscore-separated, normalized"""
@@ -132,7 +141,10 @@ class Youtube:
         """Create channel directory if it doesn't exist"""
         clean_name = self.clean_channel_name(self.channel_name)
         folder_name = f"{clean_name}_{channel_id}"
-        folder_path = os.path.join(media_folder, folder_name)
+
+        # Use download folder if in download mode
+        base_folder = download_folder if self.download_mode else media_folder
+        folder_path = os.path.join(base_folder, folder_name)
 
         if not os.path.exists(folder_path):
             os.makedirs(folder_path, exist_ok=True)
@@ -141,6 +153,124 @@ class Youtube:
             l.log("youtube", f"Directory already exists: {folder_path}")
 
         return folder_path, folder_name
+
+    def download_actual_video(self, video_info, folder_path):
+        """NEW: Download actual video file instead of creating STRM"""
+        video_id = video_info['id'].replace('-audio', '')
+        video_name = sanitize(video_info['title']).replace(" ", "_")
+
+        # Check if file already exists
+        existing_files = [f for f in os.listdir(folder_path) if
+                          f.startswith(video_name) and f.endswith(('.mp4', '.mkv', '.webm', '.m4a', '.mp3'))]
+        if existing_files:
+            l.log("youtube", f"Video file already exists: {existing_files[0]}")
+            return existing_files[0]
+
+        # Build download command
+        output_template = os.path.join(folder_path, f"{video_name}.%(ext)s")
+
+        if config.get("sponsorblock", False):
+            command = [
+                'yt-dlp',
+                '-f', 'bv*+ba/best' if '-audio' not in video_info['id'] else 'bestaudio',
+                '-o', output_template,
+                '--sponsorblock-remove', config.get('sponsorblock_cats', 'all'),
+                '--restrict-filenames',
+                '--sleep-interval', str(self.sleep_interval),
+                '--no-warnings',
+                f'https://www.youtube.com/watch?v={video_id}'
+            ]
+        else:
+            command = [
+                'yt-dlp',
+                '-f', 'bv*+ba/best' if '-audio' not in video_info['id'] else 'bestaudio',
+                '-o', output_template,
+                '--restrict-filenames',
+                '--sleep-interval', str(self.sleep_interval),
+                '--no-warnings',
+                f'https://www.youtube.com/watch?v={video_id}'
+            ]
+
+        self.set_proxy(command)
+        self.set_cookies(command)
+
+        try:
+            l.log("youtube", f"Downloading video: {video_name}")
+            result = w.Worker(command).call()
+
+            # Find the downloaded file
+            downloaded_files = [f for f in os.listdir(folder_path) if
+                                f.startswith(video_name) and f.endswith(('.mp4', '.mkv', '.webm', '.m4a', '.mp3'))]
+            if downloaded_files:
+                l.log("youtube", f"Successfully downloaded: {downloaded_files[0]}")
+                return downloaded_files[0]
+            else:
+                l.log("youtube", f"Download failed for: {video_name}")
+                return None
+
+        except Exception as e:
+            l.log("youtube", f"Error downloading video {video_name}: {str(e)}")
+            return None
+
+    def write_video_files(self, video_info, folder_path, folder_name, channel_id):
+        """Write video files - either STRM or actual download based on mode"""
+        if self.download_mode:
+            # NEW: Download actual video file
+            downloaded_file = self.download_actual_video(video_info, folder_path)
+            if not downloaded_file:
+                return
+
+            video_name = os.path.splitext(downloaded_file)[0]
+        else:
+            # Original STRM creation logic
+            video_id = video_info['id']
+            video_name = sanitize(video_info['title']).replace(" ", "_")
+
+            # Write STRM file
+            strm_path = os.path.join(folder_path, f"{video_name}.strm")
+            strm_content = f'http://{host}:{port}/{source_platform}/direct/{video_id}'
+
+            with open(strm_path, 'w', encoding='utf-8') as f:
+                f.write(strm_content)
+            l.log("youtube", f"Created STRM file: {strm_path}")
+
+        # Create NFO file (for both modes)
+        try:
+            date = datetime.strptime(video_info['upload_date'], '%Y%m%d')
+            upload_date = date.strftime('%Y-%m-%d')
+            year = date.year
+        except:
+            upload_date = datetime.now().strftime('%Y-%m-%d')
+            year = datetime.now().year
+
+        nfo_data = {
+            "item_name": video_name,
+            "title": video_name,
+            "upload_date": upload_date,
+            "year": year,
+            "plot": video_info.get('description', '').replace('\n', ' <br/>\n '),
+            "season": "1",
+            "episode": "",
+            "preview": video_info.get('thumbnail', '')
+        }
+
+        # Create NFO
+        n("episode", folder_path, nfo_data).make_nfo()
+        l.log("youtube", f"Created NFO file for: {video_name}")
+
+        if not self.download_mode:
+            # Download thumbnail only for STRM mode (video files don't need separate thumbnails)
+            self.download_thumbnail(
+                video_info['id'].replace('-audio', ''),
+                video_info.get('thumbnail'),
+                folder_path,
+                video_name
+            )
+
+        # Add sleep to prevent rate limiting
+        time.sleep(self.sleep_interval)
+
+    # ... (rest of the existing methods remain the same) ...
 
     def download_channel_poster(self, folder_path):
         """Download and save channel poster"""
@@ -227,30 +357,34 @@ class Youtube:
         """Check if files exist and update if needed"""
         video_name = sanitize(video_info['title']).replace(' ', '_')
 
-        # Check STRM file
-        strm_path = os.path.join(folder_path, f"{video_name}.strm")
+        if self.download_mode:
+            # Check for actual video files
+            existing_files = [f for f in os.listdir(folder_path) if
+                              f.startswith(video_name) and f.endswith(('.mp4', '.mkv', '.webm', '.m4a', '.mp3'))]
+            if existing_files:
+                l.log("youtube", f"Video file already exists: {existing_files[0]}")
+                return False
+        else:
+            # Check STRM file
+            strm_path = os.path.join(folder_path, f"{video_name}.strm")
+            if not os.path.exists(strm_path):
+                l.log("youtube", f"STRM file missing for {video_name}")
+                return True
 
         # Check NFO file
         nfo_path = os.path.join(folder_path, f"{video_name}.nfo")
-
-        # Check thumbnail
-        thumbnail_path = os.path.join(folder_path, f"{video_name}.jpg")
-
-        needs_update = False
-
-        if not os.path.exists(strm_path):
-            l.log("youtube", f"STRM file missing for {video_name}")
-            needs_update = True
-
         if not os.path.exists(nfo_path):
             l.log("youtube", f"NFO file missing for {video_name}")
-            needs_update = True
+            return True
 
-        if not os.path.exists(thumbnail_path):
-            l.log("youtube", f"Thumbnail missing for {video_name}")
-            self.download_thumbnail(video_id, video_info['thumbnail'], folder_path, video_name)
+        if not self.download_mode:
+            # Check thumbnail only for STRM mode
+            thumbnail_path = os.path.join(folder_path, f"{video_name}.jpg")
+            if not os.path.exists(thumbnail_path):
+                l.log("youtube", f"Thumbnail missing for {video_name}")
+                self.download_thumbnail(video_id, video_info['thumbnail'], folder_path, video_name)
 
-        return needs_update
+        return False
 
     def get_results(self):
         """Main method to get channel/playlist results"""
@@ -554,7 +688,8 @@ class Youtube:
     def get_channel_description(self):
         """Get channel description and save to file"""
         desc_filename = f"{self.clean_channel_name(self.channel_name)}_description.txt"
-        desc_path = os.path.join(media_folder, desc_filename)
+        base_folder = download_folder if self.download_mode else media_folder
+        desc_path = os.path.join(base_folder, desc_filename)
 
         command = [
             'yt-dlp',
@@ -660,54 +795,8 @@ class Youtube:
         """Add cookies to command"""
         command.extend([f'--{cookies}', cookie_value])
 
-    def write_video_files(self, video_info, folder_path, folder_name, channel_id):
-        """Write individual video files (STRM, NFO, thumbnail)"""
-        video_id = video_info['id']
-        video_name = sanitize(video_info['title']).replace(" ", "_")
 
-        # Write STRM file
-        strm_path = os.path.join(folder_path, f"{video_name}.strm")
-        strm_content = f'http://{host}:{port}/{source_platform}/direct/{video_id}'
-
-        with open(strm_path, 'w', encoding='utf-8') as f:
-            f.write(strm_content)
-        l.log("youtube", f"Created STRM file: {strm_path}")
-
-        # Write NFO file
-        try:
-            date = datetime.strptime(video_info['upload_date'], '%Y%m%d')
-            upload_date = date.strftime('%Y-%m-%d')
-            year = date.year
-        except:
-            upload_date = datetime.now().strftime('%Y-%m-%d')
-            year = datetime.now().year
-
-        nfo_data = {
-            "item_name": video_name,
-            "title": video_name,
-            "upload_date": upload_date,
-            "year": year,
-            "plot": video_info.get('description', '').replace('\n', ' <br/>\n '),
-            "season": "1",
-            "episode": "",
-            "preview": video_info.get('thumbnail', '')
-        }
-
-        # Create NFO
-        n("episode", folder_path, nfo_data).make_nfo()
-        l.log("youtube", f"Created NFO file for: {video_name}")
-
-        # Download thumbnail
-        self.download_thumbnail(
-            video_id.replace('-audio', ''),
-            video_info.get('thumbnail'),
-            folder_path,
-            video_name
-        )
-
-        # Add sleep to prevent rate limiting
-        time.sleep(self.sleep_interval)
-
+# ... (keep all the existing helper functions) ...
 
 def filter_and_modify_bandwidth(m3u8_content):
     """Filter M3U8 content for optimal bandwidth"""
@@ -779,6 +868,18 @@ def video_id_exists_in_content(media_folder, video_id):
                     pass
     return False
 
+
+def video_file_exists_in_downloads(download_folder, video_id):
+    """NEW: Check if video file exists in download folder"""
+    for root, dirs, files in os.walk(download_folder):
+        for file in files:
+            if file.endswith(('.mp4', '.mkv', '.webm', '.m4a', '.mp3')):
+                # Extract video ID from filename or check if video_id is in filename
+                if video_id in file:
+                    return os.path.join(root, file)
+    return None
+
+
 def get_free_proxy():
     """Fetch a random working proxy using free-proxy"""
     try:
@@ -788,13 +889,6 @@ def get_free_proxy():
     except Exception as e:
         l.log("youtube", f"Failed to get proxy: {e}")
         return None
-
-def set_proxy(self, command):
-    proxy_url = get_free_proxy()
-    if proxy_url:
-        command.extend(['--proxy', proxy_url])
-    else:
-        l.log("youtube", "Proceeding without proxy")
 
 
 def to_strm(method):
@@ -865,8 +959,98 @@ def to_strm(method):
             l.log("youtube", "No videos detected...")
 
 
+def to_download(method):
+    """NEW: Main function to download actual video files from channels"""
+    # Create download folder if it doesn't exist
+    os.makedirs(download_folder, exist_ok=True)
+
+    for youtube_channel in channels:
+        yt = Youtube(youtube_channel, download_mode=True)
+
+        l.log("youtube", " --------------- ")
+        l.log("youtube", f'Downloading from {youtube_channel}...')
+
+        videos = yt.get_results()
+        channel_name = yt.channel_name
+        channel_url = yt.channel_url
+        channel_description = yt.channel_description
+
+        l.log("youtube", f'Channel URL: {channel_url}')
+        l.log("youtube", f'Channel Name: {channel_name}')
+        l.log("youtube", f'Download Mode: Actual video files')
+
+        if videos:
+            l.log("youtube", f'Videos to download: {len(videos)}')
+
+            # Process first video to get channel info if needed
+            first_video = videos[0]
+            channel_id = first_video['channel_id']
+
+            # Step 1: Create channel directory in download folder
+            folder_path, folder_name = yt.create_channel_directory(channel_id)
+
+            # Step 2: Download channel poster
+            yt.download_channel_poster(folder_path)
+
+            # Step 3: Create channel NFO
+            channel_nfo_data = {
+                "title": channel_name,
+                "plot": channel_description.replace('\n', ' <br/>'),
+                "season": "1",
+                "episode": "-1",
+                "landscape": yt.channel_landscape,
+                "poster": yt.channel_poster,
+                "studio": "Youtube"
+            }
+
+            n("tvshow", folder_path, channel_nfo_data).make_nfo()
+            l.log("youtube", "Created channel NFO file")
+
+            # Step 4 & 5: Download videos one by one
+            for video in videos:
+                video_id = video['id']
+
+                # Check if video file already exists
+                existing_file = video_file_exists_in_downloads(folder_path, video_id)
+                if existing_file:
+                    l.log("youtube", f'Video file already exists: {existing_file}')
+
+                    # Check and update missing files (NFO, etc)
+                    needs_update = yt.check_and_update_existing_files(folder_path, video_id, video)
+
+                    if not needs_update:
+                        continue
+
+                # Step 6: Download actual video files
+                yt.write_video_files(video, folder_path, folder_name, channel_id)
+
+        else:
+            l.log("youtube", "No videos detected...")
+
+
+def serve_downloaded_file(video_id):
+    """NEW: Serve downloaded video files instead of streaming"""
+    # Look for the file in download folder
+    video_file_path = None
+
+    for root, dirs, files in os.walk(download_folder):
+        for file in files:
+            if video_id.replace('-audio', '') in file and file.endswith(('.mp4', '.mkv', '.webm', '.m4a', '.mp3')):
+                video_file_path = os.path.join(root, file)
+                break
+        if video_file_path:
+            break
+
+    if video_file_path and os.path.exists(video_file_path):
+        l.log("youtube", f"Serving downloaded file: {video_file_path}")
+        return send_file(video_file_path)
+    else:
+        l.log("youtube", f"Downloaded file not found for: {video_id}")
+        return "Video file not found", 404
+
+
 def direct(youtube_id, remote_addr):
-    """Direct streaming handler for YouTube videos"""
+    """Enhanced direct streaming handler - checks for downloaded files first"""
     current_time = time.time()
     cache_key = f"{remote_addr}_{youtube_id}"
 
@@ -876,6 +1060,13 @@ def direct(youtube_id, remote_addr):
         l.log("youtube", log_text)
         recent_requests[cache_key] = current_time
 
+    # NEW: Check if we have a downloaded file first
+    downloaded_file = video_file_exists_in_downloads(download_folder, youtube_id)
+    if downloaded_file:
+        l.log("youtube", f"Serving downloaded file instead of streaming: {downloaded_file}")
+        return send_file(downloaded_file)
+
+    # Original streaming logic if no downloaded file exists
     if '-audio' not in youtube_id:
         command = [
             'yt-dlp',
@@ -955,7 +1146,14 @@ def direct(youtube_id, remote_addr):
 
 
 def bridge(youtube_id):
-    """Bridge streaming handler for YouTube videos"""
+    """Enhanced bridge streaming handler - checks for downloaded files first"""
+    # NEW: Check if we have a downloaded file first
+    downloaded_file = video_file_exists_in_downloads(download_folder, youtube_id)
+    if downloaded_file:
+        l.log("youtube", f"Serving downloaded file via bridge: {downloaded_file}")
+        return send_file(downloaded_file)
+
+    # Original bridge streaming logic if no downloaded file exists
     s_youtube_id = youtube_id.split('-audio')[0]
     s_youtube_id = f'https://www.youtube.com/watch?v={s_youtube_id}'
 
@@ -1018,7 +1216,14 @@ def bridge(youtube_id):
 
 
 def download(youtube_id):
-    """Download handler for YouTube videos"""
+    """Enhanced download handler - serves existing files or downloads new ones"""
+    # Check if file already exists in downloads
+    existing_file = video_file_exists_in_downloads(download_folder, youtube_id)
+    if existing_file:
+        l.log("youtube", f"Serving existing downloaded file: {existing_file}")
+        return send_file(existing_file)
+
+    # Original download logic if file doesn't exist
     s_youtube_id = youtube_id.split('-audio')[0]
     current_dir = os.getcwd()
     temp_dir = os.path.join(current_dir, 'temp')
@@ -1069,12 +1274,13 @@ def download(youtube_id):
     return send_file(os.path.join(temp_dir, filename))
 
 
-def process_single_channel(channel_identifier):
-    """Process a single channel/playlist"""
-    yt = Youtube(channel_identifier)
+def process_single_channel(channel_identifier, download_mode=False):
+    """Process a single channel/playlist - enhanced with download mode"""
+    yt = Youtube(channel_identifier, download_mode=download_mode)
 
     l.log("youtube", " --------------- ")
-    l.log("youtube", f'Processing single channel: {channel_identifier}')
+    mode_text = "downloading" if download_mode else "processing"
+    l.log("youtube", f'Now {mode_text} single channel: {channel_identifier}')
 
     videos = yt.get_results()
 
@@ -1108,37 +1314,80 @@ def process_single_channel(channel_identifier):
     for video in videos:
         video_id = video['id']
 
-        if not video_id_exists_in_content(folder_path, video_id):
-            yt.write_video_files(video, folder_path, folder_name, channel_id)
+        if download_mode:
+            # Check if video file exists
+            existing_file = video_file_exists_in_downloads(folder_path, video_id)
+            if not existing_file:
+                yt.write_video_files(video, folder_path, folder_name, channel_id)
+            else:
+                l.log("youtube", f"Video file already exists: {existing_file}")
         else:
-            l.log("youtube", f"Video {video_id} already exists")
+            # Original STRM logic
+            if not video_id_exists_in_content(folder_path, video_id):
+                yt.write_video_files(video, folder_path, folder_name, channel_id)
+            else:
+                l.log("youtube", f"Video {video_id} already exists")
 
 
 def main():
-    """Main entry point for command line execution"""
-    parser = argparse.ArgumentParser(description='YouTube to STRM Downloader')
-    parser.add_argument('--channel', help='Process a single channel')
-    parser.add_argument('--playlist', help='Process a playlist')
-    parser.add_argument('--keyword', help='Search by keyword')
-    parser.add_argument('--audio', action='store_true', help='Extract audio only')
+    """Enhanced main entry point with download options"""
+    parser = argparse.ArgumentParser(description='YouTube to STRM/Download Processor')
+
+    # Original STRM options
+    parser.add_argument('--channel', help='Process a single channel (STRM mode)')
+    parser.add_argument('--playlist', help='Process a playlist (STRM mode)')
+    parser.add_argument('--keyword', help='Search by keyword (STRM mode)')
+    parser.add_argument('--audio', action='store_true', help='Extract audio only (STRM mode)')
+
+    # NEW: Download options
+    parser.add_argument('--download-channel', help='Download videos from a single channel')
+    parser.add_argument('--download-playlist', help='Download videos from a playlist')
+    parser.add_argument('--download-keyword', help='Download videos by keyword search')
+    parser.add_argument('--download-all', action='store_true', help='Download videos from all channels in config')
+    parser.add_argument('--download-audio', action='store_true', help='Download audio only when using download options')
 
     args = parser.parse_args()
 
-    if args.channel:
+    # NEW: Handle download options
+    if args.download_all:
+        l.log("youtube", "Starting download mode for all channels...")
+        to_download('download')
+
+    elif args.download_channel:
+        channel_id = args.download_channel
+        if args.download_audio:
+            channel_id = f"extractaudio-{channel_id}"
+        process_single_channel(channel_id, download_mode=True)
+
+    elif args.download_playlist:
+        playlist_id = f"list-{args.download_playlist}"
+        if args.download_audio:
+            playlist_id = f"extractaudio-{playlist_id}"
+        process_single_channel(playlist_id, download_mode=True)
+
+    elif args.download_keyword:
+        keyword_search = f"keyword-{args.download_keyword}"
+        process_single_channel(keyword_search, download_mode=True)
+
+    # Original STRM options
+    elif args.channel:
         channel_id = args.channel
         if args.audio:
             channel_id = f"extractaudio-{channel_id}"
         process_single_channel(channel_id)
+
     elif args.playlist:
         playlist_id = f"list-{args.playlist}"
         if args.audio:
             playlist_id = f"extractaudio-{playlist_id}"
         process_single_channel(playlist_id)
+
     elif args.keyword:
         keyword_search = f"keyword-{args.keyword}"
         process_single_channel(keyword_search)
+
     else:
-        # Process all channels from config
+        # Process all channels from config (STRM mode)
         to_strm('direct')
 
 

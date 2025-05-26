@@ -2,10 +2,10 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta content="width=device-width, initial-scale=1.0" name="viewport">
     <title>ytdlp2STRM - Modern Dashboard</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="/styles.css">
+    <link href="/styles.css" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.4.1/socket.io.js"></script>
     <style>
         /* Page-specific styles */
@@ -62,9 +62,17 @@
             background: var(--primary);
         }
 
-        .status-card:nth-child(2)::before { background: var(--success); }
-        .status-card:nth-child(3)::before { background: var(--warning); }
-        .status-card:nth-child(4)::before { background: var(--info); }
+        .status-card:nth-child(2)::before {
+            background: var(--success);
+        }
+
+        .status-card:nth-child(3)::before {
+            background: var(--warning);
+        }
+
+        .status-card:nth-child(4)::before {
+            background: var(--info);
+        }
 
         .status-card:hover {
             transform: translateY(-2px);
@@ -207,313 +215,317 @@
     </style>
 </head>
 <body>
-    <div class="container">
-        <header class="page-header">
-            <div class="header-controls">
-                <div class="theme-switcher">
-                    <select class="theme-select" aria-label="Choose theme">
-                        <option value="auto">🔄 Auto (System)</option>
-                        <option value="light">☀️ Light Mode</option>
-                        <option value="dark">🌙 Dark Mode</option>
-                    </select>
-                </div>
-                <a href="/" class="btn btn-outline-light">
-                    <i class="fas fa-home"></i> Home
-                </a>
+<div class="container">
+    <header class="page-header">
+        <div class="header-controls">
+            <div class="theme-switcher">
+                <select aria-label="Choose theme" class="theme-select">
+                    <option value="auto">🔄 Auto (System)</option>
+                    <option value="light">☀️ Light Mode</option>
+                    <option value="dark">🌙 Dark Mode</option>
+                </select>
             </div>
-            <h1>ytdlp2STRM</h1>
-            <p>Advanced YouTube Download to Stream Management</p>
-        </header>
+            <a class="btn btn-outline-light" href="/">
+                <i class="fas fa-home"></i> Home
+            </a>
+        </div>
+        <h1>ytdlp2STRM</h1>
+        <p>Advanced YouTube Download to Stream Management</p>
+    </header>
 
-        <div class="dashboard">
-            <aside class="sidebar">
-                <a href="/general" class="nav-card">
-                    <i class="fas fa-cog"></i>
-                    <h3>General Settings</h3>
-                    <p>Configure core application settings and preferences</p>
-                </a>
+    <div class="dashboard">
+        <aside class="sidebar">
+            <a class="nav-card" href="/general">
+                <i class="fas fa-cog"></i>
+                <h3>General Settings</h3>
+                <p>Configure core application settings and preferences</p>
+            </a>
 
-                <a href="/plugins" class="nav-card">
-                    <i class="fas fa-puzzle-piece"></i>
-                    <h3>Plugin Manager</h3>
-                    <p>Enable, disable and configure plugins</p>
-                </a>
+            <a class="nav-card" href="/plugins">
+                <i class="fas fa-puzzle-piece"></i>
+                <h3>Plugin Manager</h3>
+                <p>Enable, disable and configure plugins</p>
+            </a>
 
-                <a href="/crons" class="nav-card">
-                    <i class="fas fa-clock"></i>
-                    <h3>Scheduler</h3>
-                    <p>Manage automated tasks and cron jobs</p>
-                </a>
+            <a class="nav-card" href="/crons">
+                <i class="fas fa-clock"></i>
+                <h3>Scheduler</h3>
+                <p>Manage automated tasks and cron jobs</p>
+            </a>
 
-                <a href="/log" class="nav-card">
-                    <i class="fas fa-file-alt"></i>
-                    <h3>System Logs</h3>
-                    <p>View application logs and debug information</p>
-                </a>
-            </aside>
+            <a class="nav-card" href="/log">
+                <i class="fas fa-file-alt"></i>
+                <h3>System Logs</h3>
+                <p>View application logs and debug information</p>
+            </a>
+        </aside>
 
-            <main class="main-content">
-                <div class="status-grid">
-                    <div class="status-card">
-                        <div class="status-number" id="active-plugins-count">{{ plugins|selectattr("enabled")|list|length }}</div>
-                        <div class="status-label">Active Plugins</div>
+        <main class="main-content">
+            <div class="status-grid">
+                <div class="status-card">
+                    <div class="status-number" id="active-plugins-count">{{ plugins|selectattr("enabled")|list|length
+                        }}
                     </div>
-                    <div class="status-card">
-                        <div class="status-number">{{ plugins|length }}</div>
-                        <div class="status-label">Total Plugins</div>
+                    <div class="status-label">Active Plugins</div>
+                </div>
+                <div class="status-card">
+                    <div class="status-number">{{ plugins|length }}</div>
+                    <div class="status-label">Total Plugins</div>
+                </div>
+                <div class="status-card">
+                    <div class="status-number">{{ crons|length }}</div>
+                    <div class="status-label">Scheduled Jobs</div>
+                </div>
+                <div class="status-card">
+                    <div class="status-number" id="total-channels-count">
+                        {% set total_channels = 0 %}
+                        {% for plugin in plugins %}
+                        {% if plugin.channels %}
+                        {% set total_channels = total_channels + plugin.channels|length %}
+                        {% endif %}
+                        {% endfor %}
+                        {{ total_channels }}
                     </div>
-                    <div class="status-card">
-                        <div class="status-number">{{ crons|length }}</div>
-                        <div class="status-label">Scheduled Jobs</div>
-                    </div>
-                    <div class="status-card">
-                        <div class="status-number" id="total-channels-count">
-                            {% set total_channels = 0 %}
-                            {% for plugin in plugins %}
-                                {% if plugin.channels %}
-                                    {% set total_channels = total_channels + plugin.channels|length %}
-                                {% endif %}
-                            {% endfor %}
-                            {{ total_channels }}
-                        </div>
-                        <div class="status-label">Total Channels</div>
+                    <div class="status-label">Total Channels</div>
+                </div>
+            </div>
+
+            <section class="section">
+                <div class="section-header">
+                    <h2 class="section-title">
+                        <i class="fas fa-puzzle-piece"></i>
+                        Plugin Management
+                    </h2>
+                    <div>
+                        <a class="btn btn-primary" href="/plugins">
+                            <i class="fas fa-cog"></i>
+                            Advanced Settings
+                        </a>
+                        <button class="btn btn-success" id="save-plugins" style="display: none;">
+                            <i class="fas fa-save"></i>
+                            Save Changes
+                        </button>
                     </div>
                 </div>
 
-                <section class="section">
-                    <div class="section-header">
-                        <h2 class="section-title">
-                            <i class="fas fa-puzzle-piece"></i>
-                            Plugin Management
-                        </h2>
-                        <div>
-                            <a href="/plugins" class="btn btn-primary">
-                                <i class="fas fa-cog"></i>
-                                Advanced Settings
-                            </a>
-                            <button id="save-plugins" class="btn btn-success" style="display: none;">
-                                <i class="fas fa-save"></i>
-                                Save Changes
-                            </button>
-                        </div>
-                    </div>
-
-                    <div class="plugin-columns">
-                        <div class="plugin-column" id="enabled-plugins" ondrop="drop(event)" ondragover="allowDrop(event)">
-                            <h4><i class="fas fa-check-circle text-success"></i> Enabled Plugins</h4>
-                            {% for plugin in plugins %}
-                                {% if plugin.enabled %}
-                                <div class="plugin-item enabled" draggable="true" ondragstart="drag(event)" data-plugin="{{ plugin.name }}" data-enabled="true">
-                                    <div class="plugin-info">
-                                        <div class="plugin-name">{{ plugin.name|title }}</div>
-                                        <div class="plugin-status">
-                                            <span class="badge badge-success">Enabled</span>
-                                            {% if plugin.channels %}
-                                                {{ plugin.channels|length }} channels
-                                            {% endif %}
-                                        </div>
-                                    </div>
-                                    <div class="plugin-actions">
-                                        <a href="/plugin/{{ plugin.name }}" class="btn btn-primary btn-sm">
-                                            <i class="fas fa-cog"></i>
-                                            Settings
-                                        </a>
-                                        {% if plugin.channels %}
-                                        <a href="/plugin/{{ plugin.name }}/channels" class="btn btn-warning btn-sm">
-                                            <i class="fas fa-list"></i>
-                                            Channels
-                                        </a>
-                                        {% endif %}
-                                        <button class="btn btn-success btn-sm play-btn" data-plugin="{{ plugin.name }}">
-                                            <i class="fas fa-play"></i>
-                                            Run
-                                        </button>
-                                    </div>
+                <div class="plugin-columns">
+                    <div class="plugin-column" id="enabled-plugins" ondragover="allowDrop(event)" ondrop="drop(event)">
+                        <h4><i class="fas fa-check-circle text-success"></i> Enabled Plugins</h4>
+                        {% for plugin in plugins %}
+                        {% if plugin.enabled %}
+                        <div class="plugin-item enabled" data-enabled="true" data-plugin="{{ plugin.name }}"
+                             draggable="true" ondragstart="drag(event)">
+                            <div class="plugin-info">
+                                <div class="plugin-name">{{ plugin.name|title }}</div>
+                                <div class="plugin-status">
+                                    <span class="badge badge-success">Enabled</span>
+                                    {% if plugin.channels %}
+                                    {{ plugin.channels|length }} channels
+                                    {% endif %}
                                 </div>
+                            </div>
+                            <div class="plugin-actions">
+                                <a class="btn btn-primary btn-sm" href="/plugin/{{ plugin.name }}">
+                                    <i class="fas fa-cog"></i>
+                                    Settings
+                                </a>
+                                {% if plugin.channels %}
+                                <a class="btn btn-warning btn-sm" href="/plugin/{{ plugin.name }}/channels">
+                                    <i class="fas fa-list"></i>
+                                    Channels
+                                </a>
                                 {% endif %}
-                            {% endfor %}
-                        </div>
-
-                        <div class="plugin-column" id="disabled-plugins" ondrop="drop(event)" ondragover="allowDrop(event)">
-                            <h4><i class="fas fa-times-circle text-danger"></i> Disabled Plugins</h4>
-                            {% for plugin in plugins %}
-                                {% if not plugin.enabled %}
-                                <div class="plugin-item disabled" draggable="true" ondragstart="drag(event)" data-plugin="{{ plugin.name }}" data-enabled="false">
-                                    <div class="plugin-info">
-                                        <div class="plugin-name">{{ plugin.name|title }}</div>
-                                        <div class="plugin-status">
-                                            <span class="badge badge-danger">Disabled</span>
-                                            {% if plugin.channels %}
-                                                {{ plugin.channels|length }} channels
-                                            {% endif %}
-                                        </div>
-                                    </div>
-                                    <div class="plugin-actions">
-                                        <a href="/plugin/{{ plugin.name }}" class="btn btn-primary btn-sm">
-                                            <i class="fas fa-cog"></i>
-                                            Settings
-                                        </a>
-                                        {% if plugin.channels %}
-                                        <a href="/plugin/{{ plugin.name }}/channels" class="btn btn-warning btn-sm">
-                                            <i class="fas fa-list"></i>
-                                            Channels
-                                        </a>
-                                        {% endif %}
-                                    </div>
-                                </div>
-                                {% endif %}
-                            {% endfor %}
-                        </div>
-                    </div>
-                </section>
-
-                <section class="section">
-                    <div class="section-header">
-                        <h2 class="section-title">
-                            <i class="fas fa-clock"></i>
-                            Scheduled Tasks
-                        </h2>
-                        <a href="/crons" class="btn btn-primary">
-                            <i class="fas fa-plus"></i>
-                            Manage Schedule
-                        </a>
-                    </div>
-
-                    {% for cron in crons %}
-                    <div class="cron-item">
-                        <div class="cron-info">
-                            <div class="cron-name">{{ cron.do[1]|title }} - {{ cron.do[3] }}</div>
-                            <div class="cron-status">
-                                Every
-                                {% if cron.qty %}{{ cron.qty }}{% endif %}
-                                {{ cron.every }}
-                                {% if cron.at %} at {{ cron.at }}{% endif %}
-                                {% if cron.timezone %} ({{ cron.timezone }}){% endif %}
+                                <button class="btn btn-success btn-sm play-btn" data-plugin="{{ plugin.name }}">
+                                    <i class="fas fa-play"></i>
+                                    Run
+                                </button>
                             </div>
                         </div>
+                        {% endif %}
+                        {% endfor %}
                     </div>
-                    {% endfor %}
-                </section>
 
-                <div class="terminal">
-                    <div class="terminal-header">ytdlp2STRM Command Line Interface</div>
-                    <div id="terminal-content">
-                        <div>$ python3 cli.py --status</div>
-                        <div style="color: #00ff00;">✓ System operational</div>
-                        <div style="color: #00ff00;">✓ {{ plugins|length }} plugins loaded</div>
-                        <div style="color: #00ff00;">✓ {{ plugins|selectattr("enabled")|list|length }} active plugins</div>
-                        <div style="color: #ffff00;">⚠ Check logs for details</div>
-                    </div>
-                    <div class="terminal-input">
-                        <span class="terminal-prompt">$</span>
-                        <input type="text" id="command-input" placeholder="Enter command (python3 cli.py --help)" />
+                    <div class="plugin-column" id="disabled-plugins" ondragover="allowDrop(event)" ondrop="drop(event)">
+                        <h4><i class="fas fa-times-circle text-danger"></i> Disabled Plugins</h4>
+                        {% for plugin in plugins %}
+                        {% if not plugin.enabled %}
+                        <div class="plugin-item disabled" data-enabled="false" data-plugin="{{ plugin.name }}"
+                             draggable="true" ondragstart="drag(event)">
+                            <div class="plugin-info">
+                                <div class="plugin-name">{{ plugin.name|title }}</div>
+                                <div class="plugin-status">
+                                    <span class="badge badge-danger">Disabled</span>
+                                    {% if plugin.channels %}
+                                    {{ plugin.channels|length }} channels
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="plugin-actions">
+                                <a class="btn btn-primary btn-sm" href="/plugin/{{ plugin.name }}">
+                                    <i class="fas fa-cog"></i>
+                                    Settings
+                                </a>
+                                {% if plugin.channels %}
+                                <a class="btn btn-warning btn-sm" href="/plugin/{{ plugin.name }}/channels">
+                                    <i class="fas fa-list"></i>
+                                    Channels
+                                </a>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% endif %}
+                        {% endfor %}
                     </div>
                 </div>
-            </main>
-        </div>
+            </section>
 
-        {% include 'footer.html' %}
+            <section class="section">
+                <div class="section-header">
+                    <h2 class="section-title">
+                        <i class="fas fa-clock"></i>
+                        Scheduled Tasks
+                    </h2>
+                    <a class="btn btn-primary" href="/crons">
+                        <i class="fas fa-plus"></i>
+                        Manage Schedule
+                    </a>
+                </div>
+
+                {% for cron in crons %}
+                <div class="cron-item">
+                    <div class="cron-info">
+                        <div class="cron-name">{{ cron.do[1]|title }} - {{ cron.do[3] }}</div>
+                        <div class="cron-status">
+                            Every
+                            {% if cron.qty %}{{ cron.qty }}{% endif %}
+                            {{ cron.every }}
+                            {% if cron.at %} at {{ cron.at }}{% endif %}
+                            {% if cron.timezone %} ({{ cron.timezone }}){% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </section>
+
+            <div class="terminal">
+                <div class="terminal-header">ytdlp2STRM Command Line Interface</div>
+                <div id="terminal-content">
+                    <div>$ python3 cli.py --status</div>
+                    <div style="color: #00ff00;">✓ System operational</div>
+                    <div style="color: #00ff00;">✓ {{ plugins|length }} plugins loaded</div>
+                    <div style="color: #00ff00;">✓ {{ plugins|selectattr("enabled")|list|length }} active plugins</div>
+                    <div style="color: #ffff00;">⚠ Check logs for details</div>
+                </div>
+                <div class="terminal-input">
+                    <span class="terminal-prompt">$</span>
+                    <input id="command-input" placeholder="Enter command (python3 cli.py --help)" type="text"/>
+                </div>
+            </div>
+        </main>
     </div>
 
-    <script src="/theme-manager.js"></script>
-    <script>
-        // Socket.IO connection for real-time updates
-        const socket = io();
+    {% include 'footer.html' %}
+</div>
 
-        let pluginChanges = [];
-        let hasChanges = false;
+<script src="/theme-manager.js"></script>
+<script>
+    // Socket.IO connection for real-time updates
+    const socket = io();
 
-        // Drag and Drop functionality
-        function allowDrop(ev) {
-            ev.preventDefault();
-            ev.currentTarget.classList.add('drag-over');
-        }
+    let pluginChanges = [];
+    let hasChanges = false;
 
-        function drag(ev) {
-            ev.dataTransfer.setData("text", ev.target.getAttribute('data-plugin'));
-            ev.dataTransfer.setData("enabled", ev.target.getAttribute('data-enabled'));
-            ev.target.classList.add('dragging');
-        }
+    // Drag and Drop functionality
+    function allowDrop(ev) {
+        ev.preventDefault();
+        ev.currentTarget.classList.add('drag-over');
+    }
 
-        function drop(ev) {
-            ev.preventDefault();
-            ev.currentTarget.classList.remove('drag-over');
+    function drag(ev) {
+        ev.dataTransfer.setData("text", ev.target.getAttribute('data-plugin'));
+        ev.dataTransfer.setData("enabled", ev.target.getAttribute('data-enabled'));
+        ev.target.classList.add('dragging');
+    }
 
-            const pluginName = ev.dataTransfer.getData("text");
-            const wasEnabled = ev.dataTransfer.getData("enabled") === 'true';
-            const targetColumn = ev.currentTarget.id;
-            const shouldBeEnabled = targetColumn === 'enabled-plugins';
+    function drop(ev) {
+        ev.preventDefault();
+        ev.currentTarget.classList.remove('drag-over');
 
-            // Find the dragged element
-            const draggedElement = document.querySelector(`[data-plugin="${pluginName}"]`);
-            draggedElement.classList.remove('dragging');
+        const pluginName = ev.dataTransfer.getData("text");
+        const wasEnabled = ev.dataTransfer.getData("enabled") === 'true';
+        const targetColumn = ev.currentTarget.id;
+        const shouldBeEnabled = targetColumn === 'enabled-plugins';
 
-            // Only proceed if there's actually a change
-            if (wasEnabled !== shouldBeEnabled) {
-                // Move the element to the target column
-                ev.currentTarget.appendChild(draggedElement);
+        // Find the dragged element
+        const draggedElement = document.querySelector(`[data-plugin="${pluginName}"]`);
+        draggedElement.classList.remove('dragging');
 
-                // Update the element's appearance and data
-                draggedElement.setAttribute('data-enabled', shouldBeEnabled);
-                const badge = draggedElement.querySelector('.badge');
-                const runButton = draggedElement.querySelector('.play-btn');
+        // Only proceed if there's actually a change
+        if (wasEnabled !== shouldBeEnabled) {
+            // Move the element to the target column
+            ev.currentTarget.appendChild(draggedElement);
 
-                if (shouldBeEnabled) {
-                    draggedElement.classList.remove('disabled');
-                    draggedElement.classList.add('enabled');
-                    badge.classList.remove('badge-danger');
-                    badge.classList.add('badge-success');
-                    badge.textContent = 'Enabled';
-                    if (runButton) {
-                        runButton.style.display = 'inline-flex';
-                    }
-                } else {
-                    draggedElement.classList.remove('enabled');
-                    draggedElement.classList.add('disabled');
-                    badge.classList.remove('badge-success');
-                    badge.classList.add('badge-danger');
-                    badge.textContent = 'Disabled';
-                    if (runButton) {
-                        runButton.style.display = 'none';
-                    }
+            // Update the element's appearance and data
+            draggedElement.setAttribute('data-enabled', shouldBeEnabled);
+            const badge = draggedElement.querySelector('.badge');
+            const runButton = draggedElement.querySelector('.play-btn');
+
+            if (shouldBeEnabled) {
+                draggedElement.classList.remove('disabled');
+                draggedElement.classList.add('enabled');
+                badge.classList.remove('badge-danger');
+                badge.classList.add('badge-success');
+                badge.textContent = 'Enabled';
+                if (runButton) {
+                    runButton.style.display = 'inline-flex';
                 }
-
-                // Track the change
-                const existingChange = pluginChanges.find(change => change.name === pluginName);
-                if (existingChange) {
-                    existingChange.enabled = shouldBeEnabled;
-                } else {
-                    pluginChanges.push({ name: pluginName, enabled: shouldBeEnabled });
+            } else {
+                draggedElement.classList.remove('enabled');
+                draggedElement.classList.add('disabled');
+                badge.classList.remove('badge-success');
+                badge.classList.add('badge-danger');
+                badge.textContent = 'Disabled';
+                if (runButton) {
+                    runButton.style.display = 'none';
                 }
-
-                hasChanges = true;
-                document.getElementById('save-plugins').style.display = 'inline-flex';
-                updateStatusCounts();
             }
+
+            // Track the change
+            const existingChange = pluginChanges.find(change => change.name === pluginName);
+            if (existingChange) {
+                existingChange.enabled = shouldBeEnabled;
+            } else {
+                pluginChanges.push({name: pluginName, enabled: shouldBeEnabled});
+            }
+
+            hasChanges = true;
+            document.getElementById('save-plugins').style.display = 'inline-flex';
+            updateStatusCounts();
         }
+    }
 
-        // Remove drag-over class when dragging leaves
-        document.addEventListener('dragleave', function(e) {
-            if (e.target.classList.contains('plugin-column')) {
-                e.target.classList.remove('drag-over');
-            }
-        });
+    // Remove drag-over class when dragging leaves
+    document.addEventListener('dragleave', function (e) {
+        if (e.target.classList.contains('plugin-column')) {
+            e.target.classList.remove('drag-over');
+        }
+    });
 
-        // Save plugin changes
-        document.getElementById('save-plugins').addEventListener('click', function() {
-            if (!hasChanges) return;
+    // Save plugin changes
+    document.getElementById('save-plugins').addEventListener('click', function () {
+        if (!hasChanges) return;
 
-            this.innerHTML = '<span class="spinner"></span> Saving...';
-            this.disabled = true;
+        this.innerHTML = '<span class="spinner"></span> Saving...';
+        this.disabled = true;
 
-            // Send changes to backend
-            fetch('/api/update-plugins', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ changes: pluginChanges })
-            })
+        // Send changes to backend
+        fetch('/api/update-plugins', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({changes: pluginChanges})
+        })
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
@@ -541,139 +553,184 @@
                     this.disabled = false;
                 }, 2000);
             });
-        });
+    });
 
-        // Update status counts
-        function updateStatusCounts() {
-            const enabledCount = document.querySelectorAll('#enabled-plugins .plugin-item').length;
-            const totalChannels = Array.from(document.querySelectorAll('.plugin-item')).reduce((total, item) => {
-                const channelsText = item.querySelector('.plugin-status').textContent;
-                const match = channelsText.match(/(\d+) channels/);
-                return total + (match ? parseInt(match[1]) : 0);
-            }, 0);
+    // Update status counts
+    function updateStatusCounts() {
+        const enabledCount = document.querySelectorAll('#enabled-plugins .plugin-item').length;
+        const totalChannels = Array.from(document.querySelectorAll('.plugin-item')).reduce((total, item) => {
+            const channelsText = item.querySelector('.plugin-status').textContent;
+            const match = channelsText.match(/(\d+) channels/);
+            return total + (match ? parseInt(match[1]) : 0);
+        }, 0);
 
-            document.getElementById('active-plugins-count').textContent = enabledCount;
-            document.getElementById('total-channels-count').textContent = totalChannels;
-        }
+        document.getElementById('active-plugins-count').textContent = enabledCount;
+        document.getElementById('total-channels-count').textContent = totalChannels;
+    }
 
-        // Handle plugin run buttons
-        document.querySelectorAll('.play-btn').forEach(btn => {
-            btn.addEventListener('click', function(e) {
-                e.preventDefault();
-                e.stopPropagation();
+    // Handle plugin run buttons
+    document.querySelectorAll('.play-btn').forEach(btn => {
+        btn.addEventListener('click', function (e) {
+            e.preventDefault();
+            e.stopPropagation();
 
-                const plugin = this.dataset.plugin;
-                const originalText = this.innerHTML;
+            const plugin = this.dataset.plugin;
+            const originalText = this.innerHTML;
 
-                this.innerHTML = '<span class="spinner"></span> Running...';
-                this.disabled = true;
+            this.innerHTML = '<span class="spinner"></span> Running...';
+            this.disabled = true;
 
-                // Execute command via Socket.IO
-                socket.emit('execute_command', `python3 cli.py --media ${plugin}`);
-
-                // Reset button after timeout
-                setTimeout(() => {
-                    this.innerHTML = '<i class="fas fa-check"></i> Complete';
-                    this.classList.remove('btn-success');
-                    this.classList.add('btn-success');
-
-                    setTimeout(() => {
-                        this.innerHTML = originalText;
-                        this.disabled = false;
-                    }, 2000);
-                }, 3000);
-            });
-        });
-
-        // Terminal command input
-        document.getElementById('command-input').addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                const command = this.value.trim();
-                if (command) {
-                    // Add command to terminal
-                    const terminalContent = document.getElementById('terminal-content');
-                    const commandLine = document.createElement('div');
-                    commandLine.innerHTML = `$ ${command}`;
-                    terminalContent.appendChild(commandLine);
-
-                    // Execute command
-                    socket.emit('execute_command', command);
-
-                    // Clear input
-                    this.value = '';
-
-                    // Scroll to bottom
-                    document.querySelector('.terminal').scrollTop = document.querySelector('.terminal').scrollHeight;
-                }
+            // Determine the command based on plugin type
+            let command;
+            if (plugin === 'youtube') {
+                // You can add a data attribute to specify download vs strm mode
+                const downloadMode = this.dataset.downloadMode === 'true';
+                const param = downloadMode ? 'download' : 'direct';
+                command = `python3 cli.py --media ${plugin} --params ${param}`;
+            } else {
+                // For other plugins, use default behavior
+                command = `python3 cli.py --media ${plugin} --params direct`;
             }
+
+            console.log('Executing command:', command);
+
+            // Execute command via Socket.IO
+            socket.emit('execute_command', command);
+
+            // Reset button after timeout
+            setTimeout(() => {
+                this.innerHTML = '<i class="fas fa-check"></i> Complete';
+                this.classList.remove('btn-success');
+                this.classList.add('btn-info');
+
+                setTimeout(() => {
+                    this.innerHTML = originalText;
+                    this.classList.remove('btn-info');
+                    this.classList.add('btn-success');
+                    this.disabled = false;
+                }, 2000);
+            }, 5000); // Increased timeout as downloads might take longer
+        });
+    });
+
+    // Enhanced terminal command input with better error handling
+    document.getElementById('command-input').addEventListener('keypress', function (e) {
+        if (e.key === 'Enter') {
+            const command = this.value.trim();
+            if (command) {
+                // Validate command format
+                if (!command.startsWith('python3 cli.py') && !command.startsWith('python cli.py')) {
+                    const terminalContent = document.getElementById('terminal-content');
+                    const errorLine = document.createElement('div');
+                    errorLine.innerHTML = '<span style="color: #ff0000;">Error: Only python cli.py commands are allowed</span>';
+                    terminalContent.appendChild(errorLine);
+                    this.value = '';
+                    return;
+                }
+
+                // Add command to terminal
+                const terminalContent = document.getElementById('terminal-content');
+                const commandLine = document.createElement('div');
+                commandLine.innerHTML = `$ ${command}`;
+                terminalContent.appendChild(commandLine);
+
+                // Execute command
+                console.log('Manual command execution:', command);
+                socket.emit('execute_command', command);
+
+                // Clear input
+                this.value = '';
+
+                // Scroll to bottom
+                document.querySelector('.terminal').scrollTop = document.querySelector('.terminal').scrollHeight;
+            }
+        }
+    });
+    // Enhanced socket handlers with better logging
+    socket.on('command_output', function (output) {
+        console.log('Command output received:', output);
+        const terminalContent = document.getElementById('terminal-content');
+        const newLine = document.createElement('div');
+        newLine.textContent = output;
+        newLine.style.color = '#00ff00';
+        terminalContent.appendChild(newLine);
+
+        // Keep terminal scrolled to bottom
+        document.querySelector('.terminal').scrollTop = document.querySelector('.terminal').scrollHeight;
+    });
+
+    socket.on('command_completed', function (data) {
+        console.log('Command completed:', data);
+        const terminalContent = document.getElementById('terminal-content');
+        const completedLine = document.createElement('div');
+        completedLine.innerHTML = '<span style="color: #ffff00;">✓ Command completed successfully</span>';
+        terminalContent.appendChild(completedLine);
+
+        // Scroll to bottom
+        document.querySelector('.terminal').scrollTop = document.querySelector('.terminal').scrollHeight;
+    });
+
+    ocket.on('command_error', function (error) {
+        console.error('Command error received:', error);
+        const terminalContent = document.getElementById('terminal-content');
+        const errorLine = document.createElement('div');
+        errorLine.innerHTML = `<span style="color: #ff0000;">✗ Error: ${error}</span>`;
+        terminalContent.appendChild(errorLine);
+
+        // Scroll to bottom
+        document.querySelector('.terminal').scrollTop = document.querySelector('.terminal').scrollHeight;
+    });
+    // Debug connection status
+    socket.on('connect', function () {
+        console.log('Socket.IO connected successfully');
+        const terminalContent = document.getElementById('terminal-content');
+        const connectionLine = document.createElement('div');
+        connectionLine.innerHTML = '<span style="color: #00ff00;">✓ Connected to server</span>';
+        terminalContent.appendChild(connectionLine);
+    });
+
+    socket.on('disconnect', function () {
+        console.log('Socket.IO disconnected');
+        const terminalContent = document.getElementById('terminal-content');
+        const disconnectionLine = document.createElement('div');
+        disconnectionLine.innerHTML = '<span style="color: #ff0000;">✗ Disconnected from server</span>';
+        terminalContent.appendChild(disconnectionLine);
+    });
+
+    // Add some interactive animations
+    document.querySelectorAll('.nav-card').forEach(card => {
+        card.addEventListener('mouseenter', function () {
+            this.style.transform = 'translateY(-8px) scale(1.02)';
         });
 
-        // Socket.IO event handlers
-        socket.on('command_output', function(output) {
-            const terminalContent = document.getElementById('terminal-content');
-            const newLine = document.createElement('div');
-            newLine.textContent = output;
-            newLine.style.color = '#00ff00';
-            terminalContent.appendChild(newLine);
-
-            // Keep terminal scrolled to bottom
-            document.querySelector('.terminal').scrollTop = document.querySelector('.terminal').scrollHeight;
+        card.addEventListener('mouseleave', function () {
+            this.style.transform = 'translateY(0) scale(1)';
         });
+    });
 
-        socket.on('command_completed', function(data) {
-            const terminalContent = document.getElementById('terminal-content');
-            const completedLine = document.createElement('div');
-            completedLine.innerHTML = '<span style="color: #ffff00;">Command completed</span>';
-            terminalContent.appendChild(completedLine);
+    // Auto-refresh status every 30 seconds
+    setInterval(() => {
+        // In a real implementation, this would fetch actual data
+        fetch('/api/status')
+            .then(response => response.json())
+            .then(data => {
+                // Update status if needed
+                console.log('Status refreshed:', data);
+            })
+            .catch(error => console.log('Status refresh failed:', error));
+    }, 30000);
 
-            // Scroll to bottom
-            document.querySelector('.terminal').scrollTop = document.querySelector('.terminal').scrollHeight;
-        });
+    // Initialize drag and drop
+    document.addEventListener('DOMContentLoaded', function () {
+        console.log('Dashboard initialized');
+        updateStatusCounts();
+    });
 
-        socket.on('command_error', function(error) {
-            const terminalContent = document.getElementById('terminal-content');
-            const errorLine = document.createElement('div');
-            errorLine.innerHTML = `<span style="color: #ff0000;">Error: ${error}</span>`;
-            terminalContent.appendChild(errorLine);
-
-            // Scroll to bottom
-            document.querySelector('.terminal').scrollTop = document.querySelector('.terminal').scrollHeight;
-        });
-
-        // Add some interactive animations
-        document.querySelectorAll('.nav-card').forEach(card => {
-            card.addEventListener('mouseenter', function() {
-                this.style.transform = 'translateY(-8px) scale(1.02)';
-            });
-
-            card.addEventListener('mouseleave', function() {
-                this.style.transform = 'translateY(0) scale(1)';
-            });
-        });
-
-        // Auto-refresh status every 30 seconds
-        setInterval(() => {
-            // In a real implementation, this would fetch actual data
-            fetch('/api/status')
-                .then(response => response.json())
-                .then(data => {
-                    // Update status if needed
-                    console.log('Status refreshed:', data);
-                })
-                .catch(error => console.log('Status refresh failed:', error));
-        }, 30000);
-
-        // Initialize drag and drop
-        document.addEventListener('DOMContentLoaded', function() {
-            console.log('Dashboard initialized');
-            updateStatusCounts();
-        });
-
-        // Listen for theme changes to update terminal colors if needed
-        window.addEventListener('themechange', function(e) {
-            console.log('Theme changed to:', e.detail.effectiveTheme);
-            // You can add theme-specific logic here
-        });
-    </script>
+    // Listen for theme changes to update terminal colors if needed
+    window.addEventListener('themechange', function (e) {
+        console.log('Theme changed to:', e.detail.effectiveTheme);
+        // You can add theme-specific logic here
+    });
+</script>
 </body>
 </html>
