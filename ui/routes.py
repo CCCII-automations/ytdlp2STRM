@@ -921,3 +921,15 @@ def handle_command(command):
 
     # Execute the command
     _ui.handle_command(command)
+
+@app.route('/test-socketio')
+def test_socketio():
+    return '''
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.4.1/socket.io.js"></script>
+    <script>
+    const socket = io();
+    socket.on('connect', () => console.log('Connected!'));
+    socket.emit('execute_command', 'python3 cli.py --media youtube --params download');
+    </script>
+    <h1>Check browser console</h1>
+    '''

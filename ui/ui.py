@@ -257,6 +257,17 @@ class Ui:
         """
         Safely emit to Flask-SocketIO only if we're in a request context
         """
+        # Try to get the socketio instance from the main module
+        try:
+            import __main__
+            if hasattr(__main__, 'socketio'):
+                socketio = __main__.socketio
+                socketio.emit(event, data)
+                return
+        except:
+            pass
+
+        # Fallback to Flask context check
         if FLASK_AVAILABLE and has_request_context():
             try:
                 emit(event, data)

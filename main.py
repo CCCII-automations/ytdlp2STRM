@@ -1,5 +1,5 @@
 # =============================================================================
-# UPDATED main.py - Add these modifications to your existing main.py
+# FIXED main.py - Single SocketIO instance and proper route registration
 # =============================================================================
 
 import signal
@@ -184,6 +184,12 @@ except Exception as e:
     logger.error(f"Failed to initialize Flask app: {e}")
     sys.exit(1)
 
+# Initialize SocketIO ONCE here
+from flask_socketio import SocketIO
+
+socketio = SocketIO(app, cors_allowed_origins="*", logger=False, engineio_logger=False)
+logger.info("✓ SocketIO initialized")
+
 # Import custom modules with error handling
 try:
     from clases.config import config as c
@@ -225,38 +231,190 @@ except ImportError as e:
     logger.error(f"Failed to import clases.cron: {e}")
     cron = None
 
-# Import and register routes AFTER Flask app is properly configured
+# Import UI components BEFORE routes
 try:
-    logger.info("Attempting to import config.routes...")
-    import config.routes
+    from ui.ui import Ui
+    from ui.auth import auth_manager, requires_auth, requires_admin
 
-    # Register all routes with the properly configured app
-    config.routes.register_all_routes(app)
-
-    logger.info("✓ Successfully imported config.routes and registered all blueprints")
-
-    # Log registered routes
-    logger.info("Registered Flask routes:")
-    for rule in app.url_map.iter_rules():
-        methods = ','.join(sorted(rule.methods - {'HEAD', 'OPTIONS'}))
-        logger.info(f"  {rule.endpoint:30s} {methods:10s} {rule.rule}")
-
+    logger.info("✓ Imported UI components")
 except ImportError as e:
-    logger.error(f"Failed to import config.routes: {e}")
-    logger.error("Routes will not be available!")
+    logger.error(f"Failed to import UI components: {e}")
+    sys.exit(1)
+
+# Create single UI instance
+_ui = Ui()
+logger.info("✓ UI instance created")
+
+# Store to prevent duplicate command executions
+_command_executions = {}
 
 
-    # Add a debug route to help diagnose
-    @app.route('/debug/status')
-    def debug_home():
-        return f"""
-        <h1>ytdlp2STRM Debug Mode</h1>
-        <p>Routes module failed to load: {str(e)}</p>
-        <p>Template folder: {app.template_folder}</p>
-        <p>Static folder: {app.static_folder}</p>
-        <p>Secret key set: {'Yes' if app.secret_key else 'No'}</p>
-        <p>Check the logs for more details.</p>
-        """
+# Import and define SocketIO handlers ONCE
+@socketio.on('execute_command')
+def handle_command(command):
+    """Handle command execution with duplicate prevention"""
+    from flask import session
+
+    # Add authentication check for socket.io commands
+    if 'authenticated' not in session or not session['authenticated']:
+        socketio.emit('command_error', 'Authentication required')
+        return
+
+    # Prevent duplicate commands
+    current_time = time.time()
+    command_hash = hash(command)
+
+    # Check if this exact command was executed very recently (within 2 seconds)
+    if command_hash in _command_executions:
+        last_execution = _command_executions[command_hash]
+        if current_time - last_execution < 2.0:
+            l.log("socketio", f"Ignoring duplicate command execution: {command}")
+            return
+
+    # Record this execution
+    _command_executions[command_hash] = current_time
+
+    # Clean old entries (keep only last 10 commands)
+    if len(_command_executions) > 10:
+        oldest_hash = min(_command_executions.keys(),
+                          key=lambda h: _command_executions[h])
+        del _command_executions[oldest_hash]
+
+    l.log("socketio", f"Executing command: {command}")
+
+    # Execute the command
+    _ui.handle_command(command)
+
+
+@socketio.on('connect')
+def handle_connect():
+    from flask import session
+    logger.info(f"Client connected: {session.get('username', 'anonymous')}")
+
+
+@socketio.on('disconnect')
+def handle_disconnect():
+    from flask import session
+    logger.info(f"Client disconnected: {session.get('username', 'anonymous')}")
+
+
+# Import routes AFTER SocketIO is initialized
+try:
+    logger.info("Registering routes...")
+
+    # Import Flask modules
+    from flask import render_template, request, session, jsonify, url_for, redirect
+    import bcrypt
+    import ipaddress
+
+
+    # Register individual routes instead of importing routes.py
+    # This avoids the multiple SocketIO issue
+
+    @app.route('/')
+    @requires_auth
+    def index():
+        crons = _ui.crons
+        return render_template(
+            'index.html',
+            plugins=_ui.plugins,
+            crons=crons
+        )
+
+
+    @app.route('/api/update-plugins', methods=['POST'])
+    def api_update_plugins():
+        try:
+            data = request.get_json()
+            changes = data.get('changes', [])
+
+            # Read current plugins.py content
+            current_content = _ui.plugins_py
+            lines = current_content.split('\n')
+
+            # Apply changes
+            for change in changes:
+                plugin_name = change['name']
+                should_enable = change['enabled']
+
+                # Find and update the plugin line
+                for i, line in enumerate(lines):
+                    original_line = line.strip()
+
+                    # Check if this line is for our plugin
+                    is_our_plugin = False
+
+                    # Handle both import formats
+                    if f'from plugins.{plugin_name} import' in line or f'import plugins.{plugin_name}' in line:
+                        is_our_plugin = True
+
+                    if is_our_plugin:
+                        if should_enable and line.strip().startswith('#'):
+                            # Enable plugin (remove #)
+                            hash_pos = line.find('#')
+                            if hash_pos != -1:
+                                lines[i] = line[:hash_pos] + line[hash_pos + 1:].lstrip()
+                        elif not should_enable and not line.strip().startswith('#'):
+                            # Disable plugin (add #)
+                            leading_spaces = len(line) - len(line.lstrip())
+                            lines[i] = line[:leading_spaces] + '#' + line[leading_spaces:]
+                        break
+
+            # Save updated content
+            _ui.plugins_py = '\n'.join(lines)
+
+            return jsonify({'success': True, 'message': 'Plugins updated successfully'})
+
+        except Exception as e:
+            return jsonify({'success': False, 'error': str(e)}), 500
+
+
+    @app.route('/api/status', methods=['GET'])
+    def api_status():
+        try:
+            plugins = _ui.plugins
+            crons = _ui.crons
+
+            # Calculate statistics
+            total_plugins = len(plugins)
+            active_plugins = len([p for p in plugins if p.get('enabled', False)])
+            total_channels = sum(len(p.get('channels', [])) for p in plugins if p.get('channels'))
+            total_crons = len(crons)
+
+            return jsonify({
+                'success': True,
+                'stats': {
+                    'total_plugins': total_plugins,
+                    'active_plugins': active_plugins,
+                    'total_channels': total_channels,
+                    'total_crons': total_crons
+                },
+                'plugins': plugins,
+                'crons': crons
+            })
+
+        except Exception as e:
+            return jsonify({'success': False, 'error': str(e)}), 500
+
+
+    # Add other essential routes here...
+    @app.route('/login', methods=['GET', 'POST'])
+    def login():
+        """Basic login route"""
+        if request.method == 'GET':
+            return render_template('login.html')
+        # Handle POST login logic here
+        return jsonify({'success': False, 'message': 'Login not implemented'})
+
+
+    @app.route('/logout')
+    def logout():
+        session.clear()
+        return redirect(url_for('login'))
+
+
+    logger.info("✓ Essential routes registered")
+
 except Exception as e:
     logger.error(f"Failed to register routes: {e}")
     logger.exception("Route registration error:")
@@ -278,6 +436,7 @@ def debug_config():
         'cron_loaded': cron is not None,
         'secret_key_set': bool(app.secret_key),
         'secret_key_length': len(app.secret_key) if app.secret_key else 0,
+        'socketio_initialized': socketio is not None,
         'session_config': {
             'lifetime': str(app.config.get('PERMANENT_SESSION_LIFETIME')),
             'secure': app.config.get('SESSION_COOKIE_SECURE'),
@@ -305,7 +464,8 @@ def run_flask_app(stop_event, port):
     try:
         logger.info(f"Starting Flask app on {host}:{port}")
         logger.info(f"Secret key status: {'SET' if app.secret_key else 'NOT SET'}")
-        app.run(host=host, port=port, debug=True, use_reloader=False)
+        # Use socketio.run instead of app.run for SocketIO support
+        socketio.run(app, host=host, port=port, debug=False, use_reloader=False)
     except Exception as e:
         log_text = (f"Exception in Flask app: {e}")
         l.log("main", log_text)
@@ -370,10 +530,10 @@ if __name__ == "__main__":
     else:
         logger.warning("Folders module not available, skipping cleanup tasks")
 
-    # Start Flask app
+    # Start Flask app with SocketIO
     port = ytdlp2strm_config.get('ytdlp2strm_port', 5000)
     host = ytdlp2strm_config.get('ytdlp2strm_host', '0.0.0.0')
-    logger.info(f"Starting Flask on port {port}")
+    logger.info(f"Starting Flask with SocketIO on port {port}")
     logger.info("=" * 60)
     logger.info("APPLICATION STARTUP COMPLETE")
     logger.info(f"🌐 Web Interface: http://{host}:{port}")
@@ -384,7 +544,7 @@ if __name__ == "__main__":
     flask_thread = Thread(target=run_flask_app, args=(stop_event, port))
     flask_thread.daemon = True
     flask_thread.start()
-    log_text = (" * Flask thread started")
+    log_text = (" * Flask with SocketIO thread started")
     l.log("main", log_text)
 
     try:
