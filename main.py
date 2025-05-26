@@ -465,7 +465,7 @@ def run_flask_app(stop_event, port):
         logger.info(f"Starting Flask app on {host}:{port}")
         logger.info(f"Secret key status: {'SET' if app.secret_key else 'NOT SET'}")
         # Use socketio.run instead of app.run for SocketIO support
-        socketio.run(app, host=host, port=port, debug=False, use_reloader=False)
+        socketio.run(app, host=host, port=port, debug=False, use_reloader=False, allow_unsafe_werkzeug=True)
     except Exception as e:
         log_text = (f"Exception in Flask app: {e}")
         l.log("main", log_text)
