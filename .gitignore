@@ -18,3 +18,4 @@ downloaded_files/*
 *.db
 .DS_Store
 *.zip
+plugins/youtube/youtube_cookies\.txt
