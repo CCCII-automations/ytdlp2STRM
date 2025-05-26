@@ -1,15 +1,14 @@
 flask==2.2.3
 yt-dlp
 sanitize_filename
-beautifulsoup4
 requests[socks]
+beautifulsoup4
 requests_html
 tzlocal
 schedule
-Werkzeug==2.2.2
 pytz
 ffmpeg-python
-flask_socketio
 pillow
 watchdog
 cachetools
+free-proxy
