@@ -20,12 +20,18 @@ except ImportError:
     has_request_context = lambda: False
     emit = lambda *args, **kwargs: None
 
+from typing import Optional
+try:
+    from flask_socketio import SocketIO
+except ImportError:
+    SocketIO = None
 
 class Ui:
-    def __init__(self):
+    def __init__(self, socketio_instance: Optional[SocketIO] = None):
         self.config_file = 'config/config.json'
         self.plugins_file = 'config/plugins.py'
         self.crons_file = 'config/crons.json'
+        self.socketio = socketio_instance   # type: ignore  # Store socketio instance
 
     @property
     def general_settings(self):
@@ -255,28 +261,31 @@ class Ui:
 
     def safe_emit(self, event, data):
         """
-        Safely emit to Flask-SocketIO only if we're in a request context
+        Safely emit to Flask-SocketIO
         """
-        # Try to get the socketio instance from the main module
-        try:
-            import __main__
-            if hasattr(__main__, 'socketio'):
-                socketio = __main__.socketio
-                socketio.emit(event, data)
-                return
-        except:
-            pass
-
-        # Fallback to Flask context check
-        if FLASK_AVAILABLE and has_request_context():
+        if self.socketio:
             try:
-                emit(event, data)
-            except RuntimeError as e:
-                # Log the error but don't fail
-                l.log('ui', f'Cannot emit {event}: {str(e)}')
+                self.socketio.emit(event, data)
+                l.log('ui', f'✓ Emitted {event}: {data}')
+                return True
+            except Exception as e:
+                l.log('ui', f'❌ Error emitting {event}: {str(e)}')
+                return False
         else:
-            # Just log the message if we can't emit
-            l.log('ui', f'Would emit {event}: {data}')
+            # Fallback - try to get socketio from main module
+            try:
+                import __main__
+                if hasattr(__main__, 'socketio'):
+                    socketio = __main__.socketio
+                    socketio.emit(event, data)
+                    l.log('ui', f'✓ Emitted via main {event}: {data}')
+                    return True
+            except Exception as e:
+                l.log('ui', f'❌ Error accessing socketio from main: {str(e)}')
+
+        # Final fallback - just log the message
+        l.log('ui', f'📝 Would emit {event}: {data}')
+        return False
 
     def handle_command(self, command):
         """

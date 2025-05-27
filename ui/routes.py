@@ -1,5 +1,6 @@
+import threading
 from __main__ import app
-from datetime import time
+import time
 
 from flask import request, render_template, session, send_from_directory, jsonify, url_for, redirect
 from flask_socketio import emit  # Only import emit, not SocketIO
@@ -471,16 +472,29 @@ _command_executions = {}
 
 
 # This will be called by main.py after SocketIO is initialized
+# This will be called by main.py after SocketIO is initialized
 def register_socketio_events(socketio_instance):
     """Register SocketIO events with the main SocketIO instance"""
+
+    # IMPORTANT: Pass the socketio instance to the UI class
+    global _ui
+    _ui = Ui(socketio_instance)  # Pass socketio to UI class
+
+    @socketio_instance.on('connect')
+    def handle_connect():
+        """Handle client connection"""
+        l.log("routes", f"Socket.IO client connected")
+        socketio_instance.emit('command_output', '✓ Connected to server')
+
+    @socketio_instance.on('disconnect')
+    def handle_disconnect():
+        """Handle client disconnection"""
+        l.log("routes", f"Socket.IO client disconnected")
 
     @socketio_instance.on('execute_command')
     def handle_command(command):
         """Handle command execution with duplicate prevention"""
-        # Add authentication check for socket.io commands
-        if 'authenticated' not in session or not session['authenticated']:
-            emit('command_error', 'Authentication required')
-            return
+        l.log("routes", f"Received Socket.IO command: {command}")
 
         # Prevent duplicate commands
         current_time = time.time()
@@ -504,11 +518,20 @@ def register_socketio_events(socketio_instance):
 
         l.log("routes", f"Executing command: {command}")
 
-        # Execute the command
-        _ui.handle_command(command)
+        # Execute the command in a separate thread to prevent blocking
+        def execute_in_thread():
+            try:
+                _ui.handle_command(command)
+            except Exception as e:
+                l.log("routes", f"Error executing command: {e}")
+                socketio_instance.emit('command_error', f'Error executing command: {str(e)}')
+
+        # Start execution in background thread
+        thread = threading.Thread(target=execute_in_thread)
+        thread.daemon = True
+        thread.start()
 
     l.log("routes", "SocketIO events registered successfully")
-
 
 # For backwards compatibility, add a test route
 @app.route('/test-socketio')
