@@ -390,16 +390,22 @@ class Youtube:
         return False
 
     def get_results(self):
-        """Main method to get channel/playlist results"""
+        """Main method to get channel/playlist results - FIXED to handle raw playlist IDs"""
         l.log("youtube", f"Processing: {self.channel}")
 
         if 'extractaudio-' in self.channel:
             islist = False
             self.channel_url = self.channel.replace('extractaudio-', '')
 
-            if 'list-' in self.channel:
+            if 'list-' in self.channel_url:
                 islist = True
-                self.channel_url = self.channel.replace('list-', '')
+                self.channel_url = self.channel_url.replace('list-', '')
+                if not 'www.youtube' in self.channel_url:
+                    self.channel_url = f'https://www.youtube.com/playlist?list={self.channel_url}'
+            # NEW: Check for raw playlist IDs in extractaudio mode
+            elif self.channel_url.startswith('PL') or self.channel_url.startswith('UU') or self.channel_url.startswith(
+                    'OL'):
+                islist = True
                 if not 'www.youtube' in self.channel_url:
                     self.channel_url = f'https://www.youtube.com/playlist?list={self.channel_url}'
             else:
@@ -429,6 +435,18 @@ class Youtube:
             self.channel_landscape = thumbs['landscape']
             return self.get_list_videos()
 
+        # NEW: Check for raw playlist IDs (YouTube playlist IDs start with PL, UU, or OL)
+        elif self.channel.startswith('PL') or self.channel.startswith('UU') or self.channel.startswith('OL'):
+            l.log("youtube", f"Detected raw playlist ID: {self.channel}")
+            self.channel_url = f'https://www.youtube.com/playlist?list={self.channel}'
+
+            self.channel_name = self.get_channel_name()
+            self.channel_description = f'Playlist {self.channel_name}'
+            thumbs = self.get_channel_images()
+            self.channel_poster = thumbs['poster']
+            self.channel_landscape = thumbs['landscape']
+            return self.get_list_videos()
+
         else:
             self.channel_url = self.channel
             if not 'www.youtube' in self.channel:
@@ -449,6 +467,7 @@ class Youtube:
             '--compat-options', 'no-youtube-unavailable-videos',
             '--playlist-start', '1',
             '--playlist-end', str(videos_limit),
+            '--sleep-interval', str(self.sleep_interval),  # Add sleep
             '--sleep-interval', str(self.sleep_interval),  # Add sleep
             '--no-warning',
             '--dump-json',
