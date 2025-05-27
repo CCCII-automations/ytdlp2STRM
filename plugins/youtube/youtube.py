@@ -392,8 +392,12 @@ class Youtube:
         return False
 
     def get_results(self):
-        """Main method to get channel/playlist results - FIXED to handle raw playlist IDs"""
+        """Main method to get channel/playlist results - Enhanced with YouTube Music support"""
         l.log("youtube", f"Processing: {self.channel}")
+
+        # NEW: Handle YouTube Music URLs
+        if self.is_youtube_music_url():
+            return self.process_youtube_music_url()
 
         if 'extractaudio-' in self.channel:
             islist = False
@@ -404,7 +408,7 @@ class Youtube:
                 self.channel_url = self.channel_url.replace('list-', '')
                 if not 'www.youtube' in self.channel_url:
                     self.channel_url = f'https://www.youtube.com/playlist?list={self.channel_url}'
-            # NEW: Check for raw playlist IDs in extractaudio mode
+            # Check for raw playlist IDs in extractaudio mode
             elif self.channel_url.startswith('PL') or self.channel_url.startswith('UU') or self.channel_url.startswith(
                     'OL'):
                 islist = True
@@ -437,7 +441,7 @@ class Youtube:
             self.channel_landscape = thumbs['landscape']
             return self.get_list_videos()
 
-        # NEW: Check for raw playlist IDs (YouTube playlist IDs start with PL, UU, or OL)
+        # Check for raw playlist IDs (YouTube playlist IDs start with PL, UU, or OL)
         elif self.channel.startswith('PL') or self.channel.startswith('UU') or self.channel.startswith('OL'):
             l.log("youtube", f"Detected raw playlist ID: {self.channel}")
             self.channel_url = f'https://www.youtube.com/playlist?list={self.channel}'
@@ -460,6 +464,244 @@ class Youtube:
             self.channel_poster = thumbs['poster']
             self.channel_landscape = thumbs['landscape']
             return self.get_channel_videos()
+
+    def is_youtube_music_url(self):
+        """NEW: Check if the URL is a YouTube Music URL"""
+        return 'music.youtube.com' in self.channel
+
+    def process_youtube_music_url(self):
+        """NEW: Process YouTube Music URLs"""
+        l.log("youtube", f"Processing YouTube Music URL: {self.channel}")
+
+        self.channel_url = self.channel
+
+        # Determine the type of YouTube Music URL
+        if '/playlist?' in self.channel:
+            l.log("youtube", "Detected YouTube Music playlist")
+            self.channel_name = self.get_channel_name()
+            self.channel_description = f'YouTube Music Playlist: {self.channel_name}'
+            thumbs = self.get_channel_images()
+            self.channel_poster = thumbs['poster']
+            self.channel_landscape = thumbs['landscape']
+            return self.get_youtube_music_playlist()
+
+        elif '/channel/' in self.channel:
+            l.log("youtube", "Detected YouTube Music channel")
+            self.channel_name = self.get_channel_name()
+            self.channel_description = self.get_channel_description()
+            thumbs = self.get_channel_images()
+            self.channel_poster = thumbs['poster']
+            self.channel_landscape = thumbs['landscape']
+            return self.get_youtube_music_channel()
+
+        elif '/search?' in self.channel:
+            l.log("youtube", "Detected YouTube Music search")
+            # Extract search query from URL
+            import urllib.parse
+            parsed_url = urllib.parse.urlparse(self.channel)
+            query_params = urllib.parse.parse_qs(parsed_url.query)
+            search_query = query_params.get('q', [''])[0]
+
+            self.channel_name = f"YouTube Music Search: {search_query}"
+            self.channel_description = f'Search results for: {search_query}'
+            self.channel_poster = None
+            self.channel_landscape = None
+            return self.get_youtube_music_search(search_query)
+
+        else:
+            l.log("youtube", "Unknown YouTube Music URL format, treating as general URL")
+            self.channel_name = self.get_channel_name()
+            self.channel_description = self.get_channel_description()
+            thumbs = self.get_channel_images()
+            self.channel_poster = thumbs['poster']
+            self.channel_landscape = thumbs['landscape']
+            return self.get_youtube_music_general()
+
+    def get_youtube_music_playlist(self):
+        """NEW: Get videos from YouTube Music playlist"""
+        command = [
+            'yt-dlp',
+            '--compat-options', 'no-youtube-channel-redirect',
+            '--compat-options', 'no-youtube-unavailable-videos',
+            '--playlist-start', '1',
+            '--playlist-end', str(videos_limit),
+            '--sleep-interval', str(self.sleep_interval),
+            '--no-warnings',
+            '--dump-json',
+            self.channel_url
+        ]
+
+        self.set_proxy(command)
+        self.set_cookies(command)
+
+        result = w.Worker(command).output()
+        videos = []
+
+        for line in result.split('\n'):
+            if line.strip():
+                try:
+                    data = json.loads(line)
+
+                    # Extract playlist ID from URL
+                    playlist_id = self.extract_playlist_id_from_url(self.channel_url)
+
+                    video = {
+                        'id': data.get('id'),
+                        'title': data.get('title'),
+                        'upload_date': data.get('upload_date'),
+                        'thumbnail': data.get('thumbnail'),
+                        'description': data.get('description'),
+                        'channel_id': playlist_id or 'youtube_music_playlist',
+                        'uploader_id': sanitize(self.channel_name or 'YouTube_Music')
+                    }
+                    videos.append(video)
+                    l.log("youtube", f"Found YouTube Music video: {video['title']}")
+                except json.JSONDecodeError:
+                    l.log("youtube", f"Error parsing JSON: {line}")
+
+        return videos
+
+    def get_youtube_music_channel(self):
+        """NEW: Get videos from YouTube Music channel"""
+        command = [
+            'yt-dlp',
+            '--compat-options', 'no-youtube-channel-redirect',
+            '--compat-options', 'no-youtube-unavailable-videos',
+            '--dateafter', f"today-{days_dateafter}days",
+            '--playlist-start', '1',
+            '--playlist-end', str(videos_limit),
+            '--sleep-interval', str(self.sleep_interval),
+            '--no-warnings',
+            '--dump-json',
+            self.channel_url
+        ]
+
+        self.set_proxy(command)
+        self.set_cookies(command)
+
+        result = w.Worker(command).output()
+        videos = []
+
+        for line in result.split('\n'):
+            if line.strip():
+                try:
+                    data = json.loads(line)
+                    video = {
+                        'id': data.get('id'),
+                        'title': data.get('title'),
+                        'upload_date': data.get('upload_date'),
+                        'thumbnail': data.get('thumbnail'),
+                        'description': data.get('description'),
+                        'channel_id': data.get('channel_id') or self.extract_channel_id_from_url(self.channel_url),
+                        'uploader_id': data.get('uploader_id') or sanitize(self.channel_name or 'YouTube_Music')
+                    }
+                    videos.append(video)
+                    l.log("youtube", f"Found YouTube Music video: {video['title']}")
+                except json.JSONDecodeError:
+                    l.log("youtube", f"Error parsing video JSON")
+
+        return videos
+
+    def get_youtube_music_search(self, search_query):
+        """NEW: Search YouTube Music by query"""
+        # Use yt-dlp's search functionality for YouTube Music
+        search_url = f"ytmsearch{videos_limit}:{search_query}"
+
+        command = [
+            'yt-dlp',
+            '--compat-options', 'no-youtube-channel-redirect',
+            '--compat-options', 'no-youtube-unavailable-videos',
+            '--sleep-interval', str(self.sleep_interval),
+            '--no-warnings',
+            '--dump-json',
+            search_url
+        ]
+
+        self.set_proxy(command)
+        self.set_cookies(command)
+
+        result = w.Worker(command).output()
+        videos = []
+
+        for line in result.split('\n'):
+            if line.strip():
+                try:
+                    data = json.loads(line)
+                    video = {
+                        'id': data.get('id'),
+                        'title': data.get('title'),
+                        'upload_date': data.get('upload_date'),
+                        'thumbnail': data.get('thumbnail'),
+                        'description': data.get('description'),
+                        'channel_id': f"ytmusic_search_{search_query.replace(' ', '_')}",
+                        'uploader_id': data.get('uploader_id') or 'YouTube_Music_Search'
+                    }
+                    videos.append(video)
+                    l.log("youtube", f"Found YouTube Music search result: {video['title']}")
+                except json.JSONDecodeError:
+                    pass
+
+        return videos
+
+    def get_youtube_music_general(self):
+        """NEW: Handle general YouTube Music URLs"""
+        command = [
+            'yt-dlp',
+            '--compat-options', 'no-youtube-channel-redirect',
+            '--compat-options', 'no-youtube-unavailable-videos',
+            '--playlist-start', '1',
+            '--playlist-end', str(videos_limit),
+            '--sleep-interval', str(self.sleep_interval),
+            '--no-warnings',
+            '--dump-json',
+            self.channel_url
+        ]
+
+        self.set_proxy(command)
+        self.set_cookies(command)
+
+        result = w.Worker(command).output()
+        videos = []
+
+        for line in result.split('\n'):
+            if line.strip():
+                try:
+                    data = json.loads(line)
+                    video = {
+                        'id': data.get('id'),
+                        'title': data.get('title'),
+                        'upload_date': data.get('upload_date'),
+                        'thumbnail': data.get('thumbnail'),
+                        'description': data.get('description'),
+                        'channel_id': data.get('channel_id') or 'youtube_music_general',
+                        'uploader_id': data.get('uploader_id') or sanitize(self.channel_name or 'YouTube_Music')
+                    }
+                    videos.append(video)
+                    l.log("youtube", f"Found YouTube Music video: {video['title']}")
+                except json.JSONDecodeError:
+                    pass
+
+        return videos
+
+    def extract_playlist_id_from_url(self, url):
+        """NEW: Extract playlist ID from YouTube Music URL"""
+        import urllib.parse
+        try:
+            parsed_url = urllib.parse.urlparse(url)
+            query_params = urllib.parse.parse_qs(parsed_url.query)
+            return query_params.get('list', [None])[0]
+        except:
+            return None
+
+    def extract_channel_id_from_url(self, url):
+        """NEW: Extract channel ID from YouTube Music URL"""
+        try:
+            # Extract channel ID from URL like /channel/UCUfYDPYsR_AVR8cvcIB_YDA
+            if '/channel/' in url:
+                return url.split('/channel/')[1].split('?')[0].split('/')[0]
+            return None
+        except:
+            return None
 
     def get_list_videos(self):
         """Get videos from playlist"""
@@ -819,9 +1061,6 @@ class Youtube:
         """Add cookies to command"""
         command.extend([f'--{cookies}', cookie_value])
 
-
-# ... (keep all the existing helper functions) ...
-
 def filter_and_modify_bandwidth(m3u8_content):
     """Filter M3U8 content for optimal bandwidth"""
     lines = m3u8_content.splitlines()
@@ -891,7 +1130,6 @@ def video_id_exists_in_content(media_folder, video_id):
                 except:
                     pass
     return False
-
 
 def video_file_exists_in_downloads(download_folder, video_id):
     """NEW: Check if video file exists in download folder"""
@@ -1143,6 +1381,19 @@ def to_download_single(channel_identifier):
 
         # Step 6: Download actual video files
         yt.write_video_files(video, folder_path, folder_name, channel_id)
+
+# NEW: Helper functions for easier YouTube Music downloads
+def download_youtube_music_playlist(playlist_url):
+    """Download videos from a YouTube Music playlist"""
+    to_download('download', [playlist_url])
+
+def download_youtube_music_channel(channel_url):
+    """Download videos from a YouTube Music channel"""
+    to_download('download', [channel_url])
+
+def download_youtube_music_search(search_url):
+    """Download videos from YouTube Music search"""
+    to_download('download', [search_url])
 
 def serve_downloaded_file(video_id):
     """NEW: Serve downloaded video files instead of streaming"""
@@ -1444,10 +1695,9 @@ def process_single_channel(channel_identifier, download_mode=False):
             else:
                 l.log("youtube", f"Video {video_id} already exists")
 
-
 def main():
-    """Enhanced main entry point with download options"""
-    parser = argparse.ArgumentParser(description='YouTube to STRM/Download Processor')
+    """Enhanced main entry point with YouTube Music support"""
+    parser = argparse.ArgumentParser(description='YouTube/YouTube Music to STRM/Download Processor')
 
     # Original STRM options
     parser.add_argument('--channel', help='Process a single channel (STRM mode)')
@@ -1455,17 +1705,36 @@ def main():
     parser.add_argument('--keyword', help='Search by keyword (STRM mode)')
     parser.add_argument('--audio', action='store_true', help='Extract audio only (STRM mode)')
 
-    # NEW: Download options
+    # Download options
     parser.add_argument('--download-channel', help='Download videos from a single channel')
     parser.add_argument('--download-playlist', help='Download videos from a playlist')
     parser.add_argument('--download-keyword', help='Download videos by keyword search')
     parser.add_argument('--download-all', action='store_true', help='Download videos from all channels in config')
+    parser.add_argument('--download', action='store_true', help='Download videos from all channels in config (alias for --download-all)')
     parser.add_argument('--download-audio', action='store_true', help='Download audio only when using download options')
+
+    # NEW: YouTube Music specific options
+    parser.add_argument('--ytmusic-playlist', help='Download from YouTube Music playlist URL')
+    parser.add_argument('--ytmusic-channel', help='Download from YouTube Music channel URL')
+    parser.add_argument('--ytmusic-search', help='Download from YouTube Music search URL')
 
     args = parser.parse_args()
 
-    # NEW: Handle download options
-    if args.download_all:
+    # NEW: Handle YouTube Music options
+    if args.ytmusic_playlist:
+        l.log("youtube", f"Starting YouTube Music playlist download: {args.ytmusic_playlist}")
+        download_youtube_music_playlist(args.ytmusic_playlist)
+
+    elif args.ytmusic_channel:
+        l.log("youtube", f"Starting YouTube Music channel download: {args.ytmusic_channel}")
+        download_youtube_music_channel(args.ytmusic_channel)
+
+    elif args.ytmusic_search:
+        l.log("youtube", f"Starting YouTube Music search download: {args.ytmusic_search}")
+        download_youtube_music_search(args.ytmusic_search)
+
+    # Handle download options (both --download and --download-all work)
+    elif args.download_all or args.download:
         l.log("youtube", "Starting download mode for all channels...")
         to_download('download')
 
@@ -1505,7 +1774,6 @@ def main():
     else:
         # Process all channels from config (STRM mode)
         to_strm('direct')
-
 
 if __name__ == "__main__":
     main()
