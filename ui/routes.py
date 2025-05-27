@@ -208,20 +208,75 @@ def get_cron_params(plugin_name):
 
 
 @app.route('/general', methods=['GET', 'POST'])
-@requires_auth  # Add this line
+@requires_auth
 def general_settings():
     result = False
     if request.method == 'POST':
         # Get form values including authentication settings
         config_data = {}
+
+        # Handle regular form fields
         for key, value in request.form.items():
-            config_data[key] = value
+            # Skip nested fields, handle them separately
+            if '[' not in key:
+                config_data[key] = value
+
+        # Handle nested security_settings structure
+        security_settings = {}
+        rate_limiting = {}
+        ip_whitelist = []
+
+        # Process nested form fields
+        for key, value in request.form.items():
+            if key.startswith('security_settings[rate_limiting]['):
+                if 'ip_whitelist' in key:
+                    # Handle array values for ip_whitelist
+                    continue  # We'll handle this separately
+                else:
+                    # Extract the field name
+                    field_name = key.split('[')[2].rstrip(']')
+                    rate_limiting[field_name] = value
+
+        # Handle IP whitelist array
+        ip_whitelist_values = request.form.getlist('security_settings[rate_limiting][ip_whitelist][]')
+        # Filter out empty values
+        ip_whitelist = [ip.strip() for ip in ip_whitelist_values if ip.strip()]
+
+        if ip_whitelist:
+            rate_limiting['ip_whitelist'] = ip_whitelist
+
+        if rate_limiting:
+            security_settings['rate_limiting'] = rate_limiting
+
+        if security_settings:
+            config_data['security_settings'] = security_settings
 
         # Handle checkbox values (convert to proper boolean)
-        checkbox_fields = ['ytdlp2strm_keep_old_strm', 'auth_enable_captcha', 'auth_log_events']
+        checkbox_fields = [
+            'ytdlp2strm_keep_old_strm', 'auth_enable_captcha', 'auth_log_events',
+            'security_settings[rate_limiting][enable_ip_whitelist]',
+            'security_settings[rate_limiting][enable_progressive_delay]'
+        ]
+
         for field in checkbox_fields:
-            if field in config_data:
-                config_data[field] = config_data[field] == 'True'
+            if field in request.form:
+                value = request.form[field] == 'True'
+                if '[' in field:
+                    # Handle nested checkbox fields
+                    if 'enable_ip_whitelist' in field:
+                        if 'security_settings' not in config_data:
+                            config_data['security_settings'] = {}
+                        if 'rate_limiting' not in config_data['security_settings']:
+                            config_data['security_settings']['rate_limiting'] = {}
+                        config_data['security_settings']['rate_limiting']['enable_ip_whitelist'] = value
+                    elif 'enable_progressive_delay' in field:
+                        if 'security_settings' not in config_data:
+                            config_data['security_settings'] = {}
+                        if 'rate_limiting' not in config_data['security_settings']:
+                            config_data['security_settings']['rate_limiting'] = {}
+                        config_data['security_settings']['rate_limiting']['enable_progressive_delay'] = value
+                else:
+                    config_data[field] = value
 
         # Convert numeric fields
         numeric_fields = [
@@ -229,10 +284,36 @@ def general_settings():
             'auth_max_attempts', 'auth_lockout_time', 'auth_captcha_threshold',
             'auth_base_delay', 'auth_session_timeout'
         ]
+
         for field in numeric_fields:
             if field in config_data:
                 try:
                     config_data[field] = int(config_data[field])
+                except ValueError:
+                    pass
+
+        # Handle nested numeric fields
+        nested_numeric_fields = [
+            ('security_settings', 'rate_limiting', 'max_delay_seconds'),
+            ('security_settings', 'rate_limiting', 'cleanup_interval')
+        ]
+
+        nested_form_fields = {
+            'security_settings[rate_limiting][max_delay_seconds]': ('security_settings', 'rate_limiting',
+                                                                    'max_delay_seconds'),
+            'security_settings[rate_limiting][cleanup_interval]': ('security_settings', 'rate_limiting',
+                                                                   'cleanup_interval')
+        }
+
+        for form_key, (section, subsection, field) in nested_form_fields.items():
+            if form_key in request.form:
+                try:
+                    value = int(request.form[form_key])
+                    if section not in config_data:
+                        config_data[section] = {}
+                    if subsection not in config_data[section]:
+                        config_data[section][subsection] = {}
+                    config_data[section][subsection][field] = value
                 except ValueError:
                     pass
 
@@ -255,7 +336,6 @@ def general_settings():
         result=result,
         request=request.method
     )
-
 
 # =============================================================================
 # ADD NEW AUTHENTICATION ROUTES

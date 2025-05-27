@@ -428,9 +428,26 @@ class AuthManager:
 
     def update_auth_config(self, new_config):
         """Update authentication configuration and reload whitelist"""
-        self.config.update(new_config)
-        if self.save_config(self.config):
-            # Reload settings
+
+        # Deep merge the new configuration with existing config
+        def deep_merge(base_dict, update_dict):
+            """Recursively merge dictionaries"""
+            for key, value in update_dict.items():
+                if key in base_dict and isinstance(base_dict[key], dict) and isinstance(value, dict):
+                    deep_merge(base_dict[key], value)
+                else:
+                    base_dict[key] = value
+
+        # Create a copy of existing config and merge new values
+        updated_config = self.config.copy()
+        deep_merge(updated_config, new_config)
+
+        # Save the updated configuration
+        if self.save_config(updated_config):
+            # Update the current config
+            self.config = updated_config
+
+            # Reload basic authentication settings
             self.max_attempts = self.config.get('auth_max_attempts', 5)
             self.lockout_time = self.config.get('auth_lockout_time', 300)
             self.captcha_threshold = self.config.get('auth_captcha_threshold', 3)
@@ -441,7 +458,7 @@ class AuthManager:
             security_settings = self.config.get('security_settings', {}).get('rate_limiting', {})
             old_whitelist_enabled = self.enable_ip_whitelist
             self.enable_ip_whitelist = security_settings.get('enable_ip_whitelist', False)
-            self.ip_whitelist_raw = security_settings.get('ip_whitelist', [])
+            self.ip_whitelist_raw = security_settings.get('ip_whitelist', ['127.0.0.1', '::1'])
             self.ip_whitelist = self.parse_ip_whitelist(self.ip_whitelist_raw)
 
             # Log whitelist changes
@@ -451,6 +468,8 @@ class AuthManager:
 
             if self.enable_ip_whitelist:
                 logger.info(f"IP whitelist updated with {len(self.ip_whitelist)} entries")
+                for ip_entry in self.ip_whitelist_raw:
+                    logger.debug(f"  - Whitelisted: {ip_entry}")
 
             return True
         return False
