@@ -964,8 +964,8 @@
             });
         });
 
-        // IP Whitelist Array Management
-        function addIPEntry() {
+        // Make all onclick functions globally accessible
+        window.addIPEntry = function() {
             const container = document.getElementById('ipWhitelistContainer');
             const newEntry = document.createElement('div');
             newEntry.className = 'input-group mb-2';
@@ -976,14 +976,13 @@
                 </button>
             `;
             container.appendChild(newEntry);
-        }
+        };
 
-        function removeIPEntry(button) {
+        window.removeIPEntry = function(button) {
             button.parentElement.remove();
-        }
+        };
 
-        // Security monitoring functions
-        async function refreshSecurityStats() {
+        window.refreshSecurityStats = async function() {
             try {
                 const response = await fetch('/api/security/status');
                 const data = await response.json();
@@ -1016,9 +1015,9 @@
             } catch (error) {
                 console.error('Failed to load security stats:', error);
             }
-        }
+        };
 
-        async function unlockIP(ip) {
+        window.unlockIP = async function(ip) {
             if (!confirm(`Unlock IP address ${ip}?`)) return;
 
             try {
@@ -1033,22 +1032,21 @@
                 const data = await response.json();
                 if (data.success) {
                     alert(`IP ${ip} unlocked successfully`);
-                    refreshSecurityStats();
+                    window.refreshSecurityStats();
                 } else {
                     alert(`Failed to unlock IP: ${data.error}`);
                 }
             } catch (error) {
                 alert('Network error occurred');
             }
-        }
+        };
 
-        async function clearAllLocks() {
+        window.clearAllLocks = async function() {
             if (!confirm('Clear all IP locks? This will unlock all currently locked IP addresses.')) return;
             alert('Feature not yet implemented');
-        }
+        };
 
-        // IP Whitelist Management Functions
-        async function loadWhitelistStatus() {
+        window.loadWhitelistStatus = async function() {
             try {
                 const response = await fetch('/api/security/whitelist');
                 const data = await response.json();
@@ -1071,15 +1069,15 @@
                 }
 
                 // Load whitelist entries
-                loadWhitelistEntries(data.whitelist, data.current_ip);
+                window.loadWhitelistEntries(data.whitelist, data.current_ip);
 
             } catch (error) {
                 console.error('Failed to load whitelist status:', error);
                 document.getElementById('whitelistStatusText').textContent = 'Error loading status';
             }
-        }
+        };
 
-        function loadWhitelistEntries(whitelist, currentIP) {
+        window.loadWhitelistEntries = function(whitelist, currentIP) {
             const container = document.getElementById('whitelistEntries');
 
             if (whitelist.length === 0) {
@@ -1106,9 +1104,9 @@
                     </div>
                 `;
             }).join('');
-        }
+        };
 
-        async function addToWhitelist() {
+        window.addToWhitelist = async function() {
             const ipInput = document.getElementById('newWhitelistIP');
             const ip = ipInput.value.trim();
 
@@ -1131,16 +1129,16 @@
                 if (data.success) {
                     alert(data.message);
                     ipInput.value = '';
-                    loadWhitelistStatus();
+                    window.loadWhitelistStatus();
                 } else {
                     alert('Error: ' + data.error);
                 }
             } catch (error) {
                 alert('Network error: ' + error.message);
             }
-        }
+        };
 
-        async function removeFromWhitelist(ip) {
+        window.removeFromWhitelist = async function(ip) {
             if (!confirm(`Remove ${ip} from whitelist?`)) return;
 
             try {
@@ -1156,16 +1154,17 @@
 
                 if (data.success) {
                     alert(data.message);
-                    loadWhitelistStatus();
+                    window.loadWhitelistStatus();
                 } else {
                     alert('Error: ' + data.error);
                 }
             } catch (error) {
                 alert('Network error: ' + error.message);
             }
-        }
+        };
 
-        async function testIP() {
+        // Make testIP function globally accessible
+        window.testIP = async function() {
             const testInput = document.getElementById('testIP');
             const ip = testInput.value.trim();
             const resultDiv = document.getElementById('testResult');
@@ -1204,18 +1203,19 @@
             } catch (error) {
                 resultDiv.innerHTML = `<div class="test-result-danger">Network error: ${error.message}</div>`;
             }
-        }
+        };
 
-        // User management functions
-        function showAddUserModal() {
+        // User management functions - make globally accessible
+        window.showAddUserModal = function() {
             document.getElementById('addUserModal').style.display = 'flex';
-        }
+        };
 
-        function hideAddUserModal() {
+        window.hideAddUserModal = function() {
             document.getElementById('addUserModal').style.display = 'none';
             document.getElementById('addUserForm').reset();
-        }
+        };
 
+        // Add user form submission handler
         document.getElementById('addUserForm').addEventListener('submit', async function(e) {
             e.preventDefault();
 
@@ -1236,7 +1236,7 @@
 
                 if (data.success) {
                     alert(data.message);
-                    hideAddUserModal();
+                    window.hideAddUserModal();
                     location.reload(); // Reload to show new user
                 } else {
                     alert('Error: ' + data.error);
@@ -1246,7 +1246,7 @@
             }
         });
 
-        async function changePassword(username, role) {
+        window.changePassword = async function(username, role) {
             const newPassword = prompt(`Enter new password for ${username}:`);
             if (newPassword) {
                 try {
@@ -1269,9 +1269,9 @@
                     alert('Network error: ' + error.message);
                 }
             }
-        }
+        };
 
-        async function removeUser(username, role) {
+        window.removeUser = async function(username, role) {
             if (confirm(`Remove user ${username}?`)) {
                 try {
                     const response = await fetch('/api/users/remove', {
@@ -1294,7 +1294,7 @@
                     alert('Network error: ' + error.message);
                 }
             }
-        }
+        };
 
         // Form validation
         document.getElementById('configForm').addEventListener('submit', function(e) {
