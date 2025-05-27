@@ -177,6 +177,7 @@ class Youtube:
                 '--restrict-filenames',
                 '--sleep-interval', str(self.sleep_interval),
                 '--no-warnings',
+                '--progress-template', 'download:%(info.id)s %(progress.percent)s%%'
                 f'https://www.youtube.com/watch?v={video_id}'
             ]
         else:
@@ -188,6 +189,7 @@ class Youtube:
                 '--sleep-interval', str(self.sleep_interval),
                 '-t', 'sleep',
                 '--no-warnings',
+                '--progress-template', 'download:%(info.id)s %(progress.percent)s%%'
                 f'https://www.youtube.com/watch?v={video_id}'
             ]
 
