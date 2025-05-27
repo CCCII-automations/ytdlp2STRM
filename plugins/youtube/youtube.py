@@ -177,6 +177,7 @@ class Youtube:
                 '--restrict-filenames',
                 '--sleep-interval', str(self.sleep_interval),
                 '--no-warnings',
+                '-t', 'sleep',
                 '--progress-template', 'download:%(info.id)s %(progress.percent)s%%'
                 f'https://www.youtube.com/watch?v={video_id}'
             ]
@@ -526,6 +527,7 @@ class Youtube:
             '--playlist-start', '1',
             '--playlist-end', str(videos_limit),
             '--sleep-interval', str(self.sleep_interval),
+            '-t', 'sleep',
             '--no-warnings',
             '--dump-json',
             self.channel_url
@@ -571,6 +573,7 @@ class Youtube:
             '--playlist-start', '1',
             '--playlist-end', str(videos_limit),
             '--sleep-interval', str(self.sleep_interval),
+            '-t', 'sleep',
             '--no-warnings',
             '--dump-json',
             self.channel_url
@@ -612,6 +615,7 @@ class Youtube:
             '--compat-options', 'no-youtube-channel-redirect',
             '--compat-options', 'no-youtube-unavailable-videos',
             '--sleep-interval', str(self.sleep_interval),
+            '-t', 'sleep',
             '--no-warnings',
             '--dump-json',
             search_url
@@ -652,6 +656,7 @@ class Youtube:
             '--playlist-start', '1',
             '--playlist-end', str(videos_limit),
             '--sleep-interval', str(self.sleep_interval),
+            '-t', 'sleep',
             '--no-warnings',
             '--dump-json',
             self.channel_url
@@ -713,6 +718,7 @@ class Youtube:
             '--playlist-end', str(videos_limit),
             '--sleep-interval', str(self.sleep_interval),  # Add sleep
             '--sleep-interval', str(self.sleep_interval),  # Add sleep
+            '-t', 'sleep',
             '--no-warning',
             '--dump-json',
             self.channel_url
